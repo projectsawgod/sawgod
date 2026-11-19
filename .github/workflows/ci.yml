@@ -1,10 +1,12 @@
 name: CI
 
-# While the repo is private, Actions minutes are limited: every change is built and tested
-# locally and every push follows the private fast verification suite, so CI runs only on demand and on version tags.
+# Every push to main and every pull request builds and tests all platforms; a v* tag (or a manual run naming one)
+# also makes the draft release.
 on:
   push:
+    branches: [main]
     tags: ['v*']
+  pull_request:
   workflow_dispatch:
     inputs:
       platforms:
@@ -23,6 +25,11 @@ on:
 
 permissions:
   contents: read
+
+# A newer push to the same pull request replaces its running checks.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
   CMAKE_BUILD_PARALLEL_LEVEL: 4
@@ -46,7 +53,6 @@ jobs:
           REQUESTED_PLATFORMS: ${{ inputs.platforms }}
         run: python3 tools/release/workflow_version.py
 
-  # Runs only on demand and on version tags (see `on:`); Windows counts 2x and macOS 10x against private minutes.
   build-test:
     needs: release-plan
     if: inputs.platforms == '' || inputs.platforms == 'all' || inputs.platforms == 'linux'
@@ -264,12 +270,13 @@ jobs:
           python -m pip install -r tools/requirements.txt
           nice python tools/release/fetch_sources.py
           python tools/release/fetch_soundfont.py
+      # The release key only signs release builds; every other build gets the public debug key.
       - name: Package Android (release variant, optional release key)
         env:
-          KEYSTORE_BASE64: ${{ secrets.SAWGOD_ANDROID_KEYSTORE_BASE64 }}
-          STORE_PASSWORD: ${{ secrets.SAWGOD_ANDROID_STORE_PASSWORD }}
-          KEY_ALIAS: ${{ secrets.SAWGOD_ANDROID_KEY_ALIAS }}
-          KEY_PASSWORD: ${{ secrets.SAWGOD_ANDROID_KEY_PASSWORD }}
+          KEYSTORE_BASE64: ${{ needs.release-plan.outputs.release == 'true' && secrets.SAWGOD_ANDROID_KEYSTORE_BASE64 || '' }}
+          STORE_PASSWORD: ${{ needs.release-plan.outputs.release == 'true' && secrets.SAWGOD_ANDROID_STORE_PASSWORD || '' }}
+          KEY_ALIAS: ${{ needs.release-plan.outputs.release == 'true' && secrets.SAWGOD_ANDROID_KEY_ALIAS || '' }}
+          KEY_PASSWORD: ${{ needs.release-plan.outputs.release == 'true' && secrets.SAWGOD_ANDROID_KEY_PASSWORD || '' }}
         run: |
           set -euo pipefail
           trap 'rm -f "$RUNNER_TEMP/sawgod-release.jks"' EXIT
