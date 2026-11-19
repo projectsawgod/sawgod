@@ -100,7 +100,7 @@ code was copied from them: emulators were run side by side as references, and do
 - [saga1dx](https://github.com/akatsuki105/saga1dx) by akatsuki105 and
   [ffl1-color](https://github.com/gameboycolorizations/ffl1-color): Game Boy colorization projects and
   disassemblies.
-- The Game Boy *Final Fantasy Legend* bug-fix and text-restoration patch by Granz and Sarah, and *Final Fantasy
+- The *The Final Fantasy Legend* (Game Boy) bug-fix and text-restoration patch by Granz and Sarah, and *Final Fantasy
   Legend DX*.
 
 ### Inspiration
