@@ -1,6 +1,6 @@
 # What is SawGod?
 
-**魔界塔士 Sa・Ga / Final Fantasy Legend**: a decompilation and native rebuild of the 2002 WonderSwan Color remake
+**魔界塔士 Sa・Ga / The Final Fantasy Legend**: a decompilation and native rebuild of the 2002 WonderSwan Color remake
 of the 1989 Game Boy RPG, for Windows, macOS, Linux and Android.
 
 **[sawgod.ws](https://sawgod.ws)** · **[Download](https://github.com/projectsawgod/sawgod/releases/latest)** ·
