@@ -1,0 +1,116 @@
+# Index for button_icons.png (ours). x,y,w,h = the icon's cell in the sheet;
+# dx,dy = where the cell sits relative to the 9-px icon box on the text line.
+# Pixels: black = ink (WSC style adds the font's 1-px shadow down-right), grey = ink without shadow
+# (the stick arcs, against the disc), transparent = clear. Colors come from the style at draw time.
+# "char X": the 3x5 lettering, cut out of keycaps for keys without their own icon (sized to the label).
+name,x,y,w,h,dx,dy
+pad A,0,0,9,9,0,0
+pad B,10,0,9,9,0,0
+pad X,20,0,9,9,0,0
+pad Y,30,0,9,9,0,0
+PS cross,40,0,9,9,0,0
+PS circle,50,0,9,9,0,0
+PS square,0,10,9,9,0,0
+PS triangle,10,10,9,9,0,0
+Start,20,10,9,9,0,0
+Select,30,10,9,9,0,0
+Switch -,40,10,9,9,0,0
+Switch +,50,10,9,9,0,0
+L stick,0,20,9,9,0,0
+L stick up,10,20,9,10,0,-1
+L stick down,22,20,9,10,0,0
+L stick left,34,20,10,9,-1,0
+L stick right,46,20,10,9,0,0
+L3,0,32,9,9,0,0
+R stick,10,32,9,9,0,0
+R stick up,20,32,9,10,0,-1
+R stick down,32,32,9,10,0,0
+R stick left,44,32,10,9,-1,0
+R stick right,0,44,10,9,0,0
+R3,12,44,9,9,0,0
+d-pad up,22,44,9,9,0,0
+d-pad down,32,44,9,9,0,0
+d-pad left,42,44,9,9,0,0
+d-pad right,52,44,9,9,0,0
+LB,0,56,13,9,0,0
+RB,14,56,13,9,0,0
+LT,28,56,13,9,0,0
+RT,42,56,13,9,0,0
+L1,0,66,13,9,0,0
+R1,14,66,13,9,0,0
+L2,28,66,13,9,0,0
+R2,42,66,13,9,0,0
+ZL,0,76,13,9,0,0
+ZR,14,76,13,9,0,0
+Switch L,28,76,9,9,0,0
+Switch R,38,76,9,9,0,0
+WSC A,48,76,9,9,0,0
+WSC B,0,86,9,9,0,0
+WSC X1,10,86,15,9,0,0
+WSC X2,26,86,15,9,0,0
+WSC X3,42,86,15,9,0,0
+WSC X4,0,96,15,9,0,0
+WSC Y1,16,96,15,9,0,0
+WSC Y2,32,96,15,9,0,0
+WSC Y3,48,96,15,9,0,0
+WSC Y4,0,106,15,9,0,0
+WSC START,16,106,27,9,0,0
+key Enter,0,116,23,9,0,0
+key Shift,24,116,23,9,0,0
+key Space,0,126,23,9,0,0
+key Esc,24,126,15,9,0,0
+key Tab,40,126,15,9,0,0
+key Z,56,126,7,9,0,0
+key Up,0,136,7,9,0,0
+key Down,8,136,7,9,0,0
+key Left,16,136,9,9,0,0
+key Right,26,136,9,9,0,0
+char ',0,146,3,5,0,0
+char *,4,146,3,5,0,0
+char +,8,146,3,5,0,0
+"char ,",12,146,3,5,0,0
+char -,16,146,3,5,0,0
+char .,20,146,3,5,0,0
+char /,24,146,3,5,0,0
+char 0,28,146,3,5,0,0
+char 1,32,146,3,5,0,0
+char 2,36,146,3,5,0,0
+char 3,40,146,3,5,0,0
+char 4,44,146,3,5,0,0
+char 5,48,146,3,5,0,0
+char 6,52,146,3,5,0,0
+char 7,56,146,3,5,0,0
+char 8,60,146,3,5,0,0
+char 9,0,152,3,5,0,0
+char ;,4,152,3,5,0,0
+char =,8,152,3,5,0,0
+char A,12,152,3,5,0,0
+char B,16,152,3,5,0,0
+char C,20,152,3,5,0,0
+char D,24,152,3,5,0,0
+char E,28,152,3,5,0,0
+char F,32,152,3,5,0,0
+char G,36,152,3,5,0,0
+char H,40,152,3,5,0,0
+char I,44,152,3,5,0,0
+char J,48,152,3,5,0,0
+char K,52,152,3,5,0,0
+char L,56,152,3,5,0,0
+char M,60,152,3,5,0,0
+char N,0,158,3,5,0,0
+char O,4,158,3,5,0,0
+char P,8,158,3,5,0,0
+char Q,12,158,3,5,0,0
+char R,16,158,3,5,0,0
+char S,20,158,3,5,0,0
+char T,24,158,3,5,0,0
+char U,28,158,3,5,0,0
+char V,32,158,3,5,0,0
+char W,36,158,3,5,0,0
+char X,40,158,3,5,0,0
+char Y,44,158,3,5,0,0
+char Z,48,158,3,5,0,0
+char [,52,158,3,5,0,0
+char \,56,158,3,5,0,0
+char ],60,158,3,5,0,0
+char `,0,164,3,5,0,0

@@ -1,0 +1,7 @@
+7-Zip 26.01: ANSI-C decoder subset
+https://github.com/ip7z/7zip/tree/26.01/C
+
+Igor Pavlov placed these C decoder files in the public domain.
+The compiled file headers state: ": Igor Pavlov : Public domain".
+Only the decoder C sources listed in CMakeLists.txt ship in compiled form.
+No unRAR code or LGPL C++ 7-Zip implementation is included.

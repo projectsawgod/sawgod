@@ -1,0 +1,67 @@
+plugins { id 'com.android.application' }
+
+def repoRoot = rootProject.projectDir.parentFile
+def signingNames = ['SAWGOD_ANDROID_KEYSTORE', 'SAWGOD_ANDROID_STORE_PASSWORD',
+                    'SAWGOD_ANDROID_KEY_ALIAS', 'SAWGOD_ANDROID_KEY_PASSWORD']
+if (signingNames.any { System.getenv(it) } && !signingNames.every { System.getenv(it) }) {
+    throw new GradleException('Supply all four SAWGOD_ANDROID signing environment variables')
+}
+def signingStore = System.getenv('SAWGOD_ANDROID_KEYSTORE')
+def prepareSawGod = tasks.register('prepareSawGod', Exec) {
+    workingDir repoRoot
+    commandLine 'python3', new File(repoRoot, 'tools/android_prepare.py')
+}
+
+android {
+    namespace 'org.sawgod.app'
+    compileSdk 36
+    buildToolsVersion '37.0.0'
+    ndkVersion '29.0.14206865'
+    defaultConfig {
+        applicationId 'org.sawgod.app'
+        minSdk 26
+        targetSdk 36
+        versionCode 1
+        versionName((System.getenv('SAWGOD_RELEASE_VERSION') ?: '1.0').replaceFirst('^v', ''))
+        ndk { abiFilters(*(project.findProperty('sawgodAbis') ?: 'arm64-v8a').split(',')) }
+        externalNativeBuild {
+            cmake {
+                arguments "-DSAWGOD_RELEASE_VERSION=${System.getenv('SAWGOD_RELEASE_VERSION') ?: ''}",
+                    '-DANDROID_STL=c++_shared', '-DSAWGOD_BUILD_TESTS=OFF',
+                    '-DSAWGOD_DEV_SOUNDFONT=',
+                    "-DFETCHCONTENT_SOURCE_DIR_SDL3=${repoRoot}/build/deps/sdl3-src",
+                    "-DFETCHCONTENT_SOURCE_DIR_MINIZ=${repoRoot}/build/deps/miniz-src",
+                    "-DFETCHCONTENT_SOURCE_DIR_IMGUI=${repoRoot}/build/deps/imgui-src",
+                    "-DFETCHCONTENT_SOURCE_DIR_LZMA7Z=${repoRoot}/build/deps/lzma7z-src"
+                targets 'sawgod', 'SDL3-shared', 'libfluidsynth'
+                // One ABI at a time (Gradle workers=1), at most four native compiler jobs.
+            }
+        }
+    }
+    externalNativeBuild { cmake { path file('../../CMakeLists.txt'); version '4.1.2' } }
+    signingConfigs {
+        if (signingStore) {
+            release {
+                storeFile file(signingStore)
+                storePassword System.getenv('SAWGOD_ANDROID_STORE_PASSWORD')
+                keyAlias System.getenv('SAWGOD_ANDROID_KEY_ALIAS')
+                keyPassword System.getenv('SAWGOD_ANDROID_KEY_PASSWORD')
+            }
+        }
+    }
+    buildTypes {
+        debug { debuggable true }
+        release {
+            minifyEnabled false
+            signingConfig signingStore ? signingConfigs.release : signingConfigs.debug
+        }
+    }
+    sourceSets { main { assets.srcDir 'build/generated/sawgodAssets' } }
+    packaging { jniLibs { useLegacyPackaging = true } }
+}
+
+tasks.configureEach { task ->
+    if (task.name.startsWith('configureCMake') || (task.name.startsWith('merge') && task.name.endsWith('Assets'))) {
+        task.dependsOn prepareSawGod
+    }
+}

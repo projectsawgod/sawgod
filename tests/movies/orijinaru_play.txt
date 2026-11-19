@@ -1,0 +1,68 @@
+# ORIJINARU mode (Game Boy-layout remake, its own engine) playthrough for code coverage:
+# power-on -> title -> ORIJINARU -> character creation (race/class select + name entry) ->
+# walking on the first map -> one random battle fought to victory -> a tour of the main
+# menu (のうりょく/アイテム/そうび/セーブ tabs) -> save. Frames are absolute from boot
+# (reference engine, no BIOS). Frames 600-1500 (title -> select ORIJINARU) are copied verbatim from
+# tests/movies/orijinaru.txt. Everything after is new; the walk to the first battle
+# (frames 6300-7400) is RNG-sensitive (see tools/movie.py / read_movie doc comment on
+# ORIJINARU's RNG depending on subtle state), so nothing before the battle should be
+# changed without re-checking that the same battle/coverage is still reached.
+600 start*      # skip the opening text
+1200 a*         # title: PUSH ANY BUTTON
+1300 down*      # menu cursor: はじめから -> つづき
+1340 down*      # -> オリジナル
+1500 a*         # select オリジナル
+2100 a*         # ORIJINARU title: はじめから (new game) selected -> confirm
+4400 a*         # opening narration text (full page) -> advance
+4700 a*         # race/class select: cursor on 1 にんげん おとこ (human male) -> confirm
+5300 a*         # name entry (なまえ にゅうりょく): cursor on あ (top-left kana) -> type "あ"
+5360 start*     # START: finish name entry -> name = "あ"
+# party creation done -> dropped onto a GB-layout tile map (brick wall to the north, flower field south)
+6300 down       # walk down into the flower field
+6400
+6500 down
+6600
+6700 right      # try walking right along the road
+6800
+6900 right
+7000
+7100 right
+7200
+7300 up         # road turns north here; follow it -- a random battle triggers almost immediately
+7400
+# battle transition: enemy ゴブリン (Goblin) x1; command menu (たたかう/にげる) stable by ~8000
+8050 a*         # たたかう (fight) -> confirm
+8150 a*         # weapon-select submenu: cursor on ロングソード (long sword) -> confirm, attack
+8450 a*         # target select: cursor on ゴブリン (the only enemy) -> confirm, attack
+# turn 2 (command menu back ~9450, HP 48/60)
+9500 a*         # たたかう (fight) -> confirm
+9600 a*         # weapon select (ロングソード) -> confirm
+9900 a*         # target select (ゴブリン) -> confirm, attack
+# turn 3 (command menu back ~10900)
+10950 a*        # たたかう (fight) -> confirm
+11050 a*        # weapon select (ロングソード) -> confirm
+11350 a*        # target select (ゴブリン) -> confirm, attack
+# turn 3's hit finishes it off: goblin died -> victory, 40 gero gained
+13000 a*        # dismiss victory screen (40ゴロ てにいれた)
+# back in the field after the battle (HP visible top-right)
+13700 start*    # open the main menu
+13950 a*        # cursor on のうりょく (abilities) -> open
+14150 b*        # back out of abilities
+14250 right*    # -> アイテム (items)
+14310 a*        # confirm -> open アイテム (items list, empty inventory)
+14450 b*        # back out of items, to main menu list
+14550 b*        # close menu entirely, back to field
+# --- main-menu tour continues: そうび (equip) ---
+14750 start*    # reopen menu: cursor resets to のうりょく
+14810 right*    # -> アイテム
+14870 right*    # -> そうび (equip)
+14930 a*        # confirm -> open そうび (equip tab: character portrait/name/HP panel)
+# --- main-menu tour continues: セーブ (save) ---
+15400 b*        # back out of そうび, to main menu list
+15500 b*        # close menu entirely, back to field
+15600 start*    # reopen menu: cursor resets to のうりょく
+15660 down*     # -> セーブ (directly below のうりょく)
+15720 a*        # confirm -> データを かきかえます (overwrite data?) はい/いいえ, cursor on はい
+15870 a*        # confirm はい (yes) -> save completes instantly, back at main menu list
+16450 b*        # close menu entirely, back to field
+16700            # end: back in the field, tower floor 1, data saved

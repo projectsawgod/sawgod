@@ -1,0 +1,4 @@
+# Shader manifests hash file bytes; Windows checkouts must preserve the generator's LF output.
+assets/shaders/*.hlsl text eol=lf
+assets/shaders/*.manifest.json text eol=lf
+src/engine/shaders/*.generated.h text eol=lf

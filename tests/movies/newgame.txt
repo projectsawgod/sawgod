@@ -1,0 +1,63 @@
+# New game from power-on. Frames are absolute from boot (reference engine, no BIOS).
+600 start*      # skip the opening text
+1200 a*         # title: PUSH ANY BUTTON
+1500 a*         # はじめから (new game) -> prologue, then character select ("キャラクターせんたく") at ~2520
+2700 a*         # character select: cursor already on first entry (にんげん おとこ / human male) -> confirm
+2760 a*         # name entry (なまえにゅうりょく): cursor on あ (top-left kana) -> type "あ"
+2820 start*     # START: おわる (finish name entry) -> name = "あ"
+# party creation done -> dropped onto world map next to the starting town's inn (~2940)
+2960 down       # walk down, away from the inn wall (stop short of the road -> world-map warp)
+3000            # release
+3040 left       # walk along the field, looking for a random encounter
+3160            # release
+3200 right      # stepping off the town's grass patch onto the road starts a scrolling
+                # "traveling" overworld view (parallax landscape) instead of a tile map
+3320            # release
+3360 right      # keep walking the road, looking for a random battle
+# entering "大陸世界" (Continent World) put us on a proper tile-based overworld map,
+# with a tower and a walled-in meadow; walking right runs into the mountain wall (~4080)
+4100            # release
+4140 down       # follow the wall; a random battle triggers almost immediately (~4160)
+4180            # release -- battle transition starts; command menu (たたかう/にげる) is up by ~4220
+4260 a*         # cursor defaults to たたかう (fight) -> confirm
+4350 a*         # weapon-select submenu (せんとうようの けん): cursor on ロングソード (long sword) -> confirm
+4450 a*         # target select: cursor on さんしょうお (the only enemy) -> confirm, attack
+# battle message log plays out (several hits both ways); command menu returns ~5340 for turn 2
+5380 a*         # たたかう (fight) -> confirm
+5470 a*         # weapon select (ロングソード) -> confirm
+5570 a*         # target select (さんしょうお) -> confirm, attack
+# turn 3 (command menu back ~6450)
+6490 a*         # たたかう (fight) -> confirm
+6580 a*         # weapon select (ロングソード) -> confirm
+6680 a*         # target select (さんしょうお) -> confirm, attack
+# turn 4 (command menu back ~7590; salamander has a lot of HP, taking several rounds)
+7630 a*         # たたかう (fight) -> confirm
+7720 a*         # weapon select (ロングソード) -> confirm
+7820 a*         # target select (さんしょうお) -> confirm, attack
+# turn 5 (command menu back ~8710; HP has dropped to 22/60 -- watch closely from here)
+8750 a*         # たたかう (fight) -> confirm
+8840 a*         # weapon select (ロングソード) -> confirm
+8940 a*         # target select (さんしょうお) -> confirm, attack
+# turn 5's hit finishes it off: さんしょうおは しんだ (the salamander died) -> あたちの しょうり!! (our victory!!) ~9990
+# victory message waits for input
+11500 a*        # dismiss victory screen ("40ゲロ てにいれた" -- got 40 gero, the currency)
+12500 a*        # dismiss gold-gained message, back to the field (won the battle, HP 14/60)
+13100 start*    # open the menu (アイテム/のうりょく/そうび/ならびかえ/ずかん/コンフィグ/セーブ); cursor starts on アイテム
+13160 down*     # move cursor down towards セーブ (save), 7th/last entry
+13185 down*
+13210 down*
+13235 down*
+13260 down*
+13285 down*     # cursor should now be on セーブ
+13320 a*        # confirm セーブ (save) -> file-select screen (3 slots), cursor already on slot 1
+13420 a*        # confirm save to slot 1 -> "セーブしますか?" (save?) はい/いいえ, cursor on はい (yes)
+13700 a*        # confirm はい (yes) -> save completes; slot 1 now shows "あ" HP14 x3
+14000 a*        # "セーブが しゅうりょうしました" (save complete) -> dismiss; A is held 6 frames, which is long
+                # enough that it also re-lands on slot 1 on the file-select screen that reappears,
+                # popping a "セーブすると まえの データに うわがきされますか" (overwrite?) confirm -- harmless,
+                # it's the same file
+14100 b*        # back out through the overwrite confirm / file-select screen
+14200 b*        # back out of the save menu
+14300 b*        # close the main menu, back to the field (save is done, slot 1 has our data)
+14500 up        # keep playing a little longer
+14700           # release

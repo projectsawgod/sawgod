@@ -1,0 +1,47 @@
+# Text (system charset, 0xFF-terminated) and data tables with known layouts.
+assets:
+  - name: text/menu_strings
+    rom: 0x34B930
+    size: 0x6D0
+    format: strings
+    note: menu/system strings in the main code bank (region end approximate)
+  - name: gfx/font_palettes
+    rom: 0x390000
+    size: 0x80
+    format: palettes
+    note: 4 palettes for the font and windows (copy_palettes from 9000:0000 into palette 15)
+  - name: gfx/font
+    rom: 0x390080
+    size: 0x2000
+    format: tiles_4bpp
+    cols: 16
+    note: font, 256 tiles loaded by main to tile 0x100 (copy_tiles from 9000:0080); tile 0x100 + char code
+  - name: raw/bank39_394000
+    rom: 0x394000
+    size: 0x1E0
+    format: raw
+    note: not yet identified (before the item record pointers)
+  - name: tables/item_record_pointers
+    rom: 0x3941E0
+    size: 0x200
+    format: raw
+    note: 256 words, 9000:43E0 + 8 * item (sequential); engine plumbing, edit tables/items instead
+  - name: raw/bank39_396EE0
+    rom: 0x396EE0
+    size: 0x100
+    format: raw
+    note: between the item descriptions and the monster names, not yet identified
+  - name: raw/bank39_tail
+    rom: 0x397FFD
+    size: 3
+    format: raw
+    note: after the meat results (FF padding)
+  - name: tables/song_table
+    rom: 0x3D02E0
+    size: 0x36
+    format: records
+    record_size: 3
+    fields:
+      - {name: first_track, size: 2}
+      - {name: track_count, size: 1}
+    note: sound_request's song/effect table (D000:02E0)

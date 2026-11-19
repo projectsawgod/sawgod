@@ -1,0 +1,304 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Table Editor</title>
+<style>
+  :root {
+    --bg: #f6f6f3; --panel: #ffffff; --ink: #1d1d1b; --muted: #6b6b66; --line: #dedcd5;
+    --accent: #2f5fb3; --changed: #fff1c2; --changed-ink: #6b4e00; --bad: #fde0de; --bad-ink: #a3241b;
+    --ro: #f0efea; --head: #ecebe6;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #161716; --panel: #1f201f; --ink: #e8e8e3; --muted: #9a9a93; --line: #34352f;
+      --accent: #7fa6f0; --changed: #4a3d12; --changed-ink: #ffd76a; --bad: #4d1f1c; --bad-ink: #ff9b92;
+      --ro: #1a1b1a; --head: #272826;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.4 system-ui, sans-serif; }
+  header { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; padding: 10px 16px;
+           border-bottom: 1px solid var(--line); background: var(--panel); position: sticky; top: 0; z-index: 3; }
+  header h1 { font-size: 16px; margin: 0 8px 0 0; }
+  nav { display: flex; gap: 4px; flex-wrap: wrap; }
+  nav button { border: 1px solid var(--line); background: var(--panel); color: var(--ink); padding: 5px 10px;
+               border-radius: 6px; cursor: pointer; font: inherit; }
+  nav button.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+  nav button .n { font-size: 11px; margin-left: 4px; padding: 0 5px; border-radius: 8px; background: var(--changed);
+                  color: var(--changed-ink); }
+  .spacer { flex: 1; }
+  input.filter { padding: 5px 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--panel);
+                 color: var(--ink); font: inherit; width: 200px; }
+  .act { border: 1px solid var(--accent); background: var(--accent); color: #fff; padding: 5px 12px; border-radius: 6px;
+         cursor: pointer; font: inherit; }
+  .act.secondary { background: transparent; color: var(--accent); }
+  .act:disabled { opacity: .5; cursor: default; }
+  #note { padding: 8px 16px; color: var(--muted); }
+  #status { white-space: pre-wrap; font: 12px ui-monospace, monospace; padding: 0 16px 8px; color: var(--muted); }
+  #status.bad { color: var(--bad-ink); }
+  .wrap { overflow: auto; margin: 0 16px 24px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel);
+          max-height: calc(100vh - 150px); }
+  table { border-collapse: collapse; font-size: 13px; }
+  th, td { border-bottom: 1px solid var(--line); border-right: 1px solid var(--line); padding: 0; white-space: nowrap; }
+  th { position: sticky; top: 0; background: var(--head); text-align: left; padding: 6px 8px; font-weight: 600; z-index: 1; }
+  td.ro { background: var(--ro); color: var(--muted); padding: 4px 8px; }
+  td.id { padding: 4px 8px; color: var(--muted); text-align: right; }
+  td input { border: 0; background: transparent; color: inherit; font: inherit; padding: 4px 8px; width: 100%; min-width: 4em; }
+  td input[size] { width: auto; }
+  td input:focus { outline: 2px solid var(--accent); outline-offset: -2px; }
+  td.changed { background: var(--changed); }
+  td.changed input { color: var(--changed-ink); }
+  td.bad { background: var(--bad); }
+  td.bad input { color: var(--bad-ink); }
+  td .hint { color: var(--muted); font-size: 12px; padding: 0 8px 4px; display: block; max-width: 22em; overflow: hidden;
+             text-overflow: ellipsis; }
+  @media (max-width: 640px) { input.filter { width: 100%; } .wrap { margin: 0 8px 16px; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>Table Editor</h1>
+  <nav id="tabs"></nav>
+  <span class="spacer"></span>
+  <input class="filter" id="filter" placeholder="Filter rows (any text or id)">
+  <button class="act secondary" id="revert" title="Undo every unsaved change in this table">Revert table</button>
+  <button class="act" id="save">Save</button>
+  <button class="act" id="pack" title="Save, then zip the mod to share">Save &amp; zip</button>
+</header>
+<div id="note"></div>
+<div id="status"></div>
+<div class="wrap"><table id="grid"></table></div>
+<script>
+"use strict";
+// Column kinds: num (with max), text (max characters), ref (an id in another table, blank allowed where noted),
+// list (space-separated ids of another table), ro (read-only, recomputed from what it shows).
+const U8 = {kind: "num", max: 255}, U16 = {kind: "num", max: 65535};
+const SCHEMA = {
+  items: {title: "Items", note: "Names are text (a language file), shown here read-only. power: damage = power x (stat / 4) + spread, or an equipped item's defense bonus; action: the battle handler; target: top 3 bits = target kind; flags: bit 0 counted uses, 40h/80h passive ability (bits in passive_bits); passive_bits: 40h item ORs it into the target's status-immunity byte, 80h item ORs it into their element-resistance byte, otherwise (equippable gear) 1/2/3 picks strength/agility/magic for a worn +10 bonus; byte6: not identified, no decompiled code reads it; byte7_rest: not identified; ai_target_flag: ORs into the AI's target-kind bucket for this item's battle command.",
+    cols: {name: {kind: "ro", show: (r) => r.name}, price: {kind: "num", max: 4294967295}, uses: U8,
+           byte7_rest: {kind: "num", max: 127}, ai_target_flag: {kind: "num", max: 1}}},
+  monster_types: {title: "Monster types", note: "0-149 monsters, 150-199 human/mutant classes. Rank and family drive meat transformations.",
+    cols: {name: {kind: "ro", show: (r) => r.name}, rank: U8, family: U8, graphics: U16, descriptor: U16}},
+  monsters: {title: "Monsters", note: "meat_drop: chance of meat after a win, value x 10 out of 70 (7 = always). gold: per enemy defeated. Gear: item ids (the game uses at most 8). Gear lists may grow or shrink freely. is_monster_row: set for every row 0-149 and clear for 150-199, confirmed by id; marks a monster-form party member as having no normal inventory. esper_or_mecha: set only for the Esper/robot classes. unknown_rank_bits, byte1: not identified.",
+    cols: {name: {kind: "ro", show: (r) => nameOf("monster_types", r.id)}, gear_count: {kind: "ro", show: (r) => String(ids(r.gear).length), derived: true},
+           hp: U16, gold: U16, meat_drop: {kind: "num", max: 7}, unknown_rank_bits: {kind: "num", max: 7},
+           esper_or_mecha: {kind: "num", max: 1}, is_monster_row: {kind: "num", max: 1},
+           gear: {kind: "list", table: "items", max: 8}, gear_names: {kind: "ro", show: (r) => names("items", r.gear)}}},
+  shops: {title: "Shops", note: "Up to 10 item ids per shop; prices are in Items.",
+    cols: {items: {kind: "list", table: "items", max: 10}, items_names: {kind: "ro", show: (r) => names("items", r.items)}}},
+  formations: {title: "Formations", note: "Up to 3 groups; min/max 0-15 (the count is random between them). Leave a group's type blank for no group.",
+    cols: {cant_run: {kind: "num", max: 1}}},
+  encounters: {title: "Encounters", note: "chance: per step, out of 256. Each column is the formation for that share of encounters.",
+    cols: {chance: U8}},
+  encounter_odds: {title: "Encounter odds", note: "Slot N is picked when a 0-255 roll is at or above threshold N; mode = travel mode chance modifier.", cols: {}},
+  maps: {title: "Maps", note: "Each terrain kind's random-encounter table (Encounters; 255 = none) and variant (battle background set). running_allowed: enables the dash/run button on this map (only applied when data_bank is nonzero).", cols: {}},
+  meat_pairs: {title: "Meat pairs", note: "Result row (Meat results) for a pair of families; 255 = no transformation.", cols: {}},
+  meat_results: {title: "Meat results", note: "The monster type a transformation gives, by result row and the higher rank.", cols: {}},
+};
+for (let g = 1; g <= 3; g++) {
+  const c = SCHEMA.formations.cols;
+  c[`group${g}_type`] = {kind: "ref", table: "monster_types", blank: true, named: true};
+  c[`group${g}_name`] = {kind: "ro", show: (r) => nameOf("monster_types", r[`group${g}_type`])};
+  c[`group${g}_min`] = {kind: "num", max: 15, blank: true};
+  c[`group${g}_max`] = {kind: "num", max: 15, blank: true};
+}
+function colSpec(table, col) {
+  const s = (SCHEMA[table] || {cols: {}}).cols[col];
+  if (s) return s;
+  if (table === "encounters" && col.startsWith("formation_")) return {kind: "ref", table: "formations"};
+  if (table === "meat_results") return {kind: "ref", table: "monster_types"};
+  if (table === "maps" && /_encounters$/.test(col)) return {kind: "ref", table: "encounters", none: 255};
+  if (table === "maps" && /^data\d$/.test(col)) return U16;
+  if (/^word/.test(col)) return U16;
+  if (/_names?$/.test(col)) return {kind: "ro", show: () => ""};
+  return U8;
+}
+
+let tables = {}, order = [], current = null;
+const $ = (id) => document.getElementById(id);
+
+function parseCsv(text) {
+  const rows = [];
+  let row = [], cell = "", q = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (q) {
+      if (c === '"' && text[i + 1] === '"') { cell += '"'; i++; }
+      else if (c === '"') q = false;
+      else cell += c;
+    } else if (c === '"') q = true;
+    else if (c === ",") { row.push(cell); cell = ""; }
+    else if (c === "\n" || c === "\r") {
+      if (c === "\r" && text[i + 1] === "\n") i++;
+      row.push(cell); rows.push(row); row = []; cell = "";
+    } else cell += c;
+  }
+  if (cell !== "" || row.length) { row.push(cell); rows.push(row); }
+  const head = rows.shift();
+  return {head, rows: rows.map((r) => Object.fromEntries(head.map((h, k) => [h, r[k] ?? ""])))};
+}
+function toCsv(t) {
+  const esc = (v) => /[",\n\r]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v;
+  return [t.head, ...t.rows.map((r) => t.head.map((h) => r[h]))].map((r) => r.map(esc).join(",")).join("\n") + "\n";
+}
+
+const ids = (v) => String(v || "").trim().split(/\s+/).filter(Boolean);
+function nameOf(table, id) {
+  const t = tables[table], k = String(id ?? "").trim();
+  if (!t || k === "" || !/^\d+$/.test(k)) return "";
+  const r = t.rows[Number(k)];
+  if (!r) return "?";
+  if (table === "formations") return formationSummary(r);
+  if (table === "encounters") return `chance ${r.chance}: ${formationSummary(tables.formations.rows[Number(r.formation_50pct)] || {})}...`;
+  return r.name ?? "";
+}
+const names = (table, list) => ids(list).map((i) => nameOf(table, i)).join(" / ");
+function formationSummary(r) {
+  const parts = [];
+  for (let g = 1; g <= 3; g++) {
+    const t = r[`group${g}_type`];
+    if (String(t).trim() === "") continue;
+    const lo = r[`group${g}_min`], hi = r[`group${g}_max`];
+    parts.push(`${nameOf("monster_types", t)} ${lo === hi ? lo : lo + "-" + hi}`);
+  }
+  return parts.join(", ") + (r.cant_run === "1" ? " (can't run)" : "");
+}
+
+function problem(table, col, v) {
+  const s = colSpec(table, col);
+  if (s.kind === "ro") return "";
+  if (s.kind === "text") { // [XX] is one byte (a glyph with no character, e.g. an icon); a cell may also spell out
+    // all its bytes, ending in [FF]
+    const n = [...v.replace(/\[[0-9A-Fa-f]{2}\]/g, "#")].length;
+    return n > s.max + (/\[FF\]$/i.test(v) ? 1 : 0) ? `at most ${s.max} characters` : "";
+  }
+  if (s.kind === "list") {
+    const l = ids(v);
+    if (l.length > s.max) return `at most ${s.max} ids`;
+    const n = tables[s.table] ? tables[s.table].rows.length : 256;
+    return l.every((x) => /^\d+$/.test(x) && Number(x) < n) ? "" : `ids 0-${n - 1}, separated by spaces`;
+  }
+  if (v.trim() === "" && s.blank) return "";
+  if (s.none !== undefined && v.trim() === String(s.none)) return "";
+  if (!/^\d+$/.test(v.trim())) return "a whole number";
+  const max = s.kind === "ref" ? (tables[s.table] ? tables[s.table].rows.length - 1 : 255) : s.max;
+  return Number(v) > max ? `0-${max}` : "";
+}
+
+function changedCount(name) {
+  const t = tables[name];
+  let n = 0;
+  t.rows.forEach((r, i) => { if (t.head.some((h) => !colSpec(name, h).derived && r[h] !== t.base[i][h])) n++; });
+  return n;
+}
+function renderTabs() {
+  $("tabs").innerHTML = "";
+  for (const name of order) {
+    const b = document.createElement("button");
+    b.textContent = (SCHEMA[name] || {}).title || name;
+    const n = changedCount(name);
+    if (n) { const s = document.createElement("span"); s.className = "n"; s.textContent = n; b.append(s); }
+    b.className = name === current ? "on" : "";
+    b.onclick = () => { current = name; render(); };
+    $("tabs").append(b);
+  }
+}
+function syncDerived(name, r) {
+  if (name === "monsters") r.gear_count = String(ids(r.gear).length);
+}
+function render() {
+  renderTabs();
+  const t = tables[current];
+  $("note").textContent = (SCHEMA[current] || {}).note || "";
+  const f = $("filter").value.trim().toLowerCase();
+  const grid = $("grid");
+  grid.innerHTML = "";
+  const head = grid.createTHead().insertRow();
+  for (const h of t.head) { const th = document.createElement("th"); th.textContent = h; head.append(th); }
+  const body = grid.createTBody();
+  t.rows.forEach((r, i) => {
+    if (f && !Object.values(r).some((v) => String(v).toLowerCase().includes(f))) return;
+    const tr = body.insertRow();
+    for (const h of t.head) {
+      const td = tr.insertCell(), s = colSpec(current, h);
+      if (h === "id") { td.className = "id"; td.textContent = r.id; continue; }
+      if (s.kind === "ro") { td.className = "ro"; td.textContent = s.show(r); continue; }
+      const inp = document.createElement("input");
+      inp.value = r[h];
+      inp.spellcheck = false;
+      if (s.kind === "text" || s.kind === "list") inp.size = s.kind === "text" ? s.max + 4 : 24;
+      const paint = () => {
+        const bad = problem(current, h, inp.value);
+        td.className = bad ? "bad" : (inp.value !== t.base[i][h] ? "changed" : "");
+        td.title = bad || (inp.value !== t.base[i][h] ? `was ${t.base[i][h] || "(blank)"}` : "");
+        hint.textContent = s.kind !== "ref" ? "" : s.none !== undefined && inp.value.trim() === String(s.none)
+          ? "none" : nameOf(s.table, inp.value);
+      };
+      const hint = document.createElement("span");
+      hint.className = "hint";
+      inp.oninput = () => {
+        r[h] = inp.value;
+        syncDerived(current, r);
+        paint();
+        // refresh this row's read-only cells
+        [...tr.cells].forEach((c, k) => { const sp = colSpec(current, t.head[k]); if (sp.kind === "ro") c.textContent = sp.show(r); });
+        renderTabs();
+      };
+      td.append(inp);
+      if (s.kind === "ref" && !s.named) td.append(hint);
+      paint();
+    }
+  });
+}
+
+function anyBad() {
+  for (const name of order) {
+    const t = tables[name];
+    for (const r of t.rows) for (const h of t.head) {
+      const p = problem(name, h, r[h]);
+      if (p) return `${(SCHEMA[name] || {}).title || name} row ${r.id}, ${h}: ${p}`;
+    }
+  }
+  return "";
+}
+function status(text, bad) { $("status").textContent = text; $("status").className = bad ? "bad" : ""; }
+async function save() {
+  const bad = anyBad();
+  if (bad) { status("Not saved: " + bad, true); return false; }
+  const res = await fetch("/api/save", {method: "POST", headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({tables: Object.fromEntries(order.map((n) => [n, toCsv(tables[n])]))})});
+  const j = await res.json();
+  if (!res.ok) { status(j.error, true); return false; }
+  status(`Saved. Changed tables: ${j.saved.join(", ") || "none"}${j.removed.length ? "; back to the original: " + j.removed.join(", ") : ""}`);
+  return true;
+}
+$("save").onclick = save;
+$("pack").onclick = async () => {
+  if (!(await save())) return;
+  const j = await (await fetch("/api/pack", {method: "POST", body: "{}"})).json();
+  status(j.ok ? `${j.output}\nShare the zip: players put it in their mods folder or run the game with --mod.` : j.output, !j.ok);
+};
+$("revert").onclick = () => {
+  const t = tables[current];
+  t.rows = t.base.map((r) => ({...r}));
+  render();
+};
+$("filter").oninput = render;
+
+(async () => {
+  const j = await (await fetch("/api/tables")).json();
+  const prefer = ["items", "shops", "monster_types", "monsters", "formations", "encounters", "encounter_odds", "maps", "meat_pairs", "meat_results"];
+  order = Object.keys(j.tables).sort((a, b) => (prefer.indexOf(a) + 1 || 99) - (prefer.indexOf(b) + 1 || 99));
+  for (const [name, v] of Object.entries(j.tables)) {
+    const base = parseCsv(v.base), cur = v.edited ? parseCsv(v.edited) : parseCsv(v.base);
+    tables[name] = {head: base.head, base: base.rows, rows: cur.rows};
+  }
+  current = order[0];
+  status(`Edits are saved to ${j.mod} (the game loads it at start)`);
+  render();
+})();
+</script>
+</body>
+</html>

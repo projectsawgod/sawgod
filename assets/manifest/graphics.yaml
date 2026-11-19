@@ -1,0 +1,270 @@
+# Graphics: 4bpp packed tiles. Bank-level entries until individual tilesets/sprites are split out.
+assets:
+  - name: gfx/tilesets_bank_00
+    rom: 0x000000
+    size: 0x10000
+    format: tiles_4bpp
+    cols: 32
+    note: field tilesets (4 per bank)
+  - name: gfx/tilesets_bank_01
+    rom: 0x010000
+    size: 0x10000
+    format: tiles_4bpp
+    cols: 32
+    note: field tilesets (4 per bank)
+  - name: gfx/tilesets_bank_02
+    rom: 0x020000
+    size: 0x10000
+    format: tiles_4bpp
+    cols: 32
+    note: field tilesets (4 per bank)
+  - name: gfx/tilesets_bank_03
+    rom: 0x030000
+    size: 0x10000
+    format: tiles_4bpp
+    cols: 32
+    note: field tilesets (4 per bank)
+  - name: gfx/tilesets_bank_04
+    rom: 0x040000
+    size: 0x10000
+    format: tiles_4bpp
+    cols: 32
+    note: field tilesets (4 per bank)
+  - name: gfx/tilesets_bank_05
+    rom: 0x050000
+    size: 0x10000
+    format: tiles_4bpp
+    cols: 32
+    note: field tilesets (4 per bank)
+  - name: gfx/tilesets_bank_06
+    rom: 0x060000
+    size: 0x10000
+    format: tiles_4bpp
+    cols: 32
+    note: field tilesets (4 per bank)
+  - name: gfx/tilesets_bank_07
+    rom: 0x070000
+    size: 0x10000
+    format: tiles_4bpp
+    cols: 32
+    note: field tilesets (4 per bank)
+  - name: gfx/tilesets_bank_08
+    rom: 0x080000
+    size: 0x10000
+    format: tiles_4bpp
+    cols: 32
+    note: field tilesets (4 per bank)
+  - name: gfx/tilesets_bank_09
+    rom: 0x090000
+    size: 0x10000
+    format: tiles_4bpp
+    cols: 32
+    note: field tilesets (4 per bank)
+  - name: gfx/tilesets_bank_0A
+    rom: 0x0A0000
+    size: 0x10000
+    format: tiles_4bpp
+    cols: 32
+    note: field tilesets (4 per bank)
+  - name: gfx/tilesets_bank_0B
+    rom: 0x0B0000
+    size: 0x10000
+    format: tiles_4bpp
+    cols: 32
+    note: field tilesets (4 per bank)
+  - name: gfx/tilesets_bank_0C
+    rom: 0x0C0000
+    size: 0x10000
+    format: tiles_4bpp
+    cols: 32
+    note: field tilesets (4 per bank)
+  - name: gfx/tilesets_bank_0D
+    rom: 0x0D0000
+    size: 0x10000
+    format: tiles_4bpp
+    cols: 32
+    note: field tilesets (4 per bank)
+  - name: gfx/tilesets_bank_0E
+    rom: 0x0E0000
+    size: 0x10000
+    format: tiles_4bpp
+    cols: 32
+    note: field tilesets (4 per bank)
+  - name: gfx/gfxsets_bank_10
+    rom: 0x100000
+    size: 0x10000
+    format: tiles_4bpp
+    cols: 32
+    note: graphics sets (battle backgrounds / monsters?)
+  - name: gfx/gfxsets_bank_11
+    rom: 0x110000
+    size: 0x10000
+    format: tiles_4bpp
+    cols: 32
+    note: graphics sets (battle backgrounds / monsters?)
+  - name: gfx/gfxsets_bank_12
+    rom: 0x120000
+    size: 0x10000
+    format: tiles_4bpp
+    cols: 32
+    note: graphics sets (battle backgrounds / monsters?)
+  - name: gfx/gfxsets_bank_13
+    rom: 0x130000
+    size: 0x10000
+    format: tiles_4bpp
+    cols: 32
+    note: graphics sets (battle backgrounds / monsters?)
+  - name: gfx/gfxsets_bank_14
+    rom: 0x140000
+    size: 0x10000
+    format: tiles_4bpp
+    cols: 32
+    note: graphics sets (battle backgrounds / monsters?)
+  - name: gfx/gfxsets_bank_15
+    rom: 0x150000
+    size: 0x10000
+    format: tiles_4bpp
+    cols: 32
+    note: graphics sets (battle backgrounds / monsters?)
+  - name: gfx/gfxsets_bank_16
+    rom: 0x160000
+    size: 0x10000
+    format: tiles_4bpp
+    cols: 32
+    note: graphics sets (battle backgrounds / monsters?)
+  - name: gfx/scene_gfx_bank_17
+    rom: 0x170000
+    size: 0x10000
+    format: tiles_4bpp
+    cols: 32
+    note: special-scene artwork
+  - name: gfx/scene_gfx_bank_18
+    rom: 0x180000
+    size: 0x10000
+    format: tiles_4bpp
+    cols: 32
+    note: special-scene artwork
+  - name: gfx/scene_gfx_bank_19
+    rom: 0x190000
+    size: 0x10000
+    format: tiles_4bpp
+    cols: 32
+    note: special-scene artwork
+  - name: gfx/scene_gfx_bank_1A
+    rom: 0x1A0000
+    size: 0x10000
+    format: tiles_4bpp
+    cols: 32
+    note: special-scene artwork
+  - name: gfx/scene_gfx_bank_1B
+    rom: 0x1B0000
+    size: 0x10000
+    format: tiles_4bpp
+    cols: 32
+    note: special-scene artwork
+  - name: gfx/scene_gfx_bank_1C
+    rom: 0x1C0000
+    size: 0x10000
+    format: tiles_4bpp
+    cols: 32
+    note: special-scene artwork
+  - name: gfx/scene_gfx_bank_1D
+    rom: 0x1D0000
+    size: 0x10000
+    format: tiles_4bpp
+    cols: 32
+    note: special-scene artwork
+  - name: gfx/scene_gfx_bank_1E
+    rom: 0x1E0000
+    size: 0x10000
+    format: tiles_4bpp
+    cols: 32
+    note: special-scene artwork
+  - name: gfx/scene_gfx_bank_1F
+    rom: 0x1F0000
+    size: 0x10000
+    format: tiles_4bpp
+    cols: 32
+    note: special-scene artwork
+  - name: gfx/gfx_bank_27
+    rom: 0x270000
+    size: 0x10000
+    format: tiles_4bpp
+    cols: 32
+    note: title/intro/menu/staff-roll graphics
+  - name: gfx/gfx_bank_28
+    rom: 0x280000
+    size: 0x10000
+    format: tiles_4bpp
+    cols: 32
+    note: title/intro/menu/staff-roll graphics
+  - name: gfx/gfx_bank_29
+    rom: 0x290000
+    size: 0x10000
+    format: tiles_4bpp
+    cols: 32
+    note: title/intro/menu/staff-roll graphics
+  - name: gfx/gfx_bank_2A
+    rom: 0x2A0000
+    size: 0x10000
+    format: tiles_4bpp
+    cols: 32
+    note: title/intro/menu/staff-roll graphics
+  - name: gfx/gfx_bank_2B
+    rom: 0x2B0000
+    size: 0x10000
+    format: tiles_4bpp
+    cols: 32
+    note: title/intro/menu/staff-roll graphics
+  - name: gfx/gfx_bank_2C
+    rom: 0x2C0000
+    size: 0x10000
+    format: tiles_4bpp
+    cols: 32
+    note: title/intro/menu/staff-roll graphics
+  - name: gfx/gfx_bank_2D
+    rom: 0x2D0000
+    size: 0x10000
+    format: tiles_4bpp
+    cols: 32
+    note: title/intro/menu/staff-roll graphics
+  - name: gfx/gfx_bank_2F
+    rom: 0x2F0000
+    size: 0x10000
+    format: tiles_4bpp
+    cols: 32
+    note: title/intro/menu/staff-roll graphics
+  - name: gfx/gfx_bank_30
+    rom: 0x300000
+    size: 0x10000
+    format: tiles_4bpp
+    cols: 32
+    note: title/intro/menu/staff-roll graphics
+  - name: gfx/gfx_bank_31
+    rom: 0x310000
+    size: 0x10000
+    format: tiles_4bpp
+    cols: 32
+    note: title/intro/menu/staff-roll graphics
+  - name: gfx/gfx_bank_38
+    rom: 0x380000
+    size: 0x11C0
+    format: tiles_4bpp
+    cols: 32
+    note: title/intro/menu/staff-roll graphics (bank 0x38 up to the formation table, tables/formations)
+  - name: raw/bank38_before_formations
+    rom: 0x3811C0
+    size: 0x8
+    format: raw
+    note: the 8 bytes before the formation pointers (32-byte tile alignment)
+  - name: raw/bank38_after_formations
+    rom: 0x381828
+    size: 0x18
+    format: raw
+    note: after the formation records, up to 32-byte tile alignment
+  - name: gfx/gfx_bank_38b
+    rom: 0x381840
+    size: 0xE7C0
+    format: tiles_4bpp
+    cols: 32
+    note: the rest of bank 0x38 (graphics guess, as before the formation table was split out)

@@ -1,0 +1,109 @@
+{
+    "version": 6,
+    "cmakeMinimumRequired": { "major": 3, "minor": 24, "patch": 0 },
+    "configurePresets": [
+        {
+            "name": "linux-debug",
+            "generator": "Ninja",
+            "binaryDir": "${sourceDir}/build/linux-debug",
+            "condition": { "type": "equals", "lhs": "${hostSystemName}", "rhs": "Linux" },
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug",
+                "CMAKE_CXX_COMPILER": "clang++"
+            }
+        },
+        {
+            "name": "linux-release",
+            "generator": "Ninja",
+            "binaryDir": "${sourceDir}/build/linux-release",
+            "condition": { "type": "equals", "lhs": "${hostSystemName}", "rhs": "Linux" },
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Release",
+                "CMAKE_CXX_COMPILER": "clang++"
+            }
+        },
+        {
+            "name": "linux-no-interp",
+            "inherits": "linux-release",
+            "binaryDir": "${sourceDir}/build/linux-no-interp",
+            "cacheVariables": { "SAWGOD_NO_INTERPRETER": "ON" }
+        },
+        {
+            "name": "windows-mingw",
+            "generator": "Ninja",
+            "binaryDir": "${sourceDir}/build/windows-mingw",
+            "condition": { "type": "equals", "lhs": "${hostSystemName}", "rhs": "Linux" },
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Release",
+                "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/cmake/toolchains/mingw-w64-x86_64.cmake"
+            }
+        },
+        {
+            "name": "windows-local",
+            "generator": "Ninja",
+            "binaryDir": "${sourceDir}/build/windows-local",
+            "condition": { "type": "equals", "lhs": "${hostSystemName}", "rhs": "Windows" },
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Release",
+                "CMAKE_C_COMPILER": "gcc",
+                "CMAKE_CXX_COMPILER": "g++",
+                "CMAKE_EXE_LINKER_FLAGS_INIT": "-static -static-libgcc -static-libstdc++"
+            }
+        },
+        {
+            "name": "windows-msvc",
+            "binaryDir": "${sourceDir}/build/windows-msvc",
+            "condition": { "type": "equals", "lhs": "${hostSystemName}", "rhs": "Windows" },
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Release"
+            }
+        },
+        {
+            "name": "macos-release",
+            "generator": "Ninja",
+            "binaryDir": "${sourceDir}/build/macos-release",
+            "condition": { "type": "equals", "lhs": "${hostSystemName}", "rhs": "Darwin" },
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Release",
+                "CMAKE_OSX_ARCHITECTURES": "arm64",
+                "CMAKE_OSX_DEPLOYMENT_TARGET": "11.0"
+            }
+        }
+    ],
+    "buildPresets": [
+        { "name": "linux-debug", "configurePreset": "linux-debug" },
+        { "name": "linux-release", "configurePreset": "linux-release" },
+        { "name": "linux-no-interp", "configurePreset": "linux-no-interp" },
+        { "name": "windows-mingw", "configurePreset": "windows-mingw" },
+        { "name": "windows-local", "configurePreset": "windows-local" },
+        { "name": "windows-msvc", "configurePreset": "windows-msvc", "configuration": "Release" },
+        { "name": "macos-release", "configurePreset": "macos-release" }
+    ],
+    "testPresets": [
+        {
+            "name": "linux-debug",
+            "configurePreset": "linux-debug",
+            "environment": { "SDL_VIDEODRIVER": "dummy", "SDL_AUDIODRIVER": "dummy" },
+            "output": { "outputOnFailure": true }
+        },
+        {
+            "name": "linux-release",
+            "configurePreset": "linux-release",
+            "environment": { "SDL_VIDEODRIVER": "dummy", "SDL_AUDIODRIVER": "dummy" },
+            "output": { "outputOnFailure": true }
+        },
+        {
+            "name": "windows-msvc",
+            "configurePreset": "windows-msvc",
+            "configuration": "Release",
+            "environment": { "SDL_VIDEODRIVER": "dummy", "SDL_AUDIODRIVER": "dummy" },
+            "output": { "outputOnFailure": true }
+        },
+        {
+            "name": "macos-release",
+            "configurePreset": "macos-release",
+            "environment": { "SDL_VIDEODRIVER": "dummy", "SDL_AUDIODRIVER": "dummy" },
+            "output": { "outputOnFailure": true }
+        }
+    ]
+}

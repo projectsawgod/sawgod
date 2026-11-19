@@ -1,0 +1,149 @@
+# English popup timing; Japanese recording stays in battle_playthrough.txt.
+# Inputs mapped at round completion and battle exit; ordinary commands are unchanged.
+0
+576 b
+615
+794 b
+833
+864 a
+895
+942 a
+973
+996 a
+1020
+1115 a
+1131
+1147 a
+1163
+1175 a
+1191
+1268 a
+1284
+1304 a
+1312
+1332 a
+1340
+1394 a
+1421
+1434 a
+1449
+1468 start
+1495
+1618 down
+1858
+1894 a
+1930
+1971 down
+2112
+2140 down
+2247
+2293 down
+2378
+2413 down
+2554
+2559 right
+2643 up,right
+2655 up
+2754 up,left
+2759 left
+2904 down,left
+2908 down
+3035 right,down
+3043 right
+3154 up,right
+3162 up
+3269
+3293 down
+3411 down,left
+3423 left
+3531 up,left
+3546 up
+3631 up,right
+3635 right
+3746 right,down
+3758 down
+3854 down,left
+3862 left
+3981 right,left
+3989 right
+4104 up,right
+4113 up
+4223
+4251 down
+4327 down,left
+4343 left
+4450
+4451 right
+4600 up,right
+4605 up
+4719 up,left
+4739 left
+4854 down,left
+4877 down
+4992 right,down
+5008 right
+5089
+5197 a
+5209
+5286 a
+5295
+5326 a
+5338
+5414 a
+5511
+5515 a
+5565
+5589 a
+5719
+5738 a
+5754
+5770 a
+5786
+5798 a
+5810
+5826 a
+5842
+5862 a
+5964
+5991 a
+6053
+6080 a
+6141
+6161 a
+6185
+6204 a
+6220
+6232 a
+6248
+6254 a
+6269
+6274 a
+6281
+6299 a
+6304
+6323 a
+6328
+6332 a
+6337
+6341 a
+6643
+6663 a
+6736
+6801 a
+6904
+6932 a
+7000
+7073 a
+7104
+7132 a
+7163
+7201 a
+7233
+7317 b
+7340
+7431 down
+7451
+7461 a
+7481
+7520 a
+7570

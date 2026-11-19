@@ -1,0 +1,239 @@
+# Game data tables: one human-readable CSV per table (tools/sawgod/tables.py). Columns named byteN are
+# not identified yet; everything round-trips to the ROM byte for byte (assets.py check).
+assets:
+  - name: tables/items
+    format: table
+    rows: 256
+    note: item / weapon / armor / spell book; id = the game's item number (inventory, shops, monster gear)
+    parts:
+      - name: name       # 9000:4BE0 + 8 * id (draw_item_name): 7 characters + 0xFF
+        rom: 0x394BE0
+        stride: 8
+        fields:
+          - {name: name, size: 8, type: text}
+      - name: description  # 9000:53E0 + 27 * id (draw_shop_description_sprites): 26 characters + 0xFF
+        rom: 0x3953E0
+        stride: 27
+        fields:
+          - {name: description, size: 27, type: text}
+      - name: price      # 4000:C127 + 4 * id (draw_shop_stock_item): gold, 32-bit
+        rom: 0x34C127
+        stride: 4
+        fields:
+          - {name: price, size: 4}
+      - name: record     # 9000:43E0 + 8 * id (via the pointer table at 9000:41E0)
+        rom: 0x3943E0
+        stride: 8
+        fields:
+          - {name: flags, size: 1}      # bit 0: uses are counted; 40h/80h: a passive ability (bits in passive_bits)
+          - {name: target, size: 1}     # bits 5-7: target kind (one enemy, a group, all, an ally...); bit 0 a flag
+          - {name: action, size: 1}     # battle action handler (index into the table at 6000:0000)
+          - {name: uses, size: 1}       # uses when new (initialize_monster_member, shops)
+          - {name: power, size: 1}      # damage = power * (attacker stat / 4) + random spread (weapon actions);
+                                        # also the defense bonus an equipped item grants (replace_equipment_stats,
+                                        # rom 0x34437E)
+          - {name: passive_bits, size: 1}  # context-dependent: for a status-inflicting battle item (flags-40h
+                                        # skill ids, apply_battle_status_effect_core, shared body of rom
+                                        # 0x366FFD; init_enemy_group_actors_core, rom near 0x3625A9) it's OR'd
+                                        # into the target/enemy actor's status byte (actor +0Bh) -- a
+                                        # status-immunity mask; for a flags-80h item it's OR'd into actor +0Ch
+                                        # instead -- an element-resistance mask (read back by
+                                        # read_target_element_resistances_core, rom near 0x364FBE); for an
+                                        # equippable item with neither 40h nor 80h set (replace_equipment_stats,
+                                        # rom 0x34437E), 1/2/3 picks strength/agility/magic for a flat +10 bonus
+                                        # while worn, anything else raises both strength and agility
+          - {name: byte6, size: 1}      # not identified: no decompiled routine (lookup_table_byte or a direct
+                                        # pointer-table read) touches field index 6 of the item record anywhere
+                                        # in src/game; values vary (0-160 across items), so this is live data,
+                                        # not padding -- just an unused or cut feature
+          - name: byte7
+            size: 1
+            # only bit 7 is ever read (lookup_table_byte bx=7, bank36_battle.cpp ~3065/3245, the battle-command
+            # and target-menu input handlers): OR'd onto the halved `target` byte's bit 7 to bucket an equipped
+            # item's battle-command target kind. Bits 0-6 are masked off at both call sites -- not identified.
+            bits:
+              - {name: byte7_rest, lo: 0, width: 7}
+              - {name: ai_target_flag, lo: 7, width: 1}
+  - name: tables/monsters
+    format: pointer_records
+    rows: 200
+    note: monster templates (initialize_monster_member); id = monster type. Gear is a list of item ids
+      (tables/items); gear_count must equal its length. Records are repacked on rebuild, pointers rewritten.
+    pointers: 0x36D1FB   # 6000:D1FB + 2 * id
+    data: 0x36D38B
+    size: 0xC59
+    count_field: gear_count
+    list: gear
+    list_names: {rom: 0x394BE0, stride: 8}   # gear_names: the items' names, for reading only (ignored on rebuild)
+    row_names: {rom: 0x396FE0, stride: 9}    # name: the type's name (edit it in tables/monster_types), read-only here
+    fields:
+      - name: byte0                   # -> battle actor +0 (init_battle_actors_core 0x3621EF for the party,
+        size: 1                       # init_enemy_group_actors_core 0x3625A9 for enemies)
+        bits:
+          - {name: meat_drop, lo: 0, width: 3}    # meat drop chance after a win: value * 10 out of 70 (7 = always)
+          # bits 3-5: not identified. Loosely tracks each row's rank/HP within its monster_types family (higher
+          # for tougher monsters), but no decompiled routine reads it back out -- may be unused, or read only by
+          # code not yet matched to this field.
+          - {name: unknown_rank_bits, lo: 3, width: 3}
+          # bit 6: set only for the game's "esper"/robot classes (ids 158, 169-171, 175/176/179/180/183/184/
+          # 187/188, 197 -- Psycho Soldier, 28-gou, Mobile Infantry, Mobile Machine, Esper Man/Gal x3, Suzaku).
+          # initialize_creation_template (creation_template_core, rom 0x34B21A) copies it into the new member's
+          # +0Ah trait byte as 0x20 when bit 7 is clear. What that trait byte gates elsewhere isn't pinned down.
+          - {name: esper_or_mecha, lo: 6, width: 1}
+          # bit 7: set for every monster row (id 0-149) and clear for every human/mutant class row (id 150-199)
+          # -- confirmed against tables/monsters' own id range. creation_template_core copies it into the new
+          # member's +0Ah trait byte as 0x40 (taking priority over bit 6); history_select_member_core and
+          # menu_description_core (bank34_misc.cpp) skip/disable a member with that trait bit when picking a
+          # leader or describing an inventory slot, i.e. a monster-form party member has no normal inventory.
+          - {name: is_monster_row, lo: 7, width: 1}
+      - name: byte1                   # -> battle actor +1, enemies only (init_enemy_group_actors_core copies it;
+        size: 1                       # init_battle_actors_core does NOT copy it for the party). Not identified:
+                                       # no decompiled routine reads battle actor +1 back. Values across the 200
+                                       # rows are only 0, 1, 2, 4 or 8 (shaped like a one-bit-set trait mask).
+      - {name: gear_count, size: 1}   # the game uses at most 8
+      - {name: hp, size: 2}
+      - {name: strength, size: 1}     # -> member +11 (member0_strength)
+      - {name: defense, size: 1}
+      - {name: agility, size: 1}
+      - {name: magic, size: 1}
+      - {name: gold, size: 2}         # gold reward for defeating one (award_battle_gold)
+  - name: tables/monster_types
+    format: table
+    rows: 200
+    note: "per character type (rows match tables/monsters; 0-149 monsters, 150-199 human and mutant classes and
+      the like). Name from lookup_name_record, rank and family from lookup_meat_transformation"
+    parts:
+      - name: name       # 9000:6FE0 + 9 * type: 8 characters + 0xFF
+        rom: 0x396FE0
+        stride: 9
+        fields: [{name: name, size: 9, type: text}]
+      - name: rank       # 9000:7A08 + type; the higher of two monsters' ranks picks the meat result column
+        rom: 0x397A08
+        stride: 1
+        fields: [{name: rank, size: 1}]
+      - name: family     # 9000:7AD0 + type; two families pick the tables/meat_pairs cell
+        rom: 0x397AD0
+        stride: 1
+        fields: [{name: family, size: 1}]
+      - name: graphics   # 9000:76E8 + 2 * type (char_type_to_gfx_index): sprite set/palette selector
+        rom: 0x3976E8
+        stride: 2
+        fields: [{name: graphics, size: 2}]
+      - name: descriptor # 9000:7878 + 2 * type (lookup_character_descriptor): not identified
+        rom: 0x397878
+        stride: 2
+        fields: [{name: descriptor, size: 2}]
+  - name: tables/meat_pairs
+    format: table
+    rows: 25
+    note: result row (tables/meat_results) for a pair of families, 255 = no transformation; cell = row
+      family(AL monster), column family(AH monster) as lookup_meat_transformation indexes it (9000:7B98 +
+      AH family + 29 * AL family). Which of AL/AH is the eater vs the meat isn't pinned down yet.
+    parts:
+      - name: pairs
+        rom: 0x397B98
+        stride: 29
+        fields: [{name: f0, size: 1}, {name: f1, size: 1}, {name: f2, size: 1}, {name: f3, size: 1}, {name: f4, size: 1}, {name: f5, size: 1}, {name: f6, size: 1}, {name: f7, size: 1}, {name: f8, size: 1}, {name: f9, size: 1}, {name: f10, size: 1}, {name: f11, size: 1}, {name: f12, size: 1}, {name: f13, size: 1}, {name: f14, size: 1}, {name: f15, size: 1}, {name: f16, size: 1}, {name: f17, size: 1}, {name: f18, size: 1}, {name: f19, size: 1}, {name: f20, size: 1}, {name: f21, size: 1}, {name: f22, size: 1}, {name: f23, size: 1}, {name: f24, size: 1}, {name: f25, size: 1}, {name: f26, size: 1}, {name: f27, size: 1}, {name: f28, size: 1}]
+  - name: tables/meat_results
+    format: table
+    rows: 25
+    note: the monster type a transformation gives (tables/monsters id), by result row and rank (the higher of
+      the two monsters' ranks); 9000:7E6D + 16 * row + rank
+    parts:
+      - name: results
+        rom: 0x397E6D
+        stride: 16
+        fields: [{name: rank0, size: 1}, {name: rank1, size: 1}, {name: rank2, size: 1}, {name: rank3, size: 1}, {name: rank4, size: 1}, {name: rank5, size: 1}, {name: rank6, size: 1}, {name: rank7, size: 1}, {name: rank8, size: 1}, {name: rank9, size: 1}, {name: rank10, size: 1}, {name: rank11, size: 1}, {name: rank12, size: 1}, {name: rank13, size: 1}, {name: rank14, size: 1}, {name: rank15, size: 1}]
+  - name: tables/shops
+    format: table
+    rows: 22
+    note: the stock of each shop (draw_shop_stock_page, 4000:C527 + 10 * shop); id = shop number (run_shop_menu
+      AL). Up to 10 item ids (tables/items); prices are in tables/items. Shop 22, the debug shop, lists every
+      item from the 256 bytes after these rows (tables/debug_shop_items, raw).
+    parts:
+      - name: stock
+        rom: 0x34C527
+        stride: 10
+        fields:
+          - {name: items, size: 10, type: list, names: {rom: 0x394BE0, stride: 8}}
+  - name: tables/debug_shop_items
+    rom: 0x34C603
+    size: 0x100
+    format: raw
+    note: shop 22 (debug) stock, scrolled as one list - item ids 0-251 then FF FD FE FF
+  - name: tables/encounters
+    format: table
+    rows: 141
+    note: "random-encounter tables (roll_field_encounter, 5000:0C3C + 8 * table); id = the table a map's terrain
+      selects (0xD6EF + terrain). chance: base encounter chance per step (out of 256, plus the travel-mode
+      modifier in tables/encounter_odds); then the formation started (field event 8 argument) for each of the
+      seven slots, columns named by their odds (with the original thresholds)"
+    parts:
+      - name: table
+        rom: 0x350C3C
+        stride: 8
+        fields:
+          - {name: chance, size: 1}
+          - {name: formation_50pct, size: 1}
+          - {name: formation_25pct, size: 1}
+          - {name: formation_12pct, size: 1}
+          - {name: formation_6pct, size: 1}
+          - {name: formation_3pct, size: 1}
+          - {name: formation_1pct_a, size: 1}
+          - {name: formation_1pct_b, size: 1}
+  - name: tables/encounter_odds
+    format: table
+    rows: 1
+    note: "the slot thresholds (a 0-255 roll at or above threshold N picks slot N; default 128 64 32 16 8 4 0)
+      and the per-travel-mode chance modifier ((modifier - 1) * 8 added to a table's chance; mode = 0xD0D6)"
+    parts:
+      - name: thresholds
+        rom: 0x350C31
+        stride: 7
+        fields: [{name: threshold1, size: 1}, {name: threshold2, size: 1}, {name: threshold3, size: 1},
+                 {name: threshold4, size: 1}, {name: threshold5, size: 1}, {name: threshold6, size: 1},
+                 {name: threshold7, size: 1}]
+      - name: modifiers
+        rom: 0x350C38
+        stride: 4
+        fields: [{name: mode0, size: 1}, {name: mode1, size: 1}, {name: mode2, size: 1}, {name: mode3, size: 1}]
+  - name: tables/formations
+    format: formations
+    rows: 256
+    max_groups: 3
+    note: "battle formations (setup_battle's actor setup, 0x3621EF): the formation id comes from tables/encounters
+      or a script (event_start_battle). Up to 3 groups of one monster type (tables/monster_types) each, min-max
+      of them (picked at random, 0-15); cant_run 1 = the party can't run. Records repacked on rebuild"
+    pointers: 0x3811C8   # 8000:11C8 + 2 * id
+    data: 0x3813C8
+    size: 0x460
+    names: {rom: 0x396FE0, stride: 9}
+  - name: tables/maps
+    format: table
+    rows: 211
+    note: "field map headers (the map loader, 5000:A830 + 18 * map; id = current_map 0xD0DC). The three terrain
+      kinds each pick a random-encounter table (tables/encounters; 255 = none, e.g. towns) and a variant (the
+      battle background set). data_bank 0 = the map has no field data of its own"
+    parts:
+      - name: header
+        rom: 0x35A830
+        stride: 18
+        fields:
+          - {name: tileset, size: 1}
+          - {name: data_bank, size: 1}
+          - {name: data0, size: 2}
+          - {name: data1, size: 2}
+          - {name: data2, size: 2}
+          - {name: data3, size: 2}
+          - {name: terrain0_encounters, size: 1}   # -> 0xD6EF
+          - {name: terrain0_variant, size: 1}      # -> 0xD6F2
+          - {name: terrain1_encounters, size: 1}   # -> 0xD6F0
+          - {name: terrain1_variant, size: 1}      # -> 0xD6F3
+          - {name: terrain2_encounters, size: 1}   # -> 0xD6F1
+          - {name: terrain2_variant, size: 1}      # -> 0xD6F4
+          - {name: song, size: 1}
+          - {name: running_allowed, size: 1}        # -> 0xD59C (running_allowed, symbols/ram.toml); copied by
+                                                     # load_field_map_core (rom 0x351334) only when data_bank is
+                                                     # nonzero; gates the run/dash button on this map
+                                                     # (prepare_player_scroll_core, rom 0x350863, when no field
+                                                     # script is active and travel_mode is 0)

@@ -1,0 +1,133 @@
+{
+  "source_sha256": "96f548cceac095f721f1e5f6a5f7124902a66bb93849a51520c26c740b2a5cd0",
+  "header_sha256": "a377fba3965de55174e7802d4c32f64b62095f4f034378e4aec299d220f35640",
+  "compiler": "dxc",
+  "compiler_sha256": "ce11bb02f6027055e0b9f8c062d13b14f373c876a16557a4fa744314117d31e7",
+  "spirv_sha256": "fc3edefd0089b118fb1b79130e1ddb320a1c96d360a831c5c13a99e41dc2632d",
+  "dxil_sha256": "518b6cfa517c465e43f80e83bc84a4ac3416583b90e3df1a2335b3f37d7367bd",
+  "msl_sha256": "65d51ce8b823867cf456e0e93e6347b7bc4faf13c1f23b7782885882c34a0bf8",
+  "abi": {
+    "samplers": 13,
+    "uniform_buffers": 1,
+    "storage_buffers": 0,
+    "storage_textures": 0,
+    "descriptor_bindings": [
+      [
+        2,
+        0
+      ],
+      [
+        2,
+        0
+      ],
+      [
+        2,
+        1
+      ],
+      [
+        2,
+        1
+      ],
+      [
+        2,
+        2
+      ],
+      [
+        2,
+        2
+      ],
+      [
+        2,
+        3
+      ],
+      [
+        2,
+        3
+      ],
+      [
+        2,
+        4
+      ],
+      [
+        2,
+        4
+      ],
+      [
+        2,
+        5
+      ],
+      [
+        2,
+        5
+      ],
+      [
+        2,
+        6
+      ],
+      [
+        2,
+        6
+      ],
+      [
+        2,
+        7
+      ],
+      [
+        2,
+        7
+      ],
+      [
+        2,
+        8
+      ],
+      [
+        2,
+        8
+      ],
+      [
+        2,
+        9
+      ],
+      [
+        2,
+        9
+      ],
+      [
+        2,
+        10
+      ],
+      [
+        2,
+        10
+      ],
+      [
+        2,
+        11
+      ],
+      [
+        2,
+        11
+      ],
+      [
+        2,
+        12
+      ],
+      [
+        2,
+        12
+      ],
+      [
+        3,
+        0
+      ]
+    ],
+    "input_locations": [
+      0,
+      1
+    ],
+    "output_locations": [
+      0
+    ]
+  },
+  "tool_reflection": null
+}

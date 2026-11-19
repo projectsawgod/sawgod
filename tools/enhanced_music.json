@@ -1,0 +1,1883 @@
+{
+  "138": {
+    "enabled": true,
+    "gain": 2.905174853215493,
+    "name": "field",
+    "voices": [
+      {
+        "slot": 4,
+        "instr": 7,
+        "role": "lead melody",
+        "program": 56,
+        "gm": "Trumpet",
+        "follow": true,
+        "volume": 110,
+        "reverb": 50,
+        "legato": 2,
+        "release": 1
+      },
+      {
+        "slot": 5,
+        "instr": 3,
+        "role": "harmony / pad",
+        "program": 48,
+        "gm": "String Ensemble 1",
+        "follow": true,
+        "volume": 88,
+        "reverb": 60,
+        "legato": 2,
+        "release": 1,
+        "seat": 10
+      },
+      {
+        "slot": 6,
+        "instr": 5,
+        "role": "bass",
+        "program": 45,
+        "gm": "Pizzicato Strings",
+        "follow": false,
+        "volume": 95,
+        "reverb": 35,
+        "legato": 0,
+        "release": 1,
+        "seat": 30
+      },
+      {
+        "slot": 7,
+        "instr": 5,
+        "role": "ostinato (alternating eighths)",
+        "program": 71,
+        "gm": "Clarinet",
+        "follow": true,
+        "volume": 78,
+        "reverb": 50,
+        "legato": 2,
+        "release": 1
+      },
+      {
+        "slot": 7,
+        "instr": 11,
+        "role": "arpeggio runs",
+        "program": 73,
+        "gm": "Flute",
+        "follow": true,
+        "volume": 92,
+        "reverb": 60,
+        "legato": 2,
+        "release": 1
+      }
+    ],
+    "title": "Field",
+    "group": "field",
+    "locked": true
+  },
+  "_order": [
+    151,
+    135,
+    138,
+    139,
+    141,
+    144,
+    143,
+    146,
+    147,
+    148,
+    154,
+    145,
+    142,
+    140,
+    163,
+    150,
+    149,
+    136,
+    137,
+    152,
+    153,
+    178
+  ],
+  "_aliases": {
+    "117": 135,
+    "118": 136,
+    "119": 137,
+    "120": 138,
+    "121": 139,
+    "122": 140,
+    "123": 141,
+    "124": 142,
+    "125": 143,
+    "126": 144,
+    "127": 145,
+    "128": 146,
+    "129": 147,
+    "130": 148,
+    "131": 149,
+    "132": 150,
+    "133": 151,
+    "134": 152,
+    "135": 153,
+    "136": 154,
+    "145": 163,
+    "160": 178,
+    "enabled": false
+  },
+  "135": {
+    "name": "event_cue",
+    "title": "Opening / WSC-only event theme",
+    "group": "event",
+    "voices": [
+      {
+        "slot": 4,
+        "instr": 13,
+        "role": "lead melody",
+        "program": 73,
+        "gm": "Flute",
+        "follow": true,
+        "volume": 106,
+        "reverb": 45,
+        "legato": 2,
+        "release": 1
+      },
+      {
+        "slot": 5,
+        "instr": 5,
+        "role": "low arpeggio / moving bass",
+        "program": 46,
+        "gm": "Orchestral Harp",
+        "follow": false,
+        "volume": 92,
+        "reverb": 45,
+        "legato": 0,
+        "release": 1
+      },
+      {
+        "slot": 6,
+        "instr": 4,
+        "role": "held harmony",
+        "program": 48,
+        "gm": "String Ensemble 1",
+        "follow": true,
+        "volume": 110,
+        "reverb": 58,
+        "legato": 2,
+        "release": 1
+      },
+      {
+        "slot": 6,
+        "instr": 5,
+        "role": "moving harmony",
+        "program": 71,
+        "gm": "Clarinet",
+        "follow": true,
+        "volume": 88,
+        "reverb": 45,
+        "legato": 1,
+        "release": 1
+      },
+      {
+        "slot": 7,
+        "instr": 14,
+        "role": "delayed melody double",
+        "program": 73,
+        "gm": "Flute",
+        "follow": true,
+        "volume": 66,
+        "reverb": 45,
+        "legato": 2,
+        "release": 1
+      }
+    ],
+    "locked": true,
+    "enabled": true,
+    "gain": 2.12294568582751
+  },
+  "139": {
+    "name": "maps_7a_bc",
+    "title": "Towns / maps 7A and BC",
+    "group": "town",
+    "voices": [
+      {
+        "slot": 4,
+        "instr": 3,
+        "role": "lower melody / counterline",
+        "program": 48,
+        "gm": "String Ensemble 1",
+        "follow": true,
+        "volume": 92,
+        "reverb": 58,
+        "legato": 2,
+        "release": 1
+      },
+      {
+        "slot": 5,
+        "instr": 5,
+        "role": "upper melody",
+        "program": 68,
+        "gm": "Oboe",
+        "follow": true,
+        "volume": 104,
+        "reverb": 45,
+        "legato": 2,
+        "release": 1
+      },
+      {
+        "slot": 6,
+        "instr": 0,
+        "role": "bass",
+        "program": 32,
+        "gm": "Acoustic Bass",
+        "follow": false,
+        "volume": 78,
+        "reverb": 35,
+        "legato": 0,
+        "release": 1
+      },
+      {
+        "slot": 7,
+        "instr": 3,
+        "role": "delayed lower melody",
+        "program": 49,
+        "gm": "String Ensemble 2",
+        "follow": true,
+        "volume": 58,
+        "reverb": 58,
+        "legato": 2,
+        "release": 1
+      }
+    ],
+    "locked": true,
+    "enabled": true,
+    "gain": 2.7784506617977938
+  },
+  "141": {
+    "name": "maps_47_99",
+    "title": "Maps 47 and 99",
+    "group": "dungeon",
+    "voices": [
+      {
+        "slot": 4,
+        "instr": 3,
+        "role": "melody echo",
+        "program": 48,
+        "gm": "String Ensemble 1",
+        "follow": true,
+        "volume": 95,
+        "reverb": 60,
+        "legato": 1,
+        "release": 1
+      },
+      {
+        "slot": 4,
+        "instr": 4,
+        "role": "repeated-note ostinato",
+        "program": 45,
+        "gm": "Pizzicato Strings",
+        "follow": false,
+        "volume": 89,
+        "reverb": 45,
+        "legato": 0,
+        "release": 1
+      },
+      {
+        "slot": 5,
+        "instr": 5,
+        "role": "bass",
+        "program": 43,
+        "gm": "Contrabass",
+        "follow": true,
+        "volume": 120,
+        "reverb": 40,
+        "legato": 1,
+        "release": 1
+      },
+      {
+        "slot": 6,
+        "instr": 3,
+        "role": "melody",
+        "program": 40,
+        "gm": "Violin",
+        "follow": true,
+        "volume": 102,
+        "reverb": 50,
+        "legato": 1,
+        "release": 1
+      },
+      {
+        "slot": 6,
+        "instr": 13,
+        "role": "high countermelody",
+        "program": 73,
+        "gm": "Flute",
+        "follow": true,
+        "volume": 66,
+        "reverb": 50,
+        "legato": 2,
+        "release": 1,
+        "amplitude": 2.0
+      },
+      {
+        "slot": 7,
+        "instr": 13,
+        "role": "delayed bass color",
+        "program": 42,
+        "gm": "Cello",
+        "follow": true,
+        "volume": 80,
+        "reverb": 50,
+        "legato": 2,
+        "release": 1
+      }
+    ],
+    "locked": true,
+    "enabled": true,
+    "gain": 2.9146339983777363
+  },
+  "142": {
+    "name": "final_boss",
+    "title": "Last battle",
+    "group": "battle",
+    "voices": [
+      {
+        "slot": 4,
+        "instr": 5,
+        "role": "rapid lower lead / ostinato",
+        "program": 52,
+        "gm": "Chorale then String Ensemble 1",
+        "follow": true,
+        "volume": 127,
+        "reverb": 58,
+        "legato": 1,
+        "release": 1,
+        "layers": [
+          {
+            "program": 52,
+            "gm": "Choir Aahs",
+            "transpose": 0,
+            "volume": 127
+          },
+          {
+            "program": 52,
+            "gm": "Choir Aahs",
+            "transpose": -12,
+            "volume": 127
+          },
+          {
+            "program": 19,
+            "gm": "Church Organ",
+            "transpose": 0,
+            "volume": 127
+          },
+          {
+            "program": 19,
+            "gm": "Church Organ",
+            "transpose": -12,
+            "volume": 127
+          },
+          {
+            "program": 52,
+            "gm": "Choir Aahs",
+            "transpose": 12,
+            "volume": 127
+          }
+        ],
+        "sections": [
+          {
+            "tick": 577,
+            "program": 48,
+            "gm": "String Ensemble 1",
+            "volume": 110,
+            "layers": [
+              {}
+            ]
+          }
+        ],
+        "envelopes": [
+          {
+            "points": [
+              {
+                "tick": 457,
+                "value": 0.7079457843841379,
+                "ramp_ms": 500
+              },
+              {
+                "tick": 553,
+                "value": 1,
+                "offset_ms": 500,
+                "ramp_ms": 500
+              }
+            ]
+          },
+          {
+            "loop_tick": 577,
+            "loop_ticks": 3072,
+            "points": [
+              {
+                "tick": 2881,
+                "value": 1.6788040181225603,
+                "ramp_frames": 2
+              },
+              {
+                "tick": 3095,
+                "value": 1,
+                "ramp_frames": 2
+              }
+            ]
+          }
+        ],
+        "section_lift": true
+      },
+      {
+        "slot": 5,
+        "instr": 4,
+        "role": "intro high harmony",
+        "program": 30,
+        "gm": "Distortion Guitar",
+        "follow": true,
+        "volume": 127,
+        "reverb": 60,
+        "legato": 2,
+        "release": 1,
+        "transpose": -12,
+        "layers": [
+          {
+            "program": 30,
+            "bank": 8,
+            "transpose": 0,
+            "amplitude": 0.5192218661511904
+          },
+          {
+            "program": 30,
+            "bank": 0,
+            "transpose": -12,
+            "amplitude": 0.7949122621031033
+          }
+        ],
+        "envelopes": [
+          {
+            "points": [
+              {
+                "tick": 457,
+                "value": 0.7079457843841379,
+                "ramp_ms": 500
+              },
+              {
+                "tick": 553,
+                "value": 1,
+                "offset_ms": 500,
+                "ramp_ms": 500
+              }
+            ]
+          },
+          {
+            "loop_tick": 577,
+            "loop_ticks": 3072,
+            "points": [
+              {
+                "tick": 2497,
+                "value": 1.2589254117941673,
+                "ramp_frames": 2
+              },
+              {
+                "tick": 2711,
+                "value": 1,
+                "ramp_frames": 2
+              },
+              {
+                "tick": 3265,
+                "value": 1.2589254117941673,
+                "ramp_frames": 2
+              },
+              {
+                "tick": 3479,
+                "value": 1,
+                "ramp_frames": 2
+              }
+            ]
+          }
+        ],
+        "section_lift": true
+      },
+      {
+        "slot": 5,
+        "instr": 5,
+        "role": "upper melody",
+        "program": 56,
+        "gm": "Trumpet",
+        "follow": true,
+        "volume": 116,
+        "reverb": 45,
+        "legato": 2,
+        "release": 1,
+        "sections": [
+          {
+            "tick": 0,
+            "transpose": -12
+          },
+          {
+            "tick": 385,
+            "transpose": 0
+          },
+          {
+            "tick": 2329,
+            "program": 52,
+            "gm": "Choir Aahs + Church Organ",
+            "volume": 127,
+            "layers": [
+              {
+                "program": 52,
+                "gm": "Choir Aahs"
+              },
+              {
+                "program": 19,
+                "gm": "Church Organ"
+              }
+            ],
+            "transpose": -12
+          }
+        ],
+        "envelopes": [
+          {
+            "points": [
+              {
+                "tick": 457,
+                "value": 0.7079457843841379,
+                "ramp_ms": 500
+              },
+              {
+                "tick": 553,
+                "value": 1,
+                "offset_ms": 500,
+                "ramp_ms": 500
+              }
+            ]
+          },
+          {
+            "loop_tick": 577,
+            "loop_ticks": 3072,
+            "points": [
+              {
+                "tick": 2113,
+                "value": 1.9952623149688795
+              },
+              {
+                "tick": 2327,
+                "value": 1,
+                "ramp_frames": 2
+              }
+            ]
+          }
+        ],
+        "section_lift": true
+      },
+      {
+        "slot": 6,
+        "instr": 0,
+        "role": "bass",
+        "program": 33,
+        "gm": "Electric Bass (finger)",
+        "follow": false,
+        "volume": 74,
+        "reverb": 35,
+        "legato": 0,
+        "release": 1,
+        "transpose": 0,
+        "envelopes": [],
+        "section_lift": true,
+        "amplitude": 1.6867935228548925,
+        "layers": [
+          {},
+          {
+            "note_ticks": [
+              457,
+              481
+            ],
+            "amplitude": 0.9865940486053264
+          }
+        ]
+      },
+      {
+        "slot": 7,
+        "instr": 13,
+        "role": "middle countermelody",
+        "program": 57,
+        "gm": "Trombone",
+        "follow": true,
+        "volume": 72,
+        "reverb": 45,
+        "legato": 2,
+        "release": 1,
+        "envelopes": [
+          {
+            "points": [
+              {
+                "tick": 457,
+                "value": 0.7079457843841379,
+                "ramp_ms": 500
+              },
+              {
+                "tick": 553,
+                "value": 1,
+                "offset_ms": 500,
+                "ramp_ms": 500
+              }
+            ]
+          }
+        ],
+        "section_lift": true
+      },
+      {
+        "slot": 7,
+        "instr": 5,
+        "role": "repeated inner ostinato",
+        "program": 48,
+        "gm": "String Ensemble 1",
+        "follow": true,
+        "volume": 71,
+        "reverb": 58,
+        "legato": 1,
+        "release": 1,
+        "envelopes": [
+          {
+            "points": [
+              {
+                "tick": 457,
+                "value": 0.7079457843841379,
+                "ramp_ms": 500
+              },
+              {
+                "tick": 553,
+                "value": 1,
+                "offset_ms": 500,
+                "ramp_ms": 500
+              }
+            ]
+          }
+        ],
+        "section_lift": true,
+        "seat": 10
+      },
+      {
+        "slot": 7,
+        "instr": 6,
+        "role": "high running figure",
+        "program": 49,
+        "gm": "String Ensemble 2",
+        "follow": true,
+        "volume": 73,
+        "reverb": 45,
+        "legato": 0,
+        "release": 1,
+        "envelopes": [
+          {
+            "points": [
+              {
+                "tick": 457,
+                "value": 0.7079457843841379,
+                "ramp_ms": 500
+              },
+              {
+                "tick": 553,
+                "value": 1,
+                "offset_ms": 500,
+                "ramp_ms": 500
+              }
+            ]
+          }
+        ],
+        "section_lift": true
+      }
+    ],
+    "locked": true,
+    "enabled": true,
+    "isolated_voices": true,
+    "gain": 1.9937489909691273,
+    "mix_gain": 1,
+    "drums": {
+      "kit": "standard",
+      "loop_tick": 577,
+      "loop_ticks": 3072,
+      "pcm_gain": 1.1053722467656997,
+      "first_part_db": 3,
+      "first_part_start": 577,
+      "first_part_end": 2113,
+      "ramp_ms": 20
+    },
+    "cast_loop_tick": 577,
+    "cast_loop_ticks": 3072,
+    "section_lift_db": 1.5
+  },
+  "143": {
+    "name": "boss_battle",
+    "title": "Boss battle",
+    "group": "battle",
+    "voices": [
+      {
+        "slot": 4,
+        "instr": 5,
+        "role": "lower counterline",
+        "program": 48,
+        "gm": "String Ensemble 1",
+        "follow": true,
+        "volume": 88,
+        "reverb": 58,
+        "legato": 0,
+        "release": 0,
+        "gate": 0.35,
+        "attack": 0,
+        "release_cc": 0,
+        "amplitude": 2.0,
+        "seat": 15
+      },
+      {
+        "slot": 5,
+        "instr": 5,
+        "role": "upper melody",
+        "program": 48,
+        "gm": "String Ensemble 1",
+        "follow": true,
+        "volume": 108,
+        "reverb": 58,
+        "legato": 1,
+        "release": 1
+      },
+      {
+        "slot": 6,
+        "instr": 5,
+        "role": "bass",
+        "program": 33,
+        "gm": "Electric Bass (finger)",
+        "follow": false,
+        "volume": 95,
+        "reverb": 35,
+        "legato": 0,
+        "release": 1,
+        "transpose": -12
+      },
+      {
+        "slot": 7,
+        "instr": 3,
+        "role": "middle counter double",
+        "program": 49,
+        "gm": "String Ensemble 2",
+        "follow": true,
+        "volume": 55,
+        "reverb": 58,
+        "legato": 1,
+        "release": 1
+      },
+      {
+        "slot": 7,
+        "instr": 4,
+        "role": "held harmony",
+        "program": 52,
+        "gm": "Choir Aahs",
+        "follow": true,
+        "volume": 90,
+        "reverb": 58,
+        "legato": 2,
+        "release": 1
+      },
+      {
+        "slot": 7,
+        "instr": 5,
+        "role": "upper inner response",
+        "program": 71,
+        "gm": "Clarinet",
+        "follow": true,
+        "volume": 70,
+        "reverb": 45,
+        "legato": 1,
+        "release": 1
+      }
+    ],
+    "locked": true,
+    "enabled": true,
+    "isolated_voices": true,
+    "gain": 3.4758491369641846,
+    "drums": {
+      "kit": "power",
+      "loop_tick": 513,
+      "loop_ticks": 1488,
+      "pcm_gain": 1.0092014459103622
+    },
+    "mix_gain": 0.8909885934538126
+  },
+  "144": {
+    "name": "maps_46_d2",
+    "title": "Maps 46 and D2",
+    "group": "event",
+    "voices": [
+      {
+        "slot": 4,
+        "instr": 4,
+        "role": "melody echo",
+        "program": 71,
+        "gm": "Clarinet",
+        "follow": true,
+        "volume": 109,
+        "reverb": 55,
+        "legato": 2,
+        "release": 1
+      },
+      {
+        "slot": 5,
+        "instr": 5,
+        "role": "melody",
+        "program": 68,
+        "gm": "Oboe",
+        "follow": true,
+        "volume": 93,
+        "reverb": 50,
+        "legato": 2,
+        "release": 1
+      },
+      {
+        "slot": 6,
+        "instr": 3,
+        "role": "bass",
+        "program": 42,
+        "gm": "Cello",
+        "follow": true,
+        "volume": 101,
+        "reverb": 40,
+        "legato": 1,
+        "release": 1
+      },
+      {
+        "slot": 7,
+        "instr": 5,
+        "role": "delayed bass double",
+        "program": 46,
+        "gm": "Orchestral Harp",
+        "follow": false,
+        "volume": 96,
+        "reverb": 50,
+        "legato": 0,
+        "release": 1
+      }
+    ],
+    "locked": true,
+    "enabled": true,
+    "gain": 2.455807338479752
+  },
+  "145": {
+    "name": "battle",
+    "title": "Regular battle",
+    "group": "battle",
+    "voices": [
+      {
+        "slot": 4,
+        "instr": 13,
+        "role": "opening high call",
+        "program": 40,
+        "gm": "Violin",
+        "follow": true,
+        "volume": 90,
+        "reverb": 45,
+        "legato": 2,
+        "release": 1
+      },
+      {
+        "slot": 4,
+        "instr": 5,
+        "role": "driving lower lead",
+        "program": 48,
+        "gm": "String Ensemble 1",
+        "follow": true,
+        "volume": 114,
+        "reverb": 58,
+        "legato": 1,
+        "release": 1
+      },
+      {
+        "slot": 5,
+        "instr": 13,
+        "role": "opening high harmony",
+        "program": 60,
+        "gm": "French Horn",
+        "follow": true,
+        "volume": 76,
+        "reverb": 45,
+        "legato": 2,
+        "release": 1
+      },
+      {
+        "slot": 5,
+        "instr": 4,
+        "role": "upper melody",
+        "program": 59,
+        "gm": "Muted Trumpet",
+        "follow": true,
+        "volume": 113,
+        "reverb": 45,
+        "legato": 2,
+        "release": 1,
+        "amplitude": 2.462987074402279,
+        "sections": [
+          {
+            "tick": 513,
+            "amplitude": 1.3963683610559376,
+            "ramp_frames": 2
+          }
+        ]
+      },
+      {
+        "slot": 6,
+        "instr": 3,
+        "role": "bass",
+        "program": 33,
+        "gm": "Electric Bass (finger)",
+        "follow": false,
+        "volume": 85,
+        "reverb": 35,
+        "legato": 0,
+        "release": 1,
+        "transpose": -12
+      },
+      {
+        "slot": 7,
+        "instr": 4,
+        "role": "held harmony",
+        "program": 60,
+        "gm": "French Horn",
+        "follow": true,
+        "volume": 74,
+        "reverb": 55,
+        "legato": 2,
+        "release": 1
+      },
+      {
+        "slot": 7,
+        "instr": 5,
+        "role": "inner counterline",
+        "program": 49,
+        "gm": "String Ensemble 2",
+        "follow": true,
+        "volume": 74,
+        "reverb": 58,
+        "legato": 1,
+        "release": 1
+      }
+    ],
+    "locked": true,
+    "enabled": true,
+    "isolated_voices": true,
+    "gain": 3.824691231341438,
+    "drums": {
+      "kit": "standard",
+      "loop_tick": 1,
+      "loop_ticks": 1536,
+      "pcm_gain": 1.3278804305559504
+    },
+    "mix_gain": 0.9011025013196436
+  },
+  "146": {
+    "name": "maps_c7_cc",
+    "title": "Maps C7 and CC",
+    "group": "event",
+    "voices": [
+      {
+        "slot": 4,
+        "instr": 5,
+        "role": "bass",
+        "program": 32,
+        "gm": "Acoustic Bass",
+        "follow": false,
+        "volume": 98,
+        "reverb": 35,
+        "legato": 1,
+        "release": 1
+      },
+      {
+        "slot": 5,
+        "instr": 4,
+        "role": "high melody",
+        "program": 73,
+        "gm": "Flute",
+        "follow": true,
+        "volume": 103,
+        "reverb": 45,
+        "legato": 2,
+        "release": 1
+      },
+      {
+        "slot": 6,
+        "instr": 13,
+        "role": "broken-chord accompaniment",
+        "program": 46,
+        "gm": "Orchestral Harp",
+        "follow": false,
+        "volume": 102,
+        "reverb": 45,
+        "legato": 0,
+        "release": 1
+      },
+      {
+        "slot": 7,
+        "instr": 13,
+        "role": "delayed melody double",
+        "program": 73,
+        "gm": "Flute",
+        "follow": true,
+        "volume": 66,
+        "reverb": 45,
+        "legato": 2,
+        "release": 1
+      }
+    ],
+    "locked": true,
+    "enabled": true,
+    "gain": 2.0535679576747015
+  },
+  "147": {
+    "name": "tower",
+    "title": "Tower",
+    "group": "dungeon",
+    "voices": [
+      {
+        "slot": 4,
+        "instr": 4,
+        "role": "held harmony",
+        "program": 60,
+        "gm": "French Horn",
+        "follow": true,
+        "volume": 102,
+        "reverb": 55,
+        "legato": 2,
+        "release": 1
+      },
+      {
+        "slot": 4,
+        "instr": 5,
+        "role": "middle ostinato",
+        "program": 45,
+        "gm": "Pizzicato Strings",
+        "follow": false,
+        "volume": 120,
+        "reverb": 45,
+        "legato": 0,
+        "release": 1
+      },
+      {
+        "slot": 5,
+        "instr": 4,
+        "role": "melody",
+        "program": 71,
+        "gm": "Clarinet",
+        "follow": true,
+        "volume": 106,
+        "reverb": 50,
+        "legato": 1,
+        "release": 1
+      },
+      {
+        "slot": 6,
+        "instr": 5,
+        "role": "bass",
+        "program": 33,
+        "gm": "Electric Bass (finger)",
+        "follow": false,
+        "volume": 84,
+        "reverb": 35,
+        "legato": 0,
+        "release": 1
+      },
+      {
+        "slot": 7,
+        "instr": 5,
+        "role": "upper counterline",
+        "program": 68,
+        "gm": "Oboe",
+        "follow": true,
+        "volume": 87,
+        "reverb": 50,
+        "legato": 1,
+        "release": 1
+      }
+    ],
+    "locked": true,
+    "enabled": true,
+    "gain": 2.823914851930111
+  },
+  "148": {
+    "name": "maps_18_bd",
+    "title": "Maps 18 and BD",
+    "group": "event",
+    "voices": [
+      {
+        "slot": 4,
+        "instr": 5,
+        "role": "rapid middle ostinato",
+        "program": 6,
+        "gm": "Harpsichord",
+        "follow": false,
+        "volume": 96,
+        "reverb": 45,
+        "legato": 0,
+        "release": 0
+      },
+      {
+        "slot": 5,
+        "instr": 5,
+        "role": "bass",
+        "program": 32,
+        "gm": "Acoustic Bass",
+        "follow": false,
+        "volume": 93,
+        "reverb": 35,
+        "legato": 0,
+        "release": 1
+      },
+      {
+        "slot": 6,
+        "instr": 13,
+        "role": "upper melody",
+        "program": 73,
+        "gm": "Flute",
+        "follow": true,
+        "volume": 86,
+        "reverb": 50,
+        "legato": 2,
+        "release": 1
+      },
+      {
+        "slot": 6,
+        "instr": 14,
+        "role": "high melody color",
+        "program": 79,
+        "gm": "Ocarina",
+        "follow": true,
+        "volume": 95,
+        "reverb": 55,
+        "legato": 0,
+        "release": 1
+      },
+      {
+        "slot": 7,
+        "instr": 5,
+        "role": "inner counterline",
+        "program": 68,
+        "gm": "Oboe",
+        "follow": true,
+        "volume": 87,
+        "reverb": 50,
+        "legato": 1,
+        "release": 1
+      },
+      {
+        "slot": 7,
+        "instr": 11,
+        "role": "high response (unison)",
+        "program": 74,
+        "gm": "Recorder",
+        "follow": true,
+        "volume": 101,
+        "reverb": 55,
+        "legato": 0,
+        "release": 1
+      }
+    ],
+    "locked": true,
+    "enabled": true,
+    "gain": 2.6921879974738383
+  },
+  "149": {
+    "name": "victory",
+    "title": "Victory",
+    "group": "jingle",
+    "voices": [
+      {
+        "slot": 4,
+        "instr": 4,
+        "role": "lower fanfare melody",
+        "program": 56,
+        "gm": "Trumpet",
+        "follow": true,
+        "volume": 106,
+        "reverb": 45,
+        "legato": 2,
+        "release": 1
+      },
+      {
+        "slot": 5,
+        "instr": 5,
+        "role": "upper fanfare harmony",
+        "program": 56,
+        "gm": "Trumpet",
+        "follow": true,
+        "volume": 85,
+        "reverb": 45,
+        "legato": 2,
+        "release": 1
+      },
+      {
+        "slot": 6,
+        "instr": 1,
+        "role": "bass",
+        "program": 33,
+        "gm": "Electric Bass (finger)",
+        "follow": false,
+        "volume": 84,
+        "reverb": 35,
+        "legato": 0,
+        "release": 1
+      },
+      {
+        "slot": 7,
+        "instr": 4,
+        "role": "running counter figure",
+        "program": 13,
+        "gm": "Xylophone",
+        "follow": false,
+        "volume": 75,
+        "reverb": 45,
+        "legato": 0,
+        "release": 1
+      }
+    ],
+    "locked": true,
+    "enabled": true,
+    "gain": 3.4256483789799614
+  },
+  "150": {
+    "name": "defeat",
+    "title": "Defeat",
+    "group": "event",
+    "voices": [
+      {
+        "slot": 4,
+        "instr": 5,
+        "role": "bass",
+        "program": 42,
+        "gm": "Cello",
+        "follow": true,
+        "volume": 101,
+        "reverb": 45,
+        "legato": 2,
+        "release": 1
+      },
+      {
+        "slot": 5,
+        "instr": 5,
+        "role": "lament melody",
+        "program": 68,
+        "gm": "Oboe",
+        "follow": true,
+        "volume": 91,
+        "reverb": 50,
+        "legato": 2,
+        "release": 1
+      },
+      {
+        "slot": 6,
+        "instr": 4,
+        "role": "middle repeated harmony",
+        "program": 46,
+        "gm": "Orchestral Harp",
+        "follow": false,
+        "volume": 74,
+        "reverb": 55,
+        "legato": 0,
+        "release": 1
+      },
+      {
+        "slot": 7,
+        "instr": 13,
+        "role": "repeated harmony double",
+        "program": 71,
+        "gm": "Clarinet",
+        "follow": true,
+        "volume": 78,
+        "reverb": 55,
+        "legato": 1,
+        "release": 1
+      },
+      {
+        "slot": 7,
+        "instr": 14,
+        "role": "intro melody echo",
+        "program": 73,
+        "gm": "Flute",
+        "follow": true,
+        "volume": 62,
+        "reverb": 55,
+        "legato": 2,
+        "release": 1
+      }
+    ],
+    "locked": true,
+    "enabled": true,
+    "gain": 2.6226496091543794
+  },
+  "151": {
+    "name": "title",
+    "title": "Title",
+    "group": "title",
+    "voices": [
+      {
+        "slot": 4,
+        "instr": 13,
+        "role": "lead melody",
+        "program": 73,
+        "gm": "Flute",
+        "follow": true,
+        "volume": 99,
+        "reverb": 50,
+        "legato": 2,
+        "release": 1
+      },
+      {
+        "slot": 5,
+        "instr": 4,
+        "role": "opening upper response",
+        "program": 71,
+        "gm": "Clarinet",
+        "follow": true,
+        "volume": 115,
+        "reverb": 55,
+        "legato": 2,
+        "release": 1
+      },
+      {
+        "slot": 5,
+        "instr": 5,
+        "role": "bass pedal",
+        "program": 42,
+        "gm": "Cello",
+        "follow": true,
+        "volume": 118,
+        "reverb": 40,
+        "legato": 2,
+        "release": 1
+      },
+      {
+        "slot": 6,
+        "instr": 6,
+        "role": "rapid broken-chord figure",
+        "program": 46,
+        "gm": "Orchestral Harp",
+        "follow": false,
+        "volume": 80,
+        "reverb": 50,
+        "legato": 0,
+        "release": 1
+      },
+      {
+        "slot": 6,
+        "instr": 14,
+        "role": "opening high harmony echo",
+        "program": 79,
+        "gm": "Ocarina",
+        "follow": true,
+        "volume": 89,
+        "reverb": 60,
+        "legato": 2,
+        "release": 1
+      },
+      {
+        "slot": 7,
+        "instr": 6,
+        "role": "upper moving harmony",
+        "program": 48,
+        "gm": "String Ensemble 1",
+        "follow": true,
+        "volume": 102,
+        "reverb": 55,
+        "legato": 1,
+        "release": 1
+      },
+      {
+        "slot": 7,
+        "instr": 14,
+        "role": "opening high harmony",
+        "program": 79,
+        "gm": "Ocarina",
+        "follow": true,
+        "volume": 72,
+        "reverb": 60,
+        "legato": 2,
+        "release": 1
+      }
+    ],
+    "locked": true,
+    "enabled": true,
+    "gain": 1.7571585787953325
+  },
+  "152": {
+    "name": "jingle_15",
+    "title": "Jingle 15",
+    "group": "jingle",
+    "voices": [
+      {
+        "slot": 0,
+        "instr": 5,
+        "role": "middle fanfare harmony",
+        "program": 56,
+        "gm": "Trumpet",
+        "follow": true,
+        "volume": 100,
+        "reverb": 45,
+        "legato": 0,
+        "release": 1
+      },
+      {
+        "slot": 1,
+        "instr": 5,
+        "role": "upper fanfare melody",
+        "program": 56,
+        "gm": "Trumpet",
+        "follow": true,
+        "volume": 120,
+        "reverb": 45,
+        "legato": 0,
+        "release": 1
+      },
+      {
+        "slot": 2,
+        "instr": 4,
+        "role": "lower fanfare harmony",
+        "program": 60,
+        "gm": "French Horn",
+        "follow": true,
+        "volume": 101,
+        "reverb": 45,
+        "legato": 0,
+        "release": 1
+      }
+    ],
+    "locked": true,
+    "enabled": true,
+    "gain": 2.517863429899162
+  },
+  "153": {
+    "name": "jingle_16",
+    "title": "Jingle 16",
+    "group": "jingle",
+    "voices": [
+      {
+        "slot": 0,
+        "instr": 4,
+        "role": "delayed bell melody",
+        "program": 80,
+        "gm": "Lead 1 (square)",
+        "follow": false,
+        "volume": 60,
+        "reverb": 45,
+        "legato": 0,
+        "release": 1
+      },
+      {
+        "slot": 1,
+        "instr": 4,
+        "role": "bell melody",
+        "program": 80,
+        "gm": "Lead 1 (square)",
+        "follow": false,
+        "volume": 105,
+        "reverb": 45,
+        "legato": 0,
+        "release": 1
+      }
+    ],
+    "locked": true,
+    "enabled": true,
+    "gain": 3.8233181582227664
+  },
+  "154": {
+    "name": "map_2f",
+    "title": "Map 2F",
+    "group": "event",
+    "voices": [
+      {
+        "slot": 4,
+        "instr": 5,
+        "role": "sparse middle accompaniment",
+        "program": 45,
+        "gm": "Pizzicato Strings",
+        "follow": false,
+        "volume": 120,
+        "reverb": 50,
+        "legato": 0,
+        "release": 1
+      },
+      {
+        "slot": 5,
+        "instr": 4,
+        "role": "melody",
+        "program": 71,
+        "gm": "Clarinet",
+        "follow": true,
+        "volume": 111,
+        "reverb": 50,
+        "legato": 2,
+        "release": 1
+      },
+      {
+        "slot": 6,
+        "instr": 3,
+        "role": "bass",
+        "program": 42,
+        "gm": "Cello",
+        "follow": true,
+        "volume": 102,
+        "reverb": 40,
+        "legato": 0,
+        "release": 1
+      },
+      {
+        "slot": 7,
+        "instr": 13,
+        "role": "delayed melody double",
+        "program": 73,
+        "gm": "Flute",
+        "follow": true,
+        "volume": 75,
+        "reverb": 60,
+        "legato": 2,
+        "release": 1
+      }
+    ],
+    "locked": true,
+    "enabled": true,
+    "gain": 2.7184575806971236
+  },
+  "140": {
+    "name": "ending",
+    "title": "Ending",
+    "group": "ending",
+    "voices": [
+      {
+        "slot": 4,
+        "instr": 5,
+        "role": "main upper melody",
+        "program": 48,
+        "gm": "String Ensemble 1",
+        "follow": true,
+        "volume": 103,
+        "reverb": 50,
+        "legato": 2,
+        "release": 1
+      },
+      {
+        "slot": 4,
+        "instr": 4,
+        "role": "late upper melody",
+        "program": 48,
+        "gm": "String Ensemble 1",
+        "follow": true,
+        "volume": 104,
+        "reverb": 50,
+        "legato": 2,
+        "release": 1
+      },
+      {
+        "slot": 4,
+        "instr": 14,
+        "role": "intro high figure",
+        "program": 8,
+        "gm": "Celesta",
+        "follow": false,
+        "volume": 113,
+        "reverb": 55,
+        "legato": 0,
+        "release": 1
+      },
+      {
+        "slot": 5,
+        "instr": 5,
+        "role": "bass",
+        "program": 45,
+        "gm": "Pizzicato Strings",
+        "follow": false,
+        "volume": 95,
+        "reverb": 40,
+        "legato": 0,
+        "release": 1
+      },
+      {
+        "slot": 5,
+        "instr": 9,
+        "role": "late bass / moving inner line",
+        "program": 42,
+        "gm": "Cello",
+        "follow": true,
+        "volume": 70,
+        "reverb": 45,
+        "legato": 1,
+        "release": 1
+      },
+      {
+        "slot": 6,
+        "instr": 5,
+        "role": "middle harmony",
+        "program": 48,
+        "gm": "String Ensemble 1",
+        "follow": true,
+        "volume": 95,
+        "reverb": 58,
+        "legato": 2,
+        "release": 1,
+        "seat": 10
+      },
+      {
+        "slot": 6,
+        "instr": 4,
+        "role": "harmony / response",
+        "program": 60,
+        "gm": "French Horn",
+        "follow": true,
+        "volume": 65,
+        "reverb": 58,
+        "legato": 2,
+        "release": 1
+      },
+      {
+        "slot": 6,
+        "instr": 13,
+        "role": "late melody double",
+        "program": 73,
+        "gm": "Flute",
+        "follow": true,
+        "volume": 62,
+        "reverb": 55,
+        "legato": 2,
+        "release": 1
+      },
+      {
+        "slot": 7,
+        "instr": 13,
+        "role": "moving counterline",
+        "program": 71,
+        "gm": "Clarinet",
+        "follow": true,
+        "volume": 65,
+        "reverb": 55,
+        "legato": 1,
+        "release": 1
+      },
+      {
+        "slot": 7,
+        "instr": 5,
+        "role": "inner transition figure",
+        "program": 68,
+        "gm": "Oboe",
+        "follow": true,
+        "volume": 61,
+        "reverb": 50,
+        "legato": 1,
+        "release": 1
+      },
+      {
+        "slot": 7,
+        "instr": 14,
+        "role": "high arpeggio / descant",
+        "program": 46,
+        "gm": "Orchestral Harp",
+        "follow": false,
+        "volume": 112,
+        "reverb": 55,
+        "legato": 0,
+        "release": 1
+      }
+    ],
+    "locked": true,
+    "enabled": true,
+    "isolated_voices": true,
+    "gain": 3.8367074777203913
+  },
+  "163": {
+    "name": "song_9_coda",
+    "title": "Song 9 coda",
+    "group": "event",
+    "voices": [
+      {
+        "slot": 4,
+        "instr": 5,
+        "role": "bass",
+        "program": 32,
+        "gm": "Acoustic Bass",
+        "follow": false,
+        "volume": 98,
+        "reverb": 35,
+        "legato": 1,
+        "release": 1
+      },
+      {
+        "slot": 5,
+        "instr": 4,
+        "role": "high melody",
+        "program": 73,
+        "gm": "Flute",
+        "follow": true,
+        "volume": 103,
+        "reverb": 45,
+        "legato": 2,
+        "release": 1
+      },
+      {
+        "slot": 6,
+        "instr": 13,
+        "role": "broken-chord accompaniment",
+        "program": 46,
+        "gm": "Orchestral Harp",
+        "follow": false,
+        "volume": 102,
+        "reverb": 45,
+        "legato": 0,
+        "release": 1
+      },
+      {
+        "slot": 7,
+        "instr": 13,
+        "role": "delayed melody double",
+        "program": 73,
+        "gm": "Flute",
+        "follow": true,
+        "volume": 66,
+        "reverb": 45,
+        "legato": 2,
+        "release": 1
+      }
+    ],
+    "locked": true,
+    "enabled": true,
+    "gain": 2.0477336464925058
+  },
+  "178": {
+    "name": "jingle_15_alias",
+    "title": "Jingle 15 alias",
+    "group": "jingle",
+    "voices": [
+      {
+        "slot": 0,
+        "instr": 5,
+        "role": "middle fanfare harmony",
+        "program": 56,
+        "gm": "Trumpet",
+        "follow": true,
+        "volume": 103,
+        "reverb": 45,
+        "legato": 0,
+        "release": 1
+      },
+      {
+        "slot": 1,
+        "instr": 5,
+        "role": "upper fanfare melody",
+        "program": 56,
+        "gm": "Trumpet",
+        "follow": true,
+        "volume": 120,
+        "reverb": 45,
+        "legato": 0,
+        "release": 1
+      },
+      {
+        "slot": 2,
+        "instr": 4,
+        "role": "lower fanfare harmony",
+        "program": 60,
+        "gm": "French Horn",
+        "follow": true,
+        "volume": 93,
+        "reverb": 45,
+        "legato": 0,
+        "release": 1
+      }
+    ],
+    "locked": true,
+    "enabled": true,
+    "gain": 2.304180764439007
+  },
+  "136": {
+    "name": "short_event_cue",
+    "title": "WSC-only short event cue 136",
+    "group": "jingle",
+    "voices": [
+      {
+        "slot": 0,
+        "instr": 4,
+        "role": "middle harmony",
+        "program": 71,
+        "gm": "Clarinet",
+        "follow": true,
+        "volume": 120,
+        "reverb": 55,
+        "legato": 2,
+        "release": 1
+      },
+      {
+        "slot": 1,
+        "instr": 5,
+        "role": "upper melody",
+        "program": 68,
+        "gm": "Oboe",
+        "follow": true,
+        "volume": 120,
+        "reverb": 55,
+        "legato": 2,
+        "release": 1
+      },
+      {
+        "slot": 2,
+        "instr": 4,
+        "role": "lower harmony",
+        "program": 60,
+        "gm": "French Horn",
+        "follow": true,
+        "volume": 111,
+        "reverb": 55,
+        "legato": 2,
+        "release": 1
+      }
+    ],
+    "locked": true,
+    "enabled": true,
+    "gain": 1.7938139739925603
+  },
+  "137": {
+    "name": "arpeggiated_event_cue",
+    "title": "WSC-only arpeggiated event cue 137",
+    "group": "jingle",
+    "voices": [
+      {
+        "slot": 0,
+        "instr": 4,
+        "role": "low sustained harmony",
+        "program": 60,
+        "gm": "French Horn",
+        "follow": true,
+        "volume": 101,
+        "reverb": 55,
+        "legato": 2,
+        "release": 1
+      },
+      {
+        "slot": 1,
+        "instr": 4,
+        "role": "arpeggiated melody",
+        "program": 46,
+        "gm": "Orchestral Harp",
+        "follow": false,
+        "volume": 120,
+        "reverb": 55,
+        "legato": 0,
+        "release": 1
+      },
+      {
+        "slot": 2,
+        "instr": 4,
+        "role": "middle sustained harmony",
+        "program": 71,
+        "gm": "Clarinet",
+        "follow": true,
+        "volume": 106,
+        "reverb": 55,
+        "legato": 2,
+        "release": 1
+      }
+    ],
+    "locked": true,
+    "enabled": true,
+    "gain": 2.2792198459986257
+  }
+}

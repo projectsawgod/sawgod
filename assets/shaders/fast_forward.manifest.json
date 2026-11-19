@@ -1,0 +1,53 @@
+{
+  "source_sha256": "34849d1a382b4be24e6aaff06729061e7f1968e282ccc31130f0110c297457f6",
+  "header_sha256": "e067fdede5a42568f02f6e71fe4ca515a96962e2221c0caabf0247dfb559aa24",
+  "compiler": "dxc",
+  "compiler_sha256": "ce11bb02f6027055e0b9f8c062d13b14f373c876a16557a4fa744314117d31e7",
+  "spirv_sha256": "2e70ec39ff8c1e97879db6b5059236ad84d5280368796e83a97ffb56b9ed1f33",
+  "dxil_sha256": "fbd7b74c4564538560cfa96edce9cded3191737976a81da0f22c81b4ca190658",
+  "msl_sha256": "e8b243b61ea3e63d922ae46af48ee5f674e9880b2c4cd389c05778262bcb3505",
+  "abi": {
+    "samplers": 3,
+    "uniform_buffers": 1,
+    "storage_buffers": 0,
+    "storage_textures": 0,
+    "descriptor_bindings": [
+      [
+        2,
+        0
+      ],
+      [
+        2,
+        0
+      ],
+      [
+        2,
+        1
+      ],
+      [
+        2,
+        1
+      ],
+      [
+        2,
+        2
+      ],
+      [
+        2,
+        2
+      ],
+      [
+        3,
+        0
+      ]
+    ],
+    "input_locations": [
+      0,
+      1
+    ],
+    "output_locations": [
+      0
+    ]
+  },
+  "tool_reflection": null
+}

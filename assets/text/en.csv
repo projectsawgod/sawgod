@@ -1,0 +1,1644 @@
+key,text
+L_36A2CA_2,but
+L_36A656_2,damage
+L_36AFB4_1,reflects the attack!
+show_target_magic_or_defense_decreased_message_1,MAG
+L_36BA34_1,DEF
+L_36BA34_3,decreased
+L_36BC5B_1,GAME OVER
+L_36C42A_1,defeated
+L_36C477_1,HP
+L_36C477_2,lost
+msg_announce_innate_battle_attack,{actor} attacks with {ability}!
+msg_announce_used_battle_item,{actor} uses {item}.
+msg_open_party_member_popup_1,{target} {index} takes {amount} damage.
+msg_open_party_member_popup_2,{target} takes {amount} damage.
+msg_ability_gained,{actor} learned {ability}.
+msg_ability_uses_down,{actor}'s uses of {ability} decreased.
+msg_ability_uses_up,{actor}'s uses of {ability} increased.
+msg_actor_asleep,{actor} is asleep.
+msg_actor_awakened,{actor} wakes up.
+msg_actor_confused,{actor} is confused.
+msg_actor_duplicated,{actor} creates a clone!
+msg_actor_fled,{actor} ran away.
+msg_actor_hp_restored,{actor}'s HP is restored!
+msg_actor_paralysis_ended,{actor} recovers from Paralysis.
+msg_actor_paralyzed,{actor} is paralyzed.
+msg_actor_poison_ended,{actor} recovers from Poison.
+msg_actor_self_destructed,{actor} self-destructs!
+msg_attack_missed,Missed!
+msg_barrier_formed,A barrier covers the party!
+msg_battle_actor_failure,{actor} does nothing.
+msg_cannot_escape,Couldn't run away.
+msg_counter_stance,{actor} is ready to counter.
+msg_critical_hit,Critical hit!
+msg_damage,Defeated {target} ×{count}.
+msg_drain_damage_to_target_1,{target} {index} takes {amount} damage.
+msg_drain_damage_to_target_2,{target} takes {amount} damage.
+msg_drain_damage_to_target_3,{target} takes {amount} damage.
+msg_enemies_eliminated,The enemies perished...
+msg_enemy_defeat_count,All enemies defeated.
+msg_enemy_surprise,Oh no! An ambush!
+msg_futile_self_destruct,But they died in vain...
+msg_gold_reward,Got {gold} Gil.
+msg_gold_stolen,{gold} Gil is stolen.
+msg_group_damage,All enemies take {amount} damage.
+msg_hp_drained,Drains {amount} HP.
+msg_max_hp_growth,{actor}'s HP increased by {amount}.
+msg_multi_hit_count,Hit ×{count}!
+msg_no_damage_1,{target} {index} takes no damage!
+msg_no_damage_2,{target} takes no damage!
+msg_no_effect,Nothing happens.
+msg_party_escaped,{leader} fled.
+msg_party_surprise,{leader} strikes first!
+msg_party_victory,{leader} won!
+msg_party_wiped_out,The party was wiped out...
+msg_stat_b_growth,{actor}'s STR increased by {amount}.
+msg_stat_c_growth,{actor}'s DEF increased by {amount}.
+msg_stat_d_growth,{actor}'s AGI increased by {amount}.
+msg_stat_e_growth,{actor}'s MAG increased by {amount}.
+msg_status_bit0_1,{target} {index} dies.
+msg_status_bit0_2,{target} dies.
+msg_status_bit2_1,{target} {index} is Cursed.
+msg_status_bit2_2,{target} is Cursed.
+msg_status_bit4_1,{target} {index} is Poisoned.
+msg_status_bit4_2,{target} is Poisoned.
+msg_status_bit5_1,{target} {index} is Confused.
+msg_status_bit5_2,{target} is Confused.
+msg_status_bit6_1,{target} {index} is Paralyzed.
+msg_status_bit6_2,{target} is Paralyzed.
+msg_status_bit7_1,{target} {index} goes to Sleep.
+msg_status_bit7_2,{target} goes to Sleep.
+msg_target_awakened,{target} wakes up.
+msg_target_consumed,Drains {amount} HP.
+msg_target_curse_ended,{target} recovers from Curse.
+msg_target_defense_increased,{target}'s DEF increases by {amount}.
+msg_target_died,{target} dies!
+msg_target_dismembered,{target} fell to pieces!
+msg_target_group_defeated,Defeated every {target}.
+msg_target_hp_recovery,{target} recovers {amount} HP!
+msg_target_item,{target} counters with {item}!
+msg_target_knocked_out,{target} dies.
+msg_target_paralysis_ended,{target} recovers from Paralysis.
+msg_target_poison_ended,{target} recovers from Poison.
+msg_target_sanity_restored,{target} recovers from Confusion.
+msg_target_sight_restored,{target} recovers from Blind.
+msg_target_status_defense_increased,{target}'s DEF increases by {amount}.
+msg_target_strength_increased,{target}'s STR increases by {amount}.
+msg_transformation_item_prompt,{monster} dropped some meat!
+msg_transformation_result,{actor} changes into {monster}!
+msg_weapon_shattered,{item} shatters!
+msg_whip_entangled,{actor}'s whip entangles the enemy.
+msg_announce_battle_action_group,{actor} attacks {target} ×{count} with {item}!
+msg_announce_battle_action_target,{actor} attacks {target} with {item}!
+msg_announce_battle_action_all,{actor} attacks all enemies with {item}!
+msg_announce_battle_defense,{actor} guards with {item}.
+msg_ability_replaced,{actor}'s {ability} changed to {new_ability}.
+msg_actor_amount,{actor} is poisoned and takes {amount} damage.
+msg_actor_item_failed,"{actor} resists {item}, so nothing happens."
+msg_actor_recovered,{actor} recovers from Confusion.
+msg_element_resistance,"{target} resists {item}, so nothing happens."
+msg_gold_theft_result,"{actor} tries to steal Gil from {target}'s party, but fails!"
+msg_magic_reflected_or_game_over,{target} reflects the attack!
+msg_target_attack,But {target}'s body shrugs it off.
+msg_target_description,{target} dies!
+msg_status_bit1_group,{target} {index} turns to Stone!
+msg_status_bit1_single,{target} turns to Stone!
+msg_status_bit3_group,{target} {index} is Blinded.
+msg_status_bit3_single,{target} is Blinded.
+msg_scripture_ineffective_group,{target} {index}: Falls on deaf ears!
+msg_scripture_ineffective_single,{target}: Falls on deaf ears!
+msg_target_strength_decreased_group,{target} {index}'s STR decreases by {amount}.
+msg_target_strength_decreased_single,{target}'s STR decreases by {amount}.
+msg_target_agility_decreased_group,{target} {index}'s AGI decreases by {amount}.
+msg_target_agility_decreased_single,{target}'s AGI decreases by {amount}.
+msg_target_magic_decreased_single,{target}'s MAG decreases by {amount}.
+msg_target_magic_decreased_group,{target} {index}'s MAG decreases by {amount}.
+msg_target_defense_decreased_single,{target}'s DEF decreases by {amount}.
+msg_target_defense_decreased_group,{target} {index}'s DEF decreases by {amount}.
+dlg_351E3C,0ヒび
+dlg_354AAD,"{name:2}: ""They're dead."""
+dlg_354ABE,{clear}Got the Crystal.{pause:32}
+dlg_354AD6,{box} obtained.{pause:32}
+dlg_354AFF,It's locked.
+dlg_354B0C,Unlocked.{wait}
+dlg_354B2A,Leave town and you're in lawless country.
+dlg_354B3D,Head southeast and you'll hit another town.
+dlg_354B52,Run outta Hearts and there ain't no revivin' ya!
+dlg_354B6A,This Tower reaches all the way to The Heavens.
+dlg_354B81,"Itchin' to get goin'? Grab your party at the Guild, first."
+dlg_354BA8,"Thank you for coming. Please, go up to the second floor and lend an ear to His Majesty's troubles."
+dlg_354BD5,"{name:3}: ""I hear something's troubling you, Your Majesty.""{wait}{clear}Armor King: ""Indeed. I am, as they say, lovesick.""{wait}{clear}{name:3}: ""Why, Sire, there's life in you yet! And who might the lucky beauty be?""{wait}{clear}King: ""Ah. A maiden from the village to the south. Try as I might, I cannot get her to say yes...""{wait}{clear}{name:3}: ""Say no more, Sire! Leave it to us! Now, about the reward...""{wait}{clear}King: ""Name what you will, and it shall be yours."""
+dlg_354C92,That girl back there's the prettiest in the village.
+dlg_354CA8,There's bandits holed up in the cave out west.
+dlg_354CC2,Word is the Sword King's a murderer who slaughters every soul that comes to his castle.
+dlg_354CED,That armor the Armor King has? It used to be on the Hero's Statue.
+dlg_354D0F,"{name:3}: ""Y-you're the prettiest girl in the village?!""{wait}"
+dlg_354D2E,"{name:3}: ""So why reject the King's proposal?""{wait}{clear}Maiden: ""It's the bandits. They're threatening me.""{wait}{clear}""They say that unless I marry a bandit, they will burn the village to the ground.""{wait}{clear}""I could never see my village sacrificed.""{wait}"
+dlg_354D92,It won't open.
+dlg_354D97,"Bandit Chief: ""Who the hell said you could come in here?!""{wait}{clear}{name:3}: ""Me, that's who! Now keep your hands off that girl.""{wait}"
+dlg_354DE5,"Bandit Chief: ""You punk! Think you can mess with me?!""{wait}"
+dlg_354E02,"Bandit Chief: ""Enough, enough! Have mercy!""{wait}{clear}{name:3}: ""Should've said so in the first place!""{wait}"
+dlg_354E33,"Thank you so very much.{n}Now, at last, I can be happy."
+dlg_354E57,"""Thank you."""
+dlg_354EDE,"Sword King: ""You want this sword? Then come and take it!""{wait}"
+dlg_354F4E,King's Sword
+dlg_354F59,Hey! You look like trouble. Get out!{wait}
+dlg_354F75,"Shield King: ""I... wwwon't... ggive you... the shhhiellld."""
+dlg_354F95,"Minister: ""You wish to see the shield, do you? That treasure belongs to His Majesty! Now, off with you!"""
+dlg_354FC4,"{name:0}: ""The King...!""{wait}"
+dlg_354FD7,"{name:1}: ""He's dead...""{wait}{clear}Minister: ""Heh heh heh. You have come at just the right moment.""{wait}{clear}""We shall say it was you who murdered the King.""{wait}{clear}""Seize them!""{wait}"
+dlg_355023,"Minister: ""Eeeek!""{wait}"
+dlg_35503A,"{name:0}: ""What a pitiful end for a king. Betrayed by one of his own."""
+dlg_35505E,"W-wait! Wait, please! Wh-what do you want? Money? Name your price, I'll pay it!{wait}{clear}You can have this shield too! N-no, stop! Eeeek!{wait}"
+dlg_3550A9,"{name:1}: ""Scum like you are the worst!""{wait}"
+dlg_3550D5,King's Shield
+dlg_3550EC,"{name:0}: ""This statue's missing something..."""
+dlg_355107,A resplendent sight.
+dlg_355113,"This is the Hero's Town. You can't miss his statue, right in the middle!"
+dlg_35513C,The three kings of this world are at each other's throats. We've had nothing but war.
+dlg_355165,Shield Castle's just across the way.
+dlg_35517B,"All three kings want to be the sole king of this world, so they're after the others' treasures."
+dlg_3551A9,"Back when the Hero's Statue looked resplendent, you could walk right into the Tower."
+dlg_3551D5,"Long ago, the Hero's Statue "
+dlg_3551E9,{box}held a shield
+dlg_3551F3,{box}wielded a sword
+dlg_3551FE,{box}bore armor
+dlg_355206,{box}.{wait}
+dlg_355214,Armor Castle is to the northeast.
+dlg_35522B,Sword Castle's in the mountains to the southwest.
+dlg_355243,"We've got three kings in these parts: the Shield King, the Armor King and the Sword King."
+dlg_355279,"Genbu: ""So, another adventurer has gathered the three items!""{wait}"
+dlg_35529C,"""Don't think this is over!""{wait}"
+dlg_3552B9,This paradise is the Creator's gift to us.
+dlg_3552D0,A shop? Nobody has to work around here.
+dlg_3552EC,"We eat, we sleep, we dream. It's a wonderful life."
+dlg_355307,You don't have to lift a finger here.
+dlg_35531C,This world is ruled by Four Fiends.
+dlg_355336,"If I can just endure this torment, I'll be taken to Paradise!"
+dlg_355357,It hurts... I can't take it... Please... kill me...
+dlg_355378,There are too many pirates to travel by ship.
+dlg_35538F,I saw an island sailing like a ship!
+dlg_3553A4,Seiryū sent our Dragon King into exile.
+dlg_3553C2,The brothers live in a town on an island to the northeast...
+dlg_3553DD,Those caves'll take you to all kinds of islands.
+dlg_3553FD,A whirlpool swallowed me up and brought me to a castle at the bottom of the ocean! Honest.
+dlg_355423,Dip an Air Seed in ocean water and it gives off oxygen.
+dlg_355440,Stay away from that geezer in the hut on the island to the south!
+dlg_35545E,You'll find Seiryū in the Dragon Palace.
+dlg_355479,I wonder where His Majesty the Dragon King is now? Is he well?
+dlg_3554A1,His Majesty the Dragon King has retired to dry land.
+dlg_3554BD,His Majesty the Dragon King had a blue jewel.
+dlg_3554D9,Seiryū has a red jewel he's obsessed with.
+dlg_3554FA,"Heh heh. It's where the lines cross, pal. Where they make out a cross... heh heh... 'make out'. Heh heh."
+dlg_35553D,Dip it in the ocean and out comes air!
+dlg_355550,Air Seeds grow on the central palm tree.
+dlg_35556A,A riddle for you.{wait}
+dlg_355582,"What hurts the healthy, but soothes the stiffened?"
+dlg_3555AB,"What costs as much as two Long Swords, three Golden Helmets, and four Potions?"
+dlg_3555D8,"What is small by the sea, but large in the mountains?"
+dlg_355600,"{wait}{clear}Seek the item that answers my riddle, then bring it to me!"
+dlg_35564C,"Let's have it, then!{wait}{clear}Hmm! {name:0}, you've brought me"
+dlg_355667,{box} a Seiryū Blade
+dlg_355673,{box} a Rock
+dlg_35567A,{box} a Gold Needle
+dlg_355684,"{box} no answer at all!{wait}{clear}Take me for an old fool, do you? I'll teach you a lesson!{wait}"
+dlg_3556BE,"{name:0}: ""Youch!"""
+dlg_3556C6,{box}. Right you are.
+dlg_3556EA,"Here, take this.{wait}"
+dlg_3556F8,It will open the door in the Tower.{wait}
+dlg_355713,Blue Orb
+dlg_35571B,"Here, take... Ah, you already took it."
+dlg_355745,You're unable to breathe!{wait}
+dlg_355758,"You can breathe, thanks to the Air Seed!{wait}"
+dlg_35577E,This isn't it! This one's a fake!{wait}
+dlg_355796,This is it! It's the real one!{wait}
+dlg_3557A7,Red Orb
+dlg_3557CB,"Seiryū: ""Who goes there? Who has stolen my orb?""{wait}"
+dlg_3557F1,"{name:3}: ""What's with these stone statues?"""
+dlg_355807,Hi-Potion
+dlg_355817,"Statue: ""Within the Tower, time keeps no steady pace."""
+dlg_35583C,...
+dlg_35583F,Those Four Fiends answer to an Archfiend!
+dlg_35586C,Byakko rules these skies from a giant floating castle.
+dlg_35588F,"The Resistance stood up to Byakko, and most of them died for it."
+dlg_3558B3,Word is there's a town hiding somewhere in the clouds.
+dlg_3558CB,Byakko's hiring mercenaries. Swing by the pub!
+dlg_3558ED,Those Resistance fellas gotta be lyin' low somewhere...
+dlg_355910,Charles used to lead the Resistance. He hid the secret of the Crystal with his own daughters.
+dlg_355941,"Bring the twins together, and you'll know where the Crystal lies. That's why Byakko's hunting them."
+dlg_355970,The White Crystal is enshrined inside a sacred temple somewhere in these clouds.
+dlg_35599E,"Charles's daughters are twins, you know."
+dlg_355B18,You better not betray me.
+dlg_355B2B,The glider's out front.
+dlg_355B3E,Hey!
+dlg_355B42,Quit slacking and get back to work!
+dlg_355B55,"Elite Guard: ""Found ya, grrr! You're Jeanne, ain't ya?""{wait}{clear}""Hey, rookies. Keep your paws off our prey! GRRR!""{wait}"
+dlg_355BAF,"{name:0}: ""Hey, {name:3}! Would you rather help out a growling goon or a good-looking gal?""{wait}{clear}{name:3}: ""Like you have to ask!""{wait}"
+dlg_355C0D,"Jeanne: ""They're holding my sister Mireille in the floating castle. Please, get her out of there!"""
+dlg_355C51,Lord Byakko's chambers are on the seventh floor.
+dlg_355C62,Mireille? Don't even think about it. Lord Byakko will have your head.
+dlg_355C85,Lord Byakko has the key to the room on the seventh floor.
+dlg_355CA0,Mireille? She's in the last room all the way in the back.
+dlg_355CC1,"Who are you supposed to be?{wait}{clear}{name:0}: ""I'm the hero. Know your role!""{wait}"
+dlg_355CEC,"{name:0}: ""Cavalry's here, princess.""{wait}{clear}Mireille: ""Who are you?""{wait}{clear}{name:0}: ""Jeanne sent us. We'll explain later.""{wait}{clear}Mireille: ""My sister! Where is she?""{wait}{clear}{name:0}: ""At the hideout in the forest. Come on, let's move.""{wait}{clear}Mireille: ""...Thank you.""{wait}"
+dlg_355D83,"{name:0}: ""Byakko! Damn! Mireille, get back!""{wait}"
+dlg_355DA4,"Byakko: ""Fool! I've known all along that you were the ones who slew Genbu and Seiryū!""{wait}{clear}""And knowing that, I made good use of you!""{wait}{clear}""Fine work, Mireille. The Crystal is now mine.""{wait}"
+dlg_355E1E,"{name:0}: ""Mireille?! You'd sell out your own sister?!""{wait}"
+dlg_355E4B,"Mireille: ""I just want power. You can keep your Resistance!""{wait}"
+dlg_355E7B,"Byakko: ""I won't kill you just yet. Into the dungeon with you!""{wait}"
+dlg_355EAC,Even a guy as strong as me can't bend those iron bars!
+dlg_355EC9,If we could just make it to the glider hangar on the first floor...
+dlg_355EE6,"Prisoner: ""Hah! Like you can bend iron bars!""{wait}"
+dlg_355F12,"Prisoner: ""Gah! Who the heck are you guys?!""{wait}"
+dlg_355F2D,"Sword: ""Take me with you!""{wait}{clear}{name:2}: ""Yikes! That sword just spoke!""{wait}"
+dlg_355F73,"{name:1}: ""Stupid engine won't start!""{wait}{clear}{name:0}: ""Hurry up! Jeanne's in danger!"""
+dlg_355FA1,"{name:0}: ""Hurry up! Jeanne's in danger!""{wait}"
+dlg_355FDC,"Byakko: ""Ha ha ha! At last! The White Crystal! Mireille, you've served me well.""{wait}{clear}""And now I have no more use for you. Die!""{wait}"
+dlg_35601A,"Jeanne: ""Mireille!""{wait}"
+dlg_35603D,"Mireille: ""Jeanne!""{wait}{clear}Jeanne: ""Mi... reille...""{wait}"
+dlg_356060,"{name:255}: ""You mangy tiger!""{wait}{clear}Byakko: ""Hmph, it's you fools again! You'll do nicely. Let's test the Crystal's power, shall we?""{wait}"
+dlg_3560A0,"Byakko: ""Impossible!""{wait}"
+dlg_3560B6,Byakko and the Crystal both disappear!{wait}{clear}
+dlg_3560D2,"{name:1}: ""Hey, the Crystal's gone.""{wait}{clear}{name:0}: ""Be quiet.""{wait}"
+dlg_3560FD,"Mireille: ""Jeanne, I'm sorry. I was such a fool.""{wait}{clear}Jeanne: ""It's... all right. This was our fate...""{wait}{clear}""From the day... we were born...""{wait}"
+dlg_356142,"Mireille's tears mingle with Jeanne's blood and transform into a shining Crystal.{wait}{clear}Mireille: ""Th-this...""{wait}{clear}Jeanne: ""Yes... this was our secret...""{wait}{clear}""{name:255}... t-take this... and g... go...""{wait}{clear}Mireille: ""Jeanne, don't leave me!""{wait}"
+dlg_3561C1,{name:255} got the Crystal.{wait}
+dlg_3561DC,"Mireille: ""Go! Get out of here!"""
+dlg_3561F4,We haven't had one single drop of rain!
+dlg_356204,I'm parched! Give me some water!
+dlg_356214,It's ra-aining!
+dlg_356222,"Ahh, heavenly! Just heavenly!"
+dlg_356232,The lake keeps rising higher and higher. This is terrible!
+dlg_356250,I can't swim! What am I going to do?!
+dlg_356265,"Hey, don't look at me!"
+dlg_356271,I-it was Takashi's idea!
+dlg_356288,"There used to be a hole at the bottom of the lake, you know."
+dlg_35629F,It's my fault for dumping trash in the lake! I'm sorry!
+dlg_3562C0,"{name:0}: ""So the hole down here's clogged with trash? Got it!""{wait}{pause:32}"
+dlg_3562F9,Where are we?
+dlg_356302,The name of the Great Demon King is Asura!
+dlg_356317,Asura's the one who sent forth the Four Fiends.
+dlg_35632E,Let's play Four Fiends! I call Genbu!
+dlg_356349,I'll be Seiryū!
+dlg_356355,Then I'll be Suzaku.
+dlg_356360,I'm Byakko.
+dlg_35639A,"""Over here!""{wait}"
+dlg_3563B2,"""Over here!""{wait}"
+dlg_3563CF,"""Ahh!""{wait}"
+dlg_3563E0,"{name:255}: ""Stop!""{wait}"
+dlg_3563F1,"""Thanks. You'll find a town just up ahead. Gotta run!""{wait}"
+dlg_356416,"{name:3}: ""Hey, hold on! At least give us your name!""{wait}"
+dlg_356435,The nuclear plant's drainage runs straight into the sewers.
+dlg_356452,The subway north of the nuclear plant has a hidden way into the sewers.
+dlg_356478,Ameyoko is a bustling district to the northeast. But Suzaku has us too scared to go there.
+dlg_3564B1,The bar's where the biker gang hangs out. I wouldn't go there if I were you.
+dlg_3564CE,There's a giant nuclear power plant smack dab in the middle of the city.
+dlg_3564F6,"Duck into a building or underground, and Suzaku will stop chasing you!"
+dlg_356510,"{name:1}: ""There ain't no key."""
+dlg_356539,"Biker: ""Hey! You wanna drink here, the least you can do is show some respect!""{wait}{clear}""Knock it off!""{wait}"
+dlg_35656A,"Boss: ""You guys are no match for them.""{wait}{clear}""I can tell you're the real deal. You and me, one-on-one.""{wait}{clear}{name:0}: ""Do I get a say in this?""{wait}{clear}Boss: ""No. Now step outside!""{wait}"
+dlg_3565ED,"""Stop it, brother. You're acting like a fool.""{wait}"
+dlg_356608,"Boss: ""Shut yer trap! You stay out of this.""{wait}{clear}"
+dlg_35662A,"{name:255}: ""Wait, you're that girl from before...""{wait}"
+dlg_356641,"{clear}Sayaka: ""Oh! How unexpected!""{wait}{clear}""Brother, here's what happened...""{wait}"
+dlg_356670,"{name:255}: ""...and that's how we ended up here.""{wait}{clear}Boss: ""Yeah, I get the picture.""{wait}{clear}""So y'all are gonna take on Suzaku too, huh?""{wait}"
+dlg_3566BB,"Biker: ""Nothing we've got can put a dent in Suzaku's barrier...""{wait}{clear}Sayaka: ""Right. But we're building a device to cancel it out!""{wait}{clear}Boss: ""We just need two or three more parts to finish it...""{wait}{clear}{name:0}: ""Haven't found 'em yet?""{wait}{clear}Boss: ""There's a place they used to call 'Akiba' that should have 'em.""{wait}{clear}Sayaka: ""The library might tell us where to find Akiba!""{wait}{clear}{name:2}: ""Okay! We'll go hunt down those parts!""{wait}{clear}Boss: ""I'm counting on you, then! Use the bike out front.""{wait}"
+dlg_3567B4,Riding a bike means Suzaku's less likely to jump you.
+dlg_3567D3,A shady shop in Ameyoko should be selling Circuit Boards.
+dlg_3567F6,All right! Let's start looking!{wait}
+dlg_35681E,Nothing here!{wait}
+dlg_356840,"Here it is! Akiba's 14 to the east, 15 to the north!{wait}"
+dlg_356869,"Shopkeeper: ""Need a board? For what kind of ROM Chip?""{wait}"
+dlg_35688C,"{clear}""Come back once you've got a ROM Chip!"""
+dlg_35689A,"Shopkeeper: ""'Need a board'? You already got one!"""
+dlg_3568B5,"{clear}""This is the board you'll want for that sort of ROM Chip.""{wait}"
+dlg_3568C9,{clear}Circuit Board
+dlg_3568D5,"{name:2}: ""Fall from here and it's all over..."""
+dlg_3568E6,The library's north of the radio tower.
+dlg_3568F9,"Come back safe, okay?"
+dlg_356906,You're all right! Thank goodness!
+dlg_356917,"Boss: ""Now all we need is some plutonium! Tomorrow we're bustin' into the nuclear plant!""{wait}"
+dlg_356958,"{name:1}: ""We're taking off without saying goodbye first?""{wait}{clear}{name:0}: ""Yeah. This won't be a walk in the park.""{wait}"
+dlg_356993,"Boss: ""Thought you could leave us behind?""{wait}"
+dlg_3569E1,"""We ride together!""{wait}"
+dlg_356A09,"Boss: ""Listen up. We gotta clear this in one jump.""{wait}"
+dlg_356A2F,"{name:255}: ""We'll take it from here.""{wait}{clear}Boss: ""Last thing I wanna be is dead weight. I'll sit tight."""
+dlg_356A6C,"{name:2}: ""Dammit! There's some sort of deadly barrier!""{wait}{clear}{name:3}: ""And the switch is way back on the other side."""
+dlg_356ACD,"Boss: ""Finally caught up with you!""{wait}"
+dlg_356AEC,"Boss: ""Leave this to me!""{wait}"
+dlg_356B0C,"{name:255}: ""Boss!""{wait}"
+dlg_356B20,"""Hold on!""{wait}{clear}Boss: ""Heh. How 'bout that? That's how a real man does it!""{wait}{clear}{name:255}: ""A real idiot, maybe.""{wait}{clear}Boss: ""Here... take this bandana...""{wait}"
+dlg_356B72,"Got the Gang Bandana.{wait}{clear}""You gotta... look after my sister...""{wait}"
+dlg_356B9B,"{name:1}: ""Here's the plutonium!""{wait}{clear}{name:0}: ""Okay, careful now... There! ERASER 99 is ready to erase Suzaku's barrier!""{wait}"
+dlg_356BE9,WARNING! WARNING!{wait}{clear}INTRUDER! INTRUDER!{wait}{clear}EXTERMINATE! EXTERMINATE!{wait}
+dlg_356C37,Suzaku sent his forces and everyone was killed. I'm the only one left.
+dlg_356C66,"{name:0}: ""Stay with me!""{wait}{clear}Biker: ""...Sayaka... she's in a building... in Shinjuku..."""
+dlg_356C99,"{name:3}: ""Hey! Where's Suzaku?!""{wait}{clear}Passenger: ""Over to the left."""
+dlg_356CB7,"{name:255}: ""Give us the girl. Now!""{wait}"
+dlg_356CDD,"{name:1}: ""Where'd that creep run off to?!""{wait}{clear}{name:2}: ""Up there!""{wait}"
+dlg_356D02,"Suzaku: ""Nowhere to run, nowhere to hide! Time for your last rites!""{wait}{clear}{name:255}: ""Now! Use it now!"""
+dlg_356D3C,"Suzaku: ""What are you waiting for? Come at me!"""
+dlg_356D4E,"Sayaka: ""{name:255}, run!"""
+dlg_356D61,"{name:3}: ""Moron! That barrier of yours is useless now!""{wait}"
+dlg_356D83,"{name:255}: ""We got him, Boss.""{wait}"
+dlg_356D98,"Sayaka: ""{name:255}! You were amazing!""{wait}"
+dlg_356DAE,"Sayaka: ""Thank you for everything! I'm sure my brother...""{wait}{clear}""Oh, I almost forgot! I picked this up in all the commotion.""{wait}"
+dlg_356DF0,"{name:2}: ""Th-that's a Crystal!""{wait}"
+dlg_356E04,Got the fourth Crystal.
+dlg_356E28,"I'll be fine! I'm the Second Boss now, you know!"
+dlg_356E47,Here lies the First Boss.
+dlg_356E56,We've got Sayaka's back. You can count on us!
+dlg_356E6D,I'm doing my best here!
+dlg_356E77,"Oh! Busy, busy, busy!"
+dlg_356E87,They say that Asura sealed away the Creator. But is there even really a 'Creator'?
+dlg_356EBC,"Asura's been wreaking havoc all over the place, and our firm's raking in the dough! Praise Asura, I say!"
+dlg_356EF0,The body of a child...
+dlg_356EFC,"A journal lies on the floor.{wait}{clear}""...Somehow, we made it to this shelter.""{wait}{clear}""I'm giving the children what little food and water we have.""{wait}{clear}""I've barely touched it myself, and this way it will last longer.""{wait}{clear}""But I'm not going to make it...""{wait}"
+dlg_356F71,"{clear}""Ken, Yuki, forgive your father for leaving you. Akira, look after them both.""{wait}{clear}""O Creator, I offer my life for theirs. Please protect these children!""{wait}{clear}""I... I...""{wait}"
+dlg_356FE1,"Arthur ... Floor 11, 19-3-21"
+dlg_356FF4,"Yoshitsune ... Floor 13, 50-2-18"
+dlg_357006,"Khan ... Floor 19, 72-6-14"
+dlg_357018,"Siegfried ... Floor 6, 24-2-12"
+dlg_357029,"Elizabeth ... Floor 12, 80-1-28{wait}{clear}{name:0}: ""What's this a record of? Who are these..."""
+dlg_357055,"{name:255}: ""...""{wait}{clear}{name:1}: ""We're not gonna get ourselves killed halfway up like this bunch! Just you watch."""
+dlg_35707D,"Old Man: ""Have you... come from the Tower?"""
+dlg_35709B,"{wait}{clear}{name:0}: ""Yes, we have.""{wait}{clear}Old Man: ""Ah! Then please, accept this.""{wait}"
+dlg_3570CF,"Got Excalibur.{wait}{clear}{name:1}: ""What's this?""{wait}{clear}Old Man: ""Fifty years ago, the Creator entrusted me with this for whoever emerged from the Tower.""{wait}{clear}""At last, the day has come. Now, I may rest in peace...""{wait}{clear}""Thank... you...""{wait}"
+dlg_357156,"Asura: ""So, you have made it this far. Well done. Shall we make a deal?""{wait}{clear}{name:255}: ""A deal?""{wait}{clear}Asura: ""You shall take the place of the Four Fiends. Each of you shall rule a world. A fine offer, is it not?""{wait}{clear}{name:255}: ""And what, you'd be our boss? Get real!""{wait}{clear}Asura: ""You should have known your place. Now, you shall die!""{wait}"
+dlg_35721F,A pitfall!{wait}
+dlg_35722F,"A voice echoes from far away...{wait}{clear}""Can you climb it once more?""{wait}"
+dlg_35725C,"Armor King: ""Only in parting with my armor did I learn what truly matters. You have my gratitude.""{wait}{clear}{name:0}: ""Aw, stop it, you're embarrassing me."""
+dlg_3572A5,"Dragon King: ""The Asura you defeated... was he only an illusion? Or...""{wait}{clear}{name:255}: ""What's that supposed to mean?""{wait}{clear}Dragon King: ""..."""
+dlg_3572F0,"Mireille: ""I'm the worst, aren't I? I share Jeanne's face, but my heart is hideous...""{wait}{clear}{name:1}: ""Jeanne is there inside your heart. I know she is!""{wait}{clear}Mireille: ""...Jeanne..."""
+dlg_357356,"Sayaka: ""When you leave this world behind, don't forget about us, okay? ...I know you won't lose. I believe in you.""{wait}{clear}{name:2}: ""You bet! No matter what, we're not gonna lose!"""
+dlg_3573A8,"Man: ""Beyond that door lies the road to Paradise.""{wait}{clear}{name:3}: ""Just who are you...?"""
+dlg_3573DD,"Maiden: ""I'm so happy. I'm going to have his child.""{wait}{clear}{name:255}: ""Hey, congrats!"""
+dlg_357419,A black 
+dlg_357426,A blue 
+dlg_357433,A white 
+dlg_357440,A red 
+dlg_35744D,A fourfold 
+dlg_357454,{box}seal protects the door.
+dlg_357465,"{name:2}: ""The seal's been broken!""{wait}"
+dlg_357483,The key to the locked door was hidden inside the Hero's Statue by a monster called Genbu.
+dlg_3574B4,Seek out the old man!
+dlg_3574C5,The boss of this world is hiring mercenaries.{wait}{clear}The quickest way to meet him is to sign yourself up.
+dlg_3574FF,No attack will work on Suzaku. It's best to run.
+dlg_357526,Asura is just above here. Watch out!
+dlg_357588,"The Creator: ""Here at last. Well done! For thou art the first to emerge victorious from Our game.""{wait}{clear}{name:0}: ""Game?""{wait}{clear}The Creator: ""Yea! A game of Our own creation, with a magnificent story!""{wait}"
+dlg_3575EA,"{name:1}: ""What are you talking about?""{wait}"
+dlg_357604,"The Creator: ""We had grown weary of Our peaceable world.""{wait}"
+dlg_357627,"""And so We called forth Asura.""{wait}"
+dlg_35763F,"{name:3}: ""Why would you do that?!""{wait}"
+dlg_357661,"The Creator: ""Asura threw Our world into confusion, and this brought unto Us much mirth!""{wait}{clear}""But such pleasures passeth quickly, and in time he too wearied Us.""{wait}"
+dlg_3576B8,"{name:2}: ""And so you made...a game?""{wait}"
+dlg_3576E6,"The Creator: ""Yes! Just so!""{wait}{clear}""Our wish was to see a hero who would smite evil itself!""{wait}"
+dlg_35771A,"{name:0}: ""So everything that happened was... according to your script.""{wait}{clear}The Creator: ""Thou art swift to understand. Many of Our creations, unable to become heroes, did perish.""{wait}{clear}""The sight of such pitiable creatures, burdened with mortality, struggling so desperately to live...""{wait}{clear}""...why, it was enough to move even Us.""{wait}{clear}""It was ye who moved Us, and it is ye who shall be rewarded! Ask what ye will, and it shall be given.""{wait}"
+dlg_3577F3,"{name:1}: ""We didn't come all this way for your entertainment!""{wait}{clear}""How dare you toy with us! With everyone!""{wait}{clear}The Creator: ""And what of it? All things were made by Us.""{wait}{clear}{name:255}: ""We are not your 'things'!""{wait}"
+dlg_35786E,"The Creator: ""To strive against thy Creator... Thou never ceasest to amuse Us!""{wait}"
+dlg_3578A1,"The Creator: ""So thou truly canst not be persuaded.""{wait}"
+dlg_3578BA,"""This, too, is the saga of all living things...""{pause:75}{wait}{clear}""So be it. Before you die, witness the power of your Creator. Burn it into your soul!""{wait}"
+dlg_3578FD,"{name:3}: ""It's over...""{wait}{clear}{name:0}: ""...""{wait}{clear}{name:1}: ""So what now?""{wait}{clear}{name:0}: ""...""{wait}{clear}{name:2}: ""Do you think there's another world beyond this one?""{wait}"
+dlg_357982,"{name:0}: ""Want to go find out?"""
+dlg_35799A,"{name:1}: ""I'm fine either way.""{wait}{clear}"
+dlg_3579AF,"{name:3}: ""Yeah. But... it's gotten pretty nice around here, hasn't it?""{wait}{clear}"
+dlg_3579D8,"{name:2}: ""Absolutely. 'Cause we took out every last bad guy!""{wait}{clear}{name:255}: ""Let's go!""{wait}"
+dlg_357A0C,"Everyone: ""Go where?""{wait}"
+dlg_357A1D,Back to our world!{wait}
+dlg_354E80,"{clear}{name:3}: ""Forget about the thanks. What about our reward?""{wait}{clear}King: ""Ah, yes. What would you have of me?""{wait}{clear}{name:3}: ""Well, um... that armor of yours...""{wait}{clear}King: ""I see. Very well!""{wait}"
+dlg_354ED2,King's Armor
+dlg_355534,Air Seed
+dlg_3559C5,This turf belongs to Byakko's Elite Guard. Get out while you're still breathing!{wait}
+dlg_3559FB,"{name:0}: ""Pipe down. You're ruining my drink.""{wait}{clear}Soldier: ""Why, you little punk!""{wait}"
+dlg_355A31,"Captain: ""Hey, you there. How'd you like to work for Lord Byakko?""{wait}"
+dlg_355A5D,"{name:0}: ""I suppose...""{wait}"
+dlg_355A70,"Byakko: ""So. They tell me you're good.""{wait}{clear}""Prove your worth, and I may even promote you.""{wait}{clear}""First, find me a woman from the Resistance named Jeanne!""{wait}{clear}{name:0}: ""What's her story?""{wait}{clear}Byakko: ""They say the curious die young.""{wait}{clear}{name:0}: ""Fair enough. Forget I said anything.""{wait}"
+item_0,Potion
+itemdesc_0,Restores HP.
+item_1,Hi-Potion
+itemdesc_1,Restores more HP.
+item_2,Cure Tome
+itemdesc_2,Magic that restores HP.
+item_3,Healing Staff
+itemdesc_3,Staff that restores HP.
+item_4,Gold Needle
+itemdesc_4,"Cures ""Stone"" status. (Field only)"
+item_5,Cross
+itemdesc_5,"Cures ""Curse"" status. (Field only)"
+item_6,Eye Drops
+itemdesc_6,"Cures ""Blind"" status. (Field only)"
+item_7,Revive
+itemdesc_7,Revives a fallen ally. (Field only)
+item_8,Elixir
+itemdesc_8,Restores HP and status. (Field only)
+item_9,Heart
+itemdesc_9,Increases Hearts by one.
+item_10,Philosopher's Stone
+itemdesc_10,Restores an item's remaining uses.
+item_11,Door
+itemdesc_11,Return to any previously visited Floor.
+item_12,Essence of Power
+itemdesc_12,Raises a Human's STR.
+item_13,Essence of Speed
+itemdesc_13,Raises a Human's AGI.
+item_14,HP200
+itemdesc_14,Raises a Human's HP by 5-20. (Up to 200)
+item_15,HP400
+itemdesc_15,Raises a Human's HP by 5-20. (Up to 400)
+item_16,HP600
+itemdesc_16,Raises a Human's HP by 5-20. (Up to 600)
+item_17,King's Sword
+itemdesc_17,"Once, this blade was wielded by a hero."
+item_18,King's Armor
+itemdesc_18,"Once, this armor protected a hero."
+item_19,King's Shield
+itemdesc_19,"Once, this shield that defended a hero."
+item_20,Air Seed
+itemdesc_20,Soak it in the sea to make fresh air!
+item_21,Red Orb
+itemdesc_21,An Orb that revives the Red Crystal.
+item_22,Blue Orb
+itemdesc_22,An Orb that revives the Blue Crystal.
+item_23,ERASER 99
+itemdesc_23,Neutralizes Suzaku's barrier.
+item_24,Azure Dragon Key
+itemdesc_24,Opens doors in the Dragon Palace.
+item_25,Prison Key
+itemdesc_25,Opens doors in the prison.
+item_26,White Tiger Key
+itemdesc_26,Opens doors of in the Floating Castle.
+item_27,Rock
+itemdesc_27,Throw a rock.
+item_28,Let There Be Light
+item_29,Repent
+item_30,ROM Chip
+itemdesc_30,Materiel to help break the barrier.
+item_31,Circuit Board
+itemdesc_31,Materiel to help break the barrier.
+item_32,Battle Hammer
+itemdesc_32,A combat hammer.
+item_33,Long Sword
+itemdesc_33,A combat sword.
+item_34,Battle Axe
+itemdesc_34,A combat axe.
+item_35,Seiryū Blade
+itemdesc_35,A sword engraved with Seiryū's likeness.
+item_36,Katana
+itemdesc_36,A sword from a foreign land.
+item_37,Mythril Sword
+itemdesc_37,A sword made of Mythril.
+item_38,Coral Sword
+itemdesc_38,A sword that instantly slays sea beasts.
+item_39,Ogre Killer
+itemdesc_39,A sword that instantly slays Ogres.
+item_40,Dragon Sword
+itemdesc_40,A sword that instantly slays Dragons.
+item_41,Sunblade
+itemdesc_41,A blade that instantly kills the Undead.
+item_42,Flame Sword
+itemdesc_42,"A sword with the ""Fire"" element."
+item_43,Icebrand
+itemdesc_43,"A sword with the ""Ice"" element."
+item_44,Thunder Axe
+itemdesc_44,"An axe with the ""Electric"" element."
+item_45,Rapier
+itemdesc_45,"A long, slender sword."
+item_46,Saber
+itemdesc_46,A sword with a pointed tip.
+item_47,Lightsaber
+itemdesc_47,A beam weapon that slashes foes.
+item_48,Cat Claws
+itemdesc_48,Sharp claws that swiftly slash foes.
+item_49,Psycho Dagger
+itemdesc_49,A knife fueled by your Magic.
+item_50,Psycho Sword
+itemdesc_50,A sword powered by your Magic.
+item_51,Grudge Sword
+itemdesc_51,A sword that counterattacks for you.
+item_52,Blood Sword
+itemdesc_52,A bloodsucking sword that drains HP.
+item_53,Defender
+itemdesc_53,Attack while defending with this sword.
+item_54,Rune Axe
+itemdesc_54,An axe that resists magic attack.
+item_55,Excalibur
+itemdesc_55,The sword of legend.
+item_56,Glass Sword
+itemdesc_56,"A beautiful, yet fragile, sword."
+item_57,Masamune
+itemdesc_57,The legendary sword of a foreign land.
+item_58,Bow
+itemdesc_58,A combat bow.
+item_59,Yoichi's Bow
+itemdesc_59,A bow used by a foreign warrior.
+item_60,Apollo's Bow
+itemdesc_60,A bow from the world of myth.
+item_61,Derringer
+itemdesc_61,A pocket-sized handgun.
+item_62,Matchlock
+itemdesc_62,Fire triggers this old-fashioned gun.
+item_63,.44 Magnum
+itemdesc_63,This handgun packs a wallop.
+item_64,Whip
+itemdesc_64,A whip made of leather.
+item_65,Electric Whip
+itemdesc_65,Electricity flows through this whip.
+item_66,Chainsaw
+itemdesc_66,This power saw can cut through anything.
+item_67,Submachine Gun
+itemdesc_67,Rapid fire shots hit an enemy group.
+item_68,Grenade
+itemdesc_68,A small bomb explodes an enemy group.
+item_69,Bazooka
+itemdesc_69,Heavy artillery strikes an enemy group.
+item_70,Vulcan Cannon
+itemdesc_70,Rapid shots hit an enemy group.
+item_71,Missile
+itemdesc_71,This weapon strikes a wide area.
+item_72,Nuclear Bomb
+itemdesc_72,The ultimate weapon.
+item_73,Beam Rifle
+itemdesc_73,A gun that fires lasers.
+item_74,Wave Cannon
+itemdesc_74,A powerful weapon that annihilates foes.
+item_75,Bronze Shield
+itemdesc_75,A shield made of bronze.
+item_76,Golden Shield
+itemdesc_76,A shield made of gold.
+item_77,Mythril Shield
+itemdesc_77,A shield made of Mythril.
+item_78,Flame Shield
+itemdesc_78,"A shield with the ""Fire"" element."
+item_79,Ice Shield
+itemdesc_79,"A shield with the ""Ice"" element."
+item_80,Dragon Shield
+itemdesc_80,A shield made from dragon scales.
+item_81,Aegis Shield
+itemdesc_81,A shield imbued with magical power.
+item_82,Bronze Helmet
+itemdesc_82,A helmet made of bronze.
+item_83,Golden Helmet
+itemdesc_83,This helmet gleams with gold.
+item_84,Mythril Helmet
+itemdesc_84,A helmet made of Mythril.
+item_85,Arai Corsair-X
+itemdesc_85,A durable helmet.
+item_86,Gang Bandana
+itemdesc_86,The gang boss's keepsake.
+item_87,Circlet
+itemdesc_87,A crown protected by magical power.
+item_88,Bronze Mail
+itemdesc_88,Armor made of bronze.
+item_89,Gold Mail
+itemdesc_89,Armor that shines with gold.
+item_90,Mythril Mail
+itemdesc_90,Armor made of mythril.
+item_91,Dragon Mail
+itemdesc_91,Armor made from dragon scales.
+item_92,Battle Suit
+itemdesc_92,A protective combat suit.
+item_93,Guan Yu's Armor
+itemdesc_93,Legendary armor.
+item_94,Bronze Gauntlet
+itemdesc_94,Gauntlets made of bronze.
+item_95,Gold Gauntlet
+itemdesc_95,Gleaming gold gauntlets.
+item_96,Mythril Gauntlet
+itemdesc_96,Gauntlets made of mythril.
+item_97,Giant's Gauntlet
+itemdesc_97,Gauntlets imbued with giant strength.
+item_98,Genji Gauntlet
+itemdesc_98,The legendary gauntlet of a foreign land.
+item_99,Hermes Sandals
+itemdesc_99,Expensive shoes.
+item_100,Iron Geta
+itemdesc_100,Geta made of steel.
+item_101,Kongming's Shoes
+itemdesc_101,Legendary shoes.
+item_102,Powered Suit
+itemdesc_102,A suit that protects the whole body.
+item_103,Mage's Staff
+itemdesc_103,A staff that shoots flames.
+item_104,Wizard's Staff
+itemdesc_104,"A staff with a ""Confusion"" effect."
+item_105,Nembutsu Book
+itemdesc_105,Chants the nembutsu to deal damage.
+item_106,Fire Tome
+itemdesc_106,Deals damage with fire.
+item_107,Blizzard Tome
+itemdesc_107,Deals damage with ice.
+item_108,Thunder Tome
+itemdesc_108,Deals damage with lightning.
+item_109,Scourge Tome
+itemdesc_109,Deals damage with poison gas.
+item_110,Flare Tome
+itemdesc_110,Deals damage with an explosion.
+item_111,Sleep Tome
+itemdesc_111,"Puts the target to ""Sleep""."
+item_112,Break Tome
+itemdesc_112,"Turns the target to ""Stone""."
+item_113,Death Tome
+itemdesc_113,Kills the target instantly.
+item_114,Punch
+itemdesc_114,A bare-handed striking technique.
+item_115,Kick
+itemdesc_115,A kicking technique.
+item_116,Triple Thrust
+itemdesc_116,An elegant thrusting technique.
+item_117,Jump Kick
+itemdesc_117,A jumping kick technique.
+item_118,Yama-arashi
+itemdesc_118,This technique sends the enemy flying.
+item_119,Submission
+itemdesc_119,The ultimate spinning throw technique.
+item_120,Flirt
+itemdesc_120,"Bedroom eyes that cause ""Confusion""."
+item_121,Cross Counter
+itemdesc_121,A bare-handed counterattack.
+item_122,Antidote
+itemdesc_122,"Cures ""Poison"" status."
+item_123,Waking Bell
+itemdesc_123,"Cures ""Sleep"" status."
+item_124,Frying Pan
+itemdesc_124,"Cures ""Confusion"" status."
+item_125,Anti-Paralysis
+itemdesc_125,"Cures ""Paralysis"" status."
+item_126,Left Hand of God
+item_127,Right Hand of God
+item_128,Honey
+itemdesc_128,Restores HP with sweet honey.
+item_129,Cure
+itemdesc_129,Magic that restores HP.
+item_130,Healing
+itemdesc_130,An ability that restores HP.
+item_131,Rejuvenate
+itemdesc_131,Fully restores HP in battle. (Self only)
+item_132,Cleanse
+itemdesc_132,"Cures all ailments except ""Stone""."
+item_133,Raise
+itemdesc_133,Revives a fallen ally. (Field only)
+item_134,Teleport
+itemdesc_134,Return to any previously visited Floor.
+item_135,Headbutt
+itemdesc_135,Attacks with a hard head.
+item_136,Snout
+itemdesc_136,Attacks with a long nose.
+item_137,Pincer
+itemdesc_137,Slices with pincers.
+item_138,Beak
+itemdesc_138,Attacks with a sharp beak.
+item_139,Punch
+itemdesc_139,Strikes the foe bare-handed.
+item_140,Bite
+itemdesc_140,Bites with sharp teeth.
+item_141,Fin
+itemdesc_141,Attacks using fins.
+item_142,Bone
+itemdesc_142,Attacks enemies with hard bones.
+item_143,Sword
+itemdesc_143,Slashes with a sword.
+item_144,Slap
+itemdesc_144,Attacks with a powerful slap.
+item_145,Body Slam
+itemdesc_145,Slams with its entire body.
+item_146,Saw
+itemdesc_146,Hacks with a saw.
+item_147,Two Pincers
+itemdesc_147,Slices with two pincers.
+item_148,Four Heads
+itemdesc_148,Attacks with four heads.
+item_149,Claw
+itemdesc_149,Slashes with sharp claws.
+item_150,Eight Tentacles
+itemdesc_150,Attacks with 8 tentacles.
+item_151,Two Fangs
+itemdesc_151,Bites with two fangs.
+item_152,Three Horns
+itemdesc_152,Attacks with three horns.
+item_153,Two-Sword Style
+itemdesc_153,Attacks with two swords.
+item_154,Six Arms
+itemdesc_154,Attacks with six arms.
+item_155,Poison Stinger
+itemdesc_155,"Stinger attack inflicting ""Poison""."
+item_156,Poison Fang
+itemdesc_156,"Fang attack inflicting ""Poison""."
+item_157,Fang
+itemdesc_157,Bites with sharp fangs.
+item_158,Paralyzing Claw
+itemdesc_158,"Claw scratch inflicting ""Paralysis""."
+item_159,Coil
+itemdesc_159,"Wrap the foe, inflicting ""Paralysis""."
+item_160,Stone Beak
+itemdesc_160,"Beak attack inflicting ""Stone""."
+item_161,Death Fang
+itemdesc_161,Fang attack that kills instantly.
+item_162,Sleep Gaze
+itemdesc_162,"A glare inflicting ""Sleep""."
+item_163,Sleeping Pills
+itemdesc_163,"Makes the foe go to ""Sleep""."
+item_164,Darkness
+itemdesc_164,"An attack inflicting ""Blind""."
+item_165,Flash
+itemdesc_165,"A light inflicting ""Blind""."
+item_166,Ink
+itemdesc_166,"Ink spray inflicting ""Blind""."
+item_167,Horn
+itemdesc_167,Attacks with its horn.
+item_168,Cursed Gaze
+itemdesc_168,"A glare inflicting ""Curse""."
+item_169,Charm Gaze
+itemdesc_169,"A glare inflicting ""Confusion""."
+item_170,Riddle
+itemdesc_170,"A difficult riddle causes ""Confusion""."
+item_171,Sing
+itemdesc_171,"An alluring song causes ""Confusion""."
+item_172,Tail
+itemdesc_172,Attacks with its tail.
+item_173,Stone Gaze
+itemdesc_173,"A glare inflicting ""Stone""."
+item_174,Death Gaze
+itemdesc_174,A glare that kills the target instantly.
+item_175,Power Drain
+itemdesc_175,Lowers the target's STR.
+item_176,Stench
+itemdesc_176,Foul odor that lowers STR.
+item_177,Sand Trap
+itemdesc_177,"Throws sand in the eyes, lowering AGI."
+item_178,Tremble
+itemdesc_178,"Make the foe tremble, lowering AGI."
+item_179,Electrocute
+itemdesc_179,"Electrocute, lowering AGI."
+item_180,Cling
+itemdesc_180,"Cling tightly, lowering AGI."
+item_181,Thread
+itemdesc_181,"Wrap in thread, lowering AGI."
+item_182,Drain Touch
+itemdesc_182,"Touch the foe, draining HP."
+item_183,Drain Kiss
+itemdesc_183,"Kiss the foe, draining HP."
+item_184,Kick
+itemdesc_184,Kicks the target.
+item_185,Flame
+itemdesc_185,Breathes fire to deal damage.
+item_186,Ice
+itemdesc_186,Freezes the air to deal damage.
+item_187,Lightning
+itemdesc_187,Summons lightning to deal damage.
+item_188,Poison Mist
+itemdesc_188,Spreads poison mist to deal damage.
+item_189,Acid
+itemdesc_189,Dissolves the foe with strong acid.
+item_190,Water Gun
+itemdesc_190,Shoots pressurized water.
+item_191,Earthquake
+itemdesc_191,Causes an earthquake.
+item_192,Tornado
+itemdesc_192,Spins up a tornado.
+item_193,Acid Rain
+itemdesc_193,Acid rain pours down.
+item_194,Whirlpool
+itemdesc_194,Torrential water damage.
+item_195,Steal
+item_196,Tentacle
+itemdesc_196,Attacks with tentacles.
+item_197,Killer Beam
+itemdesc_197,Attacks Humans with a beam.
+item_198,Fire
+itemdesc_198,Deals damage with fire.
+item_199,Blizzard
+itemdesc_199,Deals damage with ice.
+item_200,Thunder
+itemdesc_200,Deals damage with lightning.
+item_201,Flare
+itemdesc_201,A massive nuclear explosion.
+item_202,Death
+itemdesc_202,Magic that kills instantly.
+item_203,Sleep
+itemdesc_203,"Puts the target to ""Sleep""."
+item_204,Axe
+itemdesc_204,Slashes with an axe.
+item_205,Stone Touch
+itemdesc_205,"""Stone"" enemy on contact."
+item_206,Paralyzing Touch
+itemdesc_206,"Touch inflicts ""Paralysis""."
+item_207,Poison Touch
+itemdesc_207,"""Poison"" enemy on contact."
+item_208,Burning Touch
+itemdesc_208,Burns enemy on contact.
+item_209,○Fire
+itemdesc_209,"Resists ""Fire"" attacks."
+item_210,○Ice
+itemdesc_210,"Resists ""Ice"" attacks."
+item_211,○Electric
+itemdesc_211,"Resists ""Electric"" attacks."
+item_212,○Poison
+itemdesc_212,"Resists ""Poison"" attacks."
+item_213,○Stone
+itemdesc_213,"Resists ""Stone"" attacks."
+item_214,○Paralysis
+itemdesc_214,"Resists all except ""Poison"" and ""Stone""."
+item_215,○Weapon
+itemdesc_215,"Resists ""Weapon"" attacks."
+item_216,○Earthquake
+itemdesc_216,"Resists ""Earthquake"" attacks."
+item_217,Self-Destruct
+itemdesc_217,Sacrifices itself to kill the foe.
+item_218,○Change
+itemdesc_218,"Resists ""Weapon"", and all but ""Poison""."
+item_219,○Damage
+itemdesc_219,"Resists ""Poison"", ""Electric"", ""Ice"" and ""Fire""."
+item_220,Break
+itemdesc_220,"Magic that turns the foe to ""Stone""."
+item_221,○Ice/Weapon
+itemdesc_221,"Resists ""Ice"" and ""Weapon"" attacks."
+item_222,○All
+itemdesc_222,Resists all attacks and ailments.
+item_223,×Fire
+itemdesc_223,"Weak to ""Fire"" attacks."
+item_224,×Electric
+itemdesc_224,"Weak to ""Electric"" attacks."
+item_225,×Ice
+itemdesc_225,"Weak to ""Ice"" attacks."
+item_226,Turtle Shell
+item_227,Retract
+itemdesc_227,Retract into shell to evade attacks.
+item_228,Bloodsuck
+itemdesc_228,Drink blood to deal damage.
+item_229,Cold Hand
+itemdesc_229,An icy hand attack.
+item_230,Poison Pollen
+itemdesc_230,"Pollen that causes ""Poison""."
+item_231,Rocket Punch
+item_232,Hyper Beam
+itemdesc_232,Shoots a laser at the foe.
+item_233,Dissolve
+itemdesc_233,Fluid that melts the foe.
+item_234,Crystal
+item_235,Shadow Clone
+itemdesc_235,Raise your own AGI.
+item_236,Telekinesis
+itemdesc_236,"Mind blast inflicting ""Paralysis""."
+item_237,Psychic Blast
+itemdesc_237,Mind blast dealing damage.
+item_238,Life Leech
+itemdesc_238,Steals HP from everyone.
+item_239,Enlightenment
+itemdesc_239,Purifies worldly desires to harm foes.
+item_240,Telepathy
+itemdesc_240,Reads minds to predict attacks.
+item_241,Hypnosis
+itemdesc_241,"Charms the foe, inflicting ""Confusion""."
+item_242,Psychic Barrier
+itemdesc_242,Raises DEF of the entire party.
+item_243,Psychic Mirror
+itemdesc_243,Reflects magic cast on yourself.
+item_244,Superpower
+itemdesc_244,Unlocks hidden reserves of STR.
+item_245,Body Armor
+itemdesc_245,"Toughens up, increasing your DEF."
+item_246,Paralyzing Gaze
+itemdesc_246,"A glare inflicting ""Paralysis""."
+item_247,Three Heads
+itemdesc_247,Attacks with three heads.
+item_248,○Paralysis/Weapon
+itemdesc_248,"Resists ""Weapon"", and all but ""Poison"" and ""Stone""."
+item_249,Sneak Attack
+itemdesc_249,Makes first strikes more likely.
+item_250,Vigilance
+itemdesc_250,Prevents enemy first strikes.
+item_251,Precognition
+itemdesc_251,Psychically stops enemy first strikes.
+monster_0,Fly Guy
+monster_1,Dragonfly
+monster_2,Bee Lady
+monster_3,Mosquito
+monster_4,Cicadoid
+monster_5,Mantis King
+monster_6,Barracuda
+monster_7,Piranha
+monster_8,Hammerhead
+monster_9,Gunfish
+monster_10,Electric Eel
+monster_11,Leviathan
+monster_12,Cactuar
+monster_13,Poison Bloom
+monster_14,Jumbo Garlic
+monster_15,Blood Vine
+monster_16,Fire Flower
+monster_17,Black Rose
+monster_18,Snipper Bug
+monster_19,Saw Beetle
+monster_20,Antlion
+monster_21,Cave Ant
+monster_22,Scorpiate
+monster_23,Scarab
+monster_24,Shrampie
+monster_25,Cave Crab
+monster_26,Fiddler Queen
+monster_27,Ice Lobster
+monster_28,King Crab
+monster_29,Dagon
+monster_30,Wolf
+monster_31,Jaguar
+monster_32,Sabertooth
+monster_33,Snow Cat
+monster_34,Black Cat
+monster_35,Fenrir Wolf
+monster_36,Red Bull
+monster_37,Rhinosaurus
+monster_38,Triceratops
+monster_39,Behemoth
+monster_40,Baku
+monster_41,Ganesha
+monster_42,Condorman
+monster_43,Raven
+monster_44,Harpy
+monster_45,Crow Tengu
+monster_46,Garuda
+monster_47,Nike
+monster_48,Rat Snake
+monster_49,Sidewinder
+monster_50,Orochi
+monster_51,Hydra
+monster_52,Kōryū
+monster_53,Jormungandr
+monster_54,Octodancer
+monster_55,Nautilus
+monster_56,Sea Hare
+monster_57,Ammonite
+monster_58,King Squid
+monster_59,Kraken
+monster_60,Caterpillar
+monster_61,Poison Worm
+monster_62,Crawler
+monster_63,Lava Worm
+monster_64,Sand Worm
+monster_65,Abyss Worm
+monster_66,Amphibian
+monster_67,Poison Frog
+monster_68,Komodo
+monster_69,Stegosaurus
+monster_70,Salamander
+monster_71,Basilisk
+monster_72,Rat Man
+monster_73,Werewolf
+monster_74,Cat Girl
+monster_75,Minotaur
+monster_76,Rakshasa
+monster_77,Anubis
+monster_78,Goblin
+monster_79,Oni
+monster_80,Ogre
+monster_81,Gigas
+monster_82,Titan
+monster_83,Susano-o
+monster_84,Gryphon
+monster_85,Manticore
+monster_86,Chimera
+monster_87,Nue
+monster_88,Sphinx
+monster_89,Kirin
+monster_90,Big Eye
+monster_91,Gazer
+monster_92,Seeker
+monster_93,Watcher
+monster_94,Evil Eye
+monster_95,Beholder
+monster_96,Skeleton
+monster_97,Red Bone
+monster_98,Skully
+monster_99,Bone Warrior
+monster_100,Death Knight
+monster_101,Lich
+monster_102,Green Slime
+monster_103,Yellow Jelly
+monster_104,Blue Goop
+monster_105,Red Gummy
+monster_106,Black Pudding
+monster_107,Super Slime
+monster_108,Gargoyle
+monster_109,Lil' Devil
+monster_110,Devil
+monster_111,Great Demon
+monster_112,Demon Lord
+monster_113,Astaroth
+monster_114,Medusa
+monster_115,Siren
+monster_116,Lamia
+monster_117,Naga
+monster_118,Scylla
+monster_119,Marilith
+monster_120,Zombie
+monster_121,Ghoul
+monster_122,Lost
+monster_123,Wight
+monster_124,Ghast
+monster_125,Revenant
+monster_126,Haunt
+monster_127,Phantom
+monster_128,Shiver
+monster_129,Wraith
+monster_130,Specter
+monster_131,Ghost
+monster_132,Woodman
+monster_133,Clayman
+monster_134,Stone Golem
+monster_135,Iron Giant
+monster_136,Fire Giant
+monster_137,Colossus
+monster_138,Albatross
+monster_139,Dive Eagle
+monster_140,Thunderbird
+monster_141,Cockatrice
+monster_142,Roc
+monster_143,Phoenix
+monster_144,Baby Dragon
+monster_145,Dragon Kid
+monster_146,Young Dragon
+monster_147,Great Dragon
+monster_148,Dragon Prince
+monster_149,Tiamat
+monster_150,Martial Artist
+monster_151,Pirate
+monster_152,Wrestler
+monster_153,Murderer
+monster_154,Bomber
+monster_155,Samurai
+monster_156,Shinsengumi
+monster_157,Ninja
+monster_158,Psi Soldier
+monster_159,Musashi
+monster_160,Sword King
+monster_161,Apprentice
+monster_162,Magician
+monster_163,Sorcerer
+monster_164,Wizard
+monster_165,Nobleman
+monster_166,Minister
+monster_167,Guard
+monster_168,Manhunter
+monster_169,No. 28
+monster_170,Mobile Grunt
+monster_171,Mobile Suit
+monster_172,Warmech
+monster_173,Human (M)
+monster_174,Human (F)
+monster_175,Esper (M)
+monster_176,Esper (F)
+monster_177,Human (M)
+monster_178,Human (F)
+monster_179,Esper (M)
+monster_180,Esper (F)
+monster_181,Human (M)
+monster_182,Human (F)
+monster_183,Esper (M)
+monster_184,Esper (F)
+monster_185,Human (M)
+monster_186,Human (F)
+monster_187,Esper (M)
+monster_188,Esper (F)
+monster_189,Genbu
+monster_190,Seiryū
+monster_191,Byakko
+monster_192,Suzaku
+monster_193,Shin Genbu
+monster_194,Shin Seiryū
+monster_195,Shin Byakko
+monster_196,Shin Suzaku
+monster_197,Suzaku
+monster_198,Asura
+monster_199,The Creator
+draw_party_overview_1,HP {hp}/{maxhp}
+draw_party_overview_2,[D1]×{hearts}
+draw_party_overview_3,HP {hp}/{maxhp}
+draw_party_overview_4,[D1]×{hearts}
+draw_party_overview_5,HP {hp}/{maxhp}
+draw_party_overview_6,[D1]×{hearts}
+draw_party_overview_7,HP {hp}/{maxhp}
+draw_party_overview_8,[D1]×{hearts}
+draw_party_overview_9,Item
+draw_party_overview_10,Ability
+draw_party_overview_11,Equip
+draw_party_overview_12,Order
+draw_party_overview_13,Bestiary
+draw_party_overview_14,Config
+draw_party_overview_15,Save
+draw_party_overview_16,{gold} Gil
+draw_party_overview_17,Time 00:00
+draw_party_overview_18,Now on Floor: {floor}
+draw_party_overview_19,Highest Floor reached: {topfloor}
+draw_play_time_1,Time 00:00
+draw_tower_destination_1,To Floor {floor}
+draw_tower_destination_2,of the Tower.
+wait_unusable_item_message_1,Nothing happened.
+draw_item_target_summary_1,[D1]×{hearts}
+draw_item_target_summary_2,HP {hp}/{maxhp}
+draw_inventory_screen_1,Item
+draw_inventory_screen_2,{X}: Select  {A}: Confirm  {B}: Back
+draw_inventory_screen_3,Crystals
+draw_key_items_1,Key Items
+draw_equipment_review_screen_1,Abilities
+draw_equipment_review_screen_2,{X}: Select  {A}: Confirm  {B}: Back
+draw_equipment_review_member_1,HP {hp}/{maxhp}
+draw_equipment_review_member_2,[D1]×{hearts}
+draw_equipment_review_member_3,STR
+draw_equipment_review_member_4,: {value}
+draw_equipment_review_member_5,DEF
+draw_equipment_review_member_6,: {value}
+draw_equipment_review_member_7,AGI
+draw_equipment_review_member_8,: {value}
+draw_equipment_review_member_9,MAG
+draw_equipment_review_member_10,: {value}
+draw_refill_inventory_1,Item
+draw_refill_instructions_1,{X}: Select item  {A}: Confirm
+draw_tower_instructions_1,"{X1}, {X3}: Select floor  {A}: Confirm"
+wait_equipment_transfer_error_1,Already equipped.             
+draw_equipment_edit_screen_1,Equip
+draw_equipment_edit_member_1,HP {hp}/{maxhp}
+draw_equipment_edit_member_2,[D1]×{hearts}
+draw_equipment_edit_member_3,STR
+draw_equipment_edit_member_4,: {value}
+draw_equipment_edit_member_5,DEF
+draw_equipment_edit_member_6,: {value}
+draw_equipment_edit_member_7,AGI
+draw_equipment_edit_member_8,: {value}
+draw_equipment_edit_member_9,MAG
+draw_equipment_edit_member_10,: {value}
+draw_equipment_inventory_1,Item
+draw_equipment_inventory_2,Key Items
+draw_member_equipment_rows_1, -
+draw_member_summary_2,[D1]×{hearts}
+draw_member_summary_3,HP {hp}/{maxhp}
+append_party_swap_label_sprites_1,Swapping!
+run_progress_tab_1,{A}: Confirm
+run_progress_tab_2,{B}: Back
+draw_race_selection_screen_1,Monster Bestiary
+draw_race_selection_screen_2,Ability{tab}History
+draw_race_selection_screen_3,{A}: Confirm
+draw_race_selection_screen_4,{B}: Back
+draw_creation_type_detail_screen_1,Bestiary
+draw_creation_type_detail_screen_2,Lineage:
+draw_creation_type_detail_screen_3,"{Y4}, {Y2}: Switch  {B}: Back"
+draw_creation_type_detail_screen_4,Status{tab}Abilities
+draw_creation_type_detail_screen_5,HP {hp}
+draw_creation_type_detail_screen_6,STR
+draw_creation_type_detail_screen_7,: {value}
+draw_creation_type_detail_screen_8,DEF
+draw_creation_type_detail_screen_9,: {value}
+draw_creation_type_detail_screen_10,AGI
+draw_creation_type_detail_screen_11,: {value}
+draw_creation_type_detail_screen_12,MAG
+draw_creation_type_detail_screen_13,: {value}
+draw_creation_unlock_preview_1,Item
+draw_creation_unlock_preview_2,{B}: Back
+draw_creation_selected_preview_1,HP {hp}
+draw_creation_selected_preview_2,STR
+draw_creation_selected_preview_3,DEF
+draw_creation_selected_preview_4,AGI
+draw_creation_selected_preview_5,MAG
+draw_creation_selected_preview_6,{A}: Details
+draw_creation_selected_preview_7,{B}: Back
+draw_save_menu_1,Save
+draw_save_menu_2,Select a save file.
+draw_save_menu_3,{A}: Confirm  {B}: Back
+draw_save_confirmation_1,Yes
+draw_save_confirmation_2,No
+draw_save_confirmation_3,Save?
+draw_save_confirmation_4,Save?
+draw_save_confirmation_5,Saving will overwrite existing data.
+wait_save_confirmation_1,Save complete.
+wait_save_confirmation_2,Press the {A} button!
+draw_save_slot_summary_1,1
+draw_save_slot_summary_2,2
+draw_save_slot_summary_3,Empty
+draw_save_slot_summary_4,Now on Floor: {floor}
+draw_save_slot_summary_5,Highest Floor reached: {topfloor}
+draw_save_slot_summary_6,HP {hp}
+draw_save_slot_summary_7,[D1]×{hearts}
+draw_save_slot_summary_8,Time 00:00
+draw_options_screen_1,Config
+draw_options_screen_2,{A}: Confirm  {B}: Back
+draw_options_screen_3,Dash
+draw_options_screen_4,Auto-Target
+draw_options_screen_5,Monster Preview
+draw_options_screen_6,Message Speed
+draw_options_screen_7,{Y} Button Setup
+draw_options_screen_8,Restore Defaults
+draw_option_values_1,Off
+draw_option_values_2,On/
+draw_option_values_3,Fast
+draw_option_values_4,Slow
+draw_option_values_5, On
+draw_option_values_6,Off
+draw_option_values_7, On
+draw_option_values_8,Off
+draw_abbreviated_option_panel_1,On  /{cursor}Off
+draw_full_option_panel_1,On  /{cursor}Off
+draw_full_option_panel_2,While holding
+draw_full_option_panel_3,the {B} button.
+draw_full_option_panel_4,Fast /{cursor}Slow
+draw_centered_option_panel_1,On  /{cursor}Off
+L_347531_1,Stereo /{cursor}Mono
+draw_dialogue_speed_panel_1,1 2 3 4 5 6 7 8
+draw_dialogue_speed_panel_2,Fast
+draw_dialogue_speed_panel_3,Slow
+draw_dialogue_party_order_panel_1,{Y1} Button ....
+draw_dialogue_party_order_panel_2,{Y2} Button ....
+draw_dialogue_party_order_panel_3,{Y3} Button ....
+draw_dialogue_party_order_panel_4,{Y4} Button ....
+draw_load_menu_screen_1,Load
+draw_load_menu_screen_2,Choose a file to load.
+draw_load_menu_screen_3,{A}: Confirm  {B}: Back
+draw_load_slot_prompt_1,This file has
+draw_load_slot_prompt_2,no data!
+draw_load_slot_prompt_3,Yes
+draw_load_slot_prompt_4,No
+draw_load_slot_prompt_5,Load this data?
+draw_load_slot_prompt_6,Yes
+draw_load_slot_prompt_7,No
+draw_load_slot_prompt_8,Keep the Bestiary and
+draw_load_slot_prompt_9,"start a ""New Game""?"
+draw_item_count_1, -
+draw_inventory_item_description_1,Use the Crystals       
+draw_inventory_item_description_2,Discard
+draw_equipment_item_description_1,Use the Crystals       
+draw_equipment_item_description_2,Discard
+draw_usable_equipment_description_1,Use the Crystals       
+draw_usable_equipment_description_2,Discard
+draw_inventory_command_description_2,Set dashing with the {B} button.
+draw_inventory_command_description_3,Act even if your target has died.   
+draw_inventory_command_description_4,Preview transformation when eating meat.  
+show_strength_increase_message_1,STR increased by {amount}!
+show_agility_increase_message_1,AGI increased by {amount}!
+show_max_hp_increase_message_1,HP increased by  {amount}!
+run_monster_history_menu_1,Your party currently
+run_monster_history_menu_2,has no monsters.
+draw_monster_history_screen_1,Generation {generation}
+draw_monster_history_screen_2,{name}'s transformation history
+draw_monster_history_screen_3,{A}: Confirm
+draw_monster_history_screen_4,{B}: Back
+draw_inn_screen_1,Inn
+draw_inn_screen_2,Welcome to the inn!
+draw_inn_screen_3,Cheap! 1 Gil per HP!
+draw_inn_screen_4,Stay
+draw_inn_screen_5,No thanks
+draw_inn_screen_6,{gold} Gil
+draw_inn_screen_7,{gold} Gil
+draw_inn_member_summary_1,[D1]×{hearts}
+draw_inn_member_summary_2,{hp}/{maxhp}
+draw_revive_member_screen_1,Hall of Revival
+draw_revive_member_screen_2,Welcome to the Hall of Revival!
+draw_revive_member_screen_3,Just 100 Gil!
+draw_revive_member_screen_4,Whom shall we revive?
+draw_revive_member_screen_5,{gold} Gil
+replace_selected_party_member_1,Not me!
+confirm_member_replacement_1,Is here okay?
+draw_recruitment_member_screen_1,Adventurers' Guild
+draw_recruitment_member_screen_2,Where should they go?
+draw_member_replacement_confirmation_1,Sure!
+draw_member_replacement_confirmation_2,No thanks
+run_shop_sell_menu_1,What are you selling?
+run_shop_sell_menu_2,Nothing there!
+run_shop_sell_menu_3,What are you selling?
+confirm_shop_purchase_1,Hey! You don't got the cash!
+buy_and_equip_shop_item_1,Their equipment's full!
+buy_and_equip_shop_item_2,They can't equip that!
+buy_and_equip_shop_item_3,They've already equipped that!
+buy_and_equip_shop_item_4,Who will equip it?
+buy_and_equip_shop_item_5,{item} bought!
+buy_shop_item_into_inventory_1,Inventory's full!
+buy_shop_item_into_inventory_2,{item} bought!
+draw_shop_purchase_confirmation_1,Equip it to someone?
+draw_shop_purchase_confirmation_2,Yes
+draw_shop_purchase_confirmation_3,No
+draw_shop_sale_confirmation_1,I'll give you {gold} Gil!
+draw_shop_sale_confirmation_2,Yes
+draw_shop_sale_confirmation_3,No
+draw_shop_stock_page_1,{gold} Gil
+draw_shop_stock_item_1,{gold} Gil
+draw_shop_main_screen_1,Item Shop
+draw_shop_main_screen_2,Armory
+draw_shop_main_screen_3,Whaddya want!
+draw_shop_main_screen_4,Buy
+draw_shop_main_screen_5,Sell
+draw_shop_main_screen_6,Leave
+draw_shop_main_screen_7,{gold} Gil
+draw_shop_equipment_member_screen_1,Who will equip it?
+draw_shop_sale_inventory_1,{gold} Gil
+draw_creation_type_screen_1,Character Select
+draw_creation_type_screen_2,{A}: Confirm  {B}: Back
+draw_creation_type_preview_1,HP {hp}
+draw_creation_type_preview_2,STR
+draw_creation_type_preview_3,: {value}
+draw_creation_type_preview_4,DEF
+draw_creation_type_preview_5,: {value}
+draw_creation_type_preview_6,AGI
+draw_creation_type_preview_7,: {value}
+draw_creation_type_preview_8,MAG
+draw_creation_type_preview_9,: {value}
+draw_name_entry_screen_1,Enter Name
+draw_name_entry_screen_2,{A}:
+draw_name_entry_screen_3,OK
+draw_name_entry_screen_4,{B}:
+draw_name_entry_screen_5,  Back
+draw_name_entry_screen_6,"{Y4},{Y2}"
+draw_name_entry_screen_7,Switch
+draw_name_entry_screen_8,{Start}
+draw_name_entry_screen_9,Done
+draw_name_entry_alphabet_1,ひら
+draw_name_entry_alphabet_2,カタ
+L_351AA0_1,Debug Mode
+L_351E4F_1,Map No.  DDD-HHH
+L_351E4F_2,Dest. X  DDD-HHH
+L_351E4F_3,Dest. Y  DDD-HHH
+L_351E4F_4,Facing
+L_351E4F_5,Collision
+L_351E4F_6,On
+L_351E4F_7,Battles
+L_351E4F_8,On
+L_351E4F_9,B Dash
+L_351E4F_10,On
+L_351E4F_11,A Run
+L_351E4F_12,B Cancel
+L_351E4F_13,Position No-       :
+L_352008_1,Title Demo
+L_352008_2,Opening
+L_352008_3,Ending
+L_352008_4,Card Pics
+L_352008_5,Sprites
+L_352008_6,A Run
+L_352008_7,B Cancel
+L_3520A4_1,Flags
+L_3520A4_2,Data
+L_3520A4_3,Reset
+L_3520A4_4,A Run
+L_3520A4_5,B Cancel
+discard_overflow_inventory_item_1,Inventory's full!
+discard_overflow_inventory_item_2,Discard which one?
+event_grant_item_with_message_1,Inventory's full!
+battle_target_menu_input_1,Can't use it here.
+battle_menu_dispatcher_1,Empty
+battle_menu_dispatcher_2,Empty
+battle_menu_dispatcher_3,Empty
+draw_battle_skill_list_1,Empty
+draw_actor_item_list_1, No items to
+draw_actor_item_list_2,use in battle!
+draw_actor_item_list_5,--
+selected_equipment_name_or_placeholder_1,Select an item or ability.
+draw_transformation_menu_state_1,Eat
+draw_transformation_menu_state_2,Skip
+draw_transformation_menu_state_3,Eat
+draw_transformation_menu_state_4,Don't Eat
+draw_transformation_menu_state_5,Now
+draw_transformation_menu_state_6,STR
+draw_transformation_menu_state_7,AGI
+draw_transformation_menu_state_8,DEF
+draw_transformation_menu_state_9,MAG
+draw_transformation_menu_state_10,Change to:
+draw_transformation_menu_state_11,STR
+draw_transformation_menu_state_12,AGI
+draw_transformation_menu_state_13,DEF
+draw_transformation_menu_state_14,MAG
+draw_debug_extended_menu_1,Battle Debug Mode
+draw_debug_extended_menu_2,Char
+draw_debug_extended_menu_3,STR
+draw_debug_extended_menu_4,DEF
+draw_debug_extended_menu_5,AGI
+draw_debug_extended_menu_6,Psn
+draw_debug_extended_menu_7,Slp
+draw_debug_extended_menu_8,Paralysis
+draw_debug_extended_menu_9,Confusion
+draw_debug_extended_menu_10,Blind
+draw_debug_extended_menu_11,Curse
+draw_debug_extended_menu_12,Stone
+draw_debug_extended_menu_13,Quit
+draw_debug_settings_menu_1,Battle Debug Mode
+draw_debug_settings_menu_2,BG Select
+draw_debug_settings_menu_3,Monster Type
+draw_debug_settings_menu_4,God
+draw_debug_settings_menu_5,Meat
+draw_debug_settings_menu_6,Player Status
+draw_debug_settings_menu_7,Quit
+draw_debug_encounter_values_1,On
+draw_debug_encounter_values_2,On
+draw_debug_configuration_values_1,Down
+draw_debug_configuration_values_2,Off
+draw_debug_configuration_values_3,Up
+draw_debug_configuration_values_4,Down
+draw_debug_configuration_values_5,Off
+draw_debug_configuration_values_6,Up
+draw_debug_configuration_values_7,Down
+draw_debug_configuration_values_8,Off
+draw_debug_configuration_values_9,Up
+draw_debug_configuration_values_10,Off
+draw_debug_configuration_values_11,Off
+draw_debug_configuration_values_12,Off
+draw_debug_configuration_values_13,Off
+draw_debug_configuration_values_14,Off
+draw_debug_configuration_values_15,Off
+draw_debug_configuration_values_16,Off
+field_menu_label_0,Set dashing with the {B} button.
+field_menu_label_1,Act even if your target has died.
+field_menu_label_2,Preview transformation when eating meat.
+field_menu_label_3,Set the message display speed.
+field_menu_label_4,Set the {Y} button functions.
+field_menu_label_5,Restore default settings.  {A}: Confirm
+party_menu_category_0,-
+party_menu_category_1,Item
+party_menu_category_2,Ability
+party_menu_category_3,Equip
+party_menu_category_4,Order
+party_menu_category_5,Bestiary
+party_menu_category_6,Config
+party_menu_category_7,Save
+party_menu_category_8,Menu
+party_menu_category_9,-
+creation_race_label_0,Insectoid
+creation_race_label_1,Fish
+creation_race_label_2,Plant
+creation_race_label_3,Insect
+creation_race_label_4,Crab
+creation_race_label_5,Tiger
+creation_race_label_6,Rhino
+creation_race_label_7,Birdman
+creation_race_label_8,Snake
+creation_race_label_9,Octopus
+creation_race_label_10,Caterpillar
+creation_race_label_11,Lizard
+creation_race_label_12,Lycan
+creation_race_label_13,Oni
+creation_race_label_14,Chimera
+creation_race_label_15,Eyeball
+creation_race_label_16,Skeleton
+creation_race_label_17,Slime
+creation_race_label_18,Devil
+creation_race_label_19,Echidna
+creation_race_label_20,Zombie
+creation_race_label_21,Ghost
+creation_race_label_22,Golem
+creation_race_label_23,Bird
+creation_race_label_24,Dragon
+save_slot_label_3,3
+name_entry_alphabet_3,ABC
+inventory_screen_icon,[F4]
+item_obtained_suffix,{item} obtained.
+ui_inventory_items,Item
+ui_inventory_keys,Key Items
+ui_inventory_crystals,Crystals
+ui_inventory_trash,Trash
+ui_inventory_crystal_hint,Use the Crystals
+ui_inventory_trash_hint,Discard items
+ui_inventory_key_item,Key Item
+ui_inventory_field_item,Use while exploring
+ui_inventory_status,Changes status
+ui_inventory_guard,Defense
+ui_inventory_healing,Healing {amount}
+ui_inventory_str,STR
+ui_inventory_agl,AGI
+ui_inventory_mana,MAG
+ui_inventory_power,Power {amount}
+ui_inventory_defense,Defense {amount}
+ui_battle_fight,Fight
+ui_battle_run,Run
+ui_battle_empty_slot,None
+ui_battle_no_uses,--
+ui_battle_group_count,×{count}
+ui_battle_empty_member,None
+ui_save_autosave,Auto
+ui_name_entry_label,Name
+ui_service_buy,Buy
+ui_service_sell,Sell
+ui_service_exit,Leave
+ui_service_inn_rate,1 Gil / HP
+ui_service_revive_price,100 Gil
+ui_service_revive_question,Whom shall we revive?
+ui_service_sale_offer,{gold} Gil
+ui_party_menu,Menu
+ui_party_time,Time
+ui_party_status,Status
+ui_party_equip,Equip
+ui_party_order,Order
+ui_party_bestiary,Bestiary
+ui_party_config,Config
+ui_party_save,Save
+ui_party_current_floor,Current Floor: {floor}
+ui_party_highest_floor,Highest Floor: {topfloor}
+ui_party_kero,Gil
+ui_party_str,STR
+ui_party_def,DEF
+ui_party_agi,AGI
+ui_party_mag,MAG
+ui_party_order_source,Who will you move?
+ui_party_order_target,Move where?
+ui_party_gear,Equip
+ui_party_abilities,Abilities
+ui_item_target,Use on whom?
+ui_item_refill_hint,Select an item.
+ui_item_floor,Floor {floor}
+ui_battle_meat,{monster} Meat
+ui_battle_hp,HP
+ui_save_overwrite,Overwrite this data?
+ui_save_inherit_first,Keep the Bestiary and
+ui_save_inherit_second,start a New Game?
+ui_name_entry_space,Space
+ui_name_entry_delete,Delete
+ui_name_entry_done,Done
+ui_name_entry_hiragana,ひら {page}
+ui_name_entry_katakana,カタ {page}
+ui_creation_hp,HP
+ui_bestiary_title,Bestiary
+ui_bestiary_generation,Generation {generation}
+menu_error_1,Not enough Gil!
+menu_error_2,They're still alive!
+menu_error_3,They don't have any [D1]!
+menu_error_4,Come again!
+menu_error_5,You can't remove yourself!
+menu_error_6,All right! Revived!
+menu_error_7,Is that okay?
+menu_error_8,Nothing there!
+menu_error_9,They have a Key Item!
+ui_dialogue_item_obtained,Obtained {item}.
+ui_dialogue_inventory_full,Your inventory is full.
+ui_inventory_passive,Passive
+ui_save_unreadable,Can't read this file. Choose another.
+ui_party_picked_hint,{A}: Use  {B}: Back
+ui_bestiary_history,History
+ui_bestiary_abilities,Abilities
+ui_bestiary_unseen,Undiscovered
+ui_bestiary_back,{B} Back
+ui_bestiary_hint,{A} Details {B} Back
+ui_bestiary_family,Lineage:
+ui_bestiary_hp,HP
+ui_bestiary_family_0,Insectoid
+ui_bestiary_family_1,Fish
+ui_bestiary_family_2,Plant
+ui_bestiary_family_3,Insect
+ui_bestiary_family_4,Crab
+ui_bestiary_family_5,Tiger
+ui_bestiary_family_6,Rhino
+ui_bestiary_family_7,Birdman
+ui_bestiary_family_8,Snake
+ui_bestiary_family_9,Octopus
+ui_bestiary_family_10,Caterpillar
+ui_bestiary_family_11,Lizard
+ui_bestiary_family_12,Lycan
+ui_bestiary_family_13,Oni
+ui_bestiary_family_14,Chimera
+ui_bestiary_family_15,Eyeball
+ui_bestiary_family_16,Skeleton
+ui_bestiary_family_17,Slime
+ui_bestiary_family_18,Devil
+ui_bestiary_family_19,Echidna
+ui_bestiary_family_20,Zombie
+ui_bestiary_family_21,Ghost
+ui_bestiary_family_22,Golem
+ui_bestiary_family_23,Bird
+ui_bestiary_family_24,Dragon
+intro_copyright,© 1989 SQUARE SOFT
+intro_caption_1,The Tower at the center of the world
+intro_caption_2,is said to reach to Paradise.
+intro_caption_3,"Dreaming of that Paradise,"
+intro_caption_4,many have set out
+intro_caption_5,to unravel the Tower's secrets.
+intro_caption_6,But no one knows
+intro_caption_7,what became of them.
+intro_caption_8,"Now, another adventurer sets forth..."
+intro_prologue,"The Tower at the center{n}of the world is said{n}to reach to Paradise.{n}Dreaming of that Paradise,{n}many have set out{n}to unravel the Tower's secrets.{n}But no one knows{n}what became of them.{n}{n}Now, another adventurer sets forth..."
+world_card_1,The Earth
+world_card_2,The Waters
+world_card_3,The Heavens
+world_card_4,The City
+ui_status_dead,Dead
+ui_status_stone,Stone
+ui_status_curse,Curse
+ui_status_blind,Blind
+title_new_game,New Game
+title_continue,Continue
+title_original,Original
+ui_ending_notice,You can save your Bestiary data.{n}Saving here will erase your{n}existing data.{n}{n}Loading it starts a New Game{n}with your Bestiary data{n}carried over.
+ui_battle_preview_element_fire,Fire
+ui_battle_preview_element_ice,Ice
+ui_battle_preview_element_thunder,Electric
+ui_battle_preview_element_poison,Poison
+ui_battle_preview_element_stone,Stone
+ui_battle_preview_element_status,Status
+ui_battle_preview_element_quake,Earthquake
+ui_battle_preview_element_multiple,Multi-Element
+ui_battle_preview_range_melee,Melee
+ui_battle_preview_range_ranged,Ranged
+ui_battle_preview_target_group,One Group
+ui_battle_preview_target_all,All Enemies
+ui_battle_preview_target_ally,Party
+ui_battle_preview_target_self,Self
+ui_battle_preview_separator,/
+ui_battle_meat_refused,Can't eat the meat!
+ui_battle_meat_prompt,Who will eat the {monster} Meat?
+ui_battle_meat_eat,Eat It!
+ui_battle_meat_dont,Don't
+ui_battle_esper_change,{actor}'s {ability} is changing to {new_ability}.
+ui_battle_esper_allow,Allow it?
+ui_battle_esper_yes,Yes
+ui_battle_esper_no,No
+ui_battle_esper_kept,No change.

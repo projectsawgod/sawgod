@@ -1,0 +1,24 @@
+# Data whose format isn't decoded yet: extracted as-is so the round trip covers it.
+assets:
+  - {name: raw/map_data_bank_20, rom: 0x200000, size: 0x10000, format: raw, note: field map metatile data}
+  - {name: raw/map_data_bank_21, rom: 0x210000, size: 0x10000, format: raw, note: field map metatile data}
+  - {name: raw/map_data_bank_22, rom: 0x220000, size: 0x10000, format: raw, note: field map metatile data}
+  - {name: raw/map_data_bank_23, rom: 0x230000, size: 0x10000, format: raw, note: field map metatile data}
+  - {name: raw/map_data_bank_24, rom: 0x240000, size: 0x10000, format: raw, note: field map metatile data}
+  - {name: raw/map_data_bank_25, rom: 0x250000, size: 0x10000, format: raw, note: field map metatile data}
+  - {name: raw/map_data_bank_26, rom: 0x260000, size: 0x10000, format: raw, note: field map metatile data}
+  - {name: raw/orijinaru_bank_32, rom: 0x320000, size: 0x10000, format: raw, note: ORIJINARU script and data}
+  - {name: raw/orijinaru_bank_33, rom: 0x330000, size: 0x10000, format: raw, note: ORIJINARU script and data}
+  - {name: raw/sound_data, rom: 0x3D0000, size: 0x2E0, format: raw, note: sound tables before the song table}
+  # Not decoded yet, extracted so the game reads them from files (Resources over ROM;
+  # sawgod-headless --rom-reads lists what the game still reads from the ROM)
+  - {name: raw/data_bank_0F, rom: 0x0F0000, size: 0x10000, format: raw, note: data copied to work RAM}
+  - {name: raw/bank39_392080, rom: 0x392080, size: 0x1F80, format: raw, note: after the font; read by menus}
+  - {name: raw/bank39_398000, rom: 0x398000, size: 0x8000, format: raw, note: bank 0x39 upper half}
+  - {name: raw/data_bank_3A, rom: 0x3A0000, size: 0x10000, format: raw, note: graphics and data}
+  - {name: raw/data_bank_3B, rom: 0x3B0000, size: 0x10000, format: raw, note: data}
+  - {name: raw/data_bank_3E, rom: 0x3E0000, size: 0x10000, format: raw, note: battle palettes and data}
+  - {name: audio/sound_bank_3D, rom: 0x3D0316, size: 0xFCEA, format: raw, note: "songs, tracks, envelopes (and the original driver's code bytes, unused by the port)"}
+  - {name: scripts/event_scripts, rom: 0x352000, size: 0x7000, format: raw, note: "field event scripts (opcodes; their text runs are text/ja.csv's dlg_ rows, which take precedence)"}
+  - {name: raw/bank34_0BD7, rom: 0x340BD7, size: 0x100, format: raw, note: a 256-byte lookup table in the shared library}
+  - {name: raw/bank34_C703, rom: 0x34C703, size: 0x318, format: raw, note: "creation types and menu data, after the shop tables"}

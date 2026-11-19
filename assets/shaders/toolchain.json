@@ -1,0 +1,16 @@
+{
+  "dxc": {
+    "release": "v1.8.2505.1",
+    "source": "https://github.com/microsoft/DirectXShaderCompiler/releases/tag/v1.8.2505.1",
+    "linux_archive": "linux_dxc_2025_07_14.x86_64.tar.gz",
+    "linux_archive_sha256": "f2213da1fc99dc8778c8823078e16ba97c7f80f86a1d4520ab1adf4b462bc48c",
+    "windows_archive": "dxc_2025_07_14.zip",
+    "windows_archive_sha256": "9ad895a6b039e3a8f8c22a1009f866800b840a74b50db9218d13319e215ea8a4",
+    "profile": "ps_6_0",
+    "entrypoint": "main"
+  },
+  "shadercross": {
+    "source": "https://github.com/libsdl-org/SDL_shadercross",
+    "status": "optional adapter; no installed build or dependency pin validated in this batch"
+  }
+}

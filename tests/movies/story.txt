@@ -1,0 +1,108 @@
+# Full story playthrough for code/data coverage (SawGod).
+# New game -> first town -> leave town -> continent world map -> battle (won) -> full
+# main-menu tour -> further overworld exploration (new terrain: coast, bridge, second
+# tower) -> save to slot 1. Frames are absolute from boot (reference engine, no BIOS).
+#
+# The opening through the first battle and victory (frames 600-12500) is copied
+# verbatim from tests/movies/newgame.txt: the battle is a "random" encounter and its
+# timing is sensitive to the exact frame count reached at each input, so nothing is
+# inserted before it. No walk-in shop/inn/guild entrance was found in the starting
+# town's tower-and-wall area: every direction from the spawn point either loops back
+# around the wall/moat or leaves town onto the world map; NPCs there give flavor/hint dialogue
+# only (no menu). The guild mentioned by an NPC ("ギルドで つかまえを あつめろよ") was not
+# located, so the party stays solo.
+
+600 start*      # skip the opening text
+1200 a*         # title: PUSH ANY BUTTON
+1500 a*         # はじめから (new game) -> prologue, then character select
+2700 a*         # character select: cursor already on first entry (human male) -> confirm
+2760 a*         # name entry: cursor on あ -> type "あ"
+2820 start*     # START: finish name entry -> name = "あ"
+# party creation done -> dropped onto world map next to the starting town's inn (~2940)
+2960 down       # walk down, away from the inn wall
+3000
+3040 left       # walk along the field, looking for a random encounter
+3160
+3200 right      # stepping off the town's grass patch onto the road starts the
+                # scrolling "traveling" overworld view
+3320
+3360 right      # keep walking the road, looking for a random battle
+# entering "大陸世界" (Continent World): tile-based overworld, tower + walled meadow;
+# walking right runs into the mountain wall (~4080)
+4100
+4140 down       # follow the wall; a random battle triggers almost immediately (~4160)
+4180            # battle transition starts; command menu up by ~4220
+4260 a*         # たたかう (fight) -> confirm
+4350 a*         # weapon select (ロングソード) -> confirm
+4450 a*         # target select (さんしょうお) -> confirm, attack
+5380 a*         # turn 2: たたかう
+5470 a*         # weapon select
+5570 a*         # target select, attack
+6490 a*         # turn 3: たたかう
+6580 a*         # weapon select
+6680 a*         # target select, attack
+7630 a*         # turn 4: たたかう
+7720 a*         # weapon select
+7820 a*         # target select, attack
+8750 a*         # turn 5: たたかう
+8840 a*         # weapon select
+8940 a*         # target select, attack -- this hit kills the salamander -> victory
+11500 a*        # dismiss victory screen (gero gained)
+12500 a*        # dismiss gold message, back to the field (HP 14/60)
++500            # let the post-battle fade finish before opening the menu
+
+# --- Full main-menu tour (all 7 screens), back in the field after the battle ---
+12600 start*    # open menu: cursor on アイテム
+12660 a*        # open アイテム (items) -- shows current inventory (a crystal)
+12760 b*        # back out
+12860 down*     # -> のうりょく (abilities)
+12920 a*
+13020 b*
+13120 down*     # -> そうび (equip)
+13180 a*
+13280 b*
+13380 down*     # -> ならびかえ (reorder)
+13440 a*
+13540 b*
+13640 down*     # -> ずかん (encyclopedia) -- opens モンスターずかん (monster dex) list
+13700 a*
+13860 b*
+13960 down*     # -> コンフィグ (config) -- shows crash/auto-target/message-speed options
+14020 a*
+14120 b*
+14220 down*     # -> セーブ (save) -- open the 3-slot file select, then cancel (no save yet)
+14280 a*
+14380 b*        # back out of file select without saving
+14480 b*        # close the main menu entirely
+14580
+
+# --- Further overworld exploration for coverage (new terrain past the first meadow) ---
+# Kept short on purpose: a longer walk here (right/up/right/down/left for ~2000 frames)
+# turned up a chain of THREE back-to-back random goblin battles while the party was
+# still solo -- the first two were won but the HP loss from the first (14 -> 1) was not
+# survivable through a third, and the party died. Rather than risk that again with a
+# solo character, this cuts the post-battle sightseeing short and heads straight to the
+# save; recruiting a real party (see the guild note above) is the fix for next session.
+14580 right     # back toward the tower / mountain wall
+14780
+14820 up        # a little way along the wall, new tiles for coverage
+14920
+
+# --- Save to slot 1 ---
+15020 start*    # open menu: cursor on アイテム
+15080 down*
+15105 down*
+15130 down*
+15155 down*
+15180 down*
+15205 down*     # cursor now on セーブ (6 taps down from アイテム)
+15240 a*        # confirm セーブ -> file select, cursor on slot 1
+15340 a*        # confirm slot 1 -> セーブしますか? はい/いいえ, cursor on はい
+15620 a*        # confirm はい -> save completes
+15920 a*        # dismiss "セーブが しゅうりょうしました"; A held 6f may re-land on slot 1
+16020 b*        # back out of any overwrite-confirm / file-select screen
+16120 b*        # back out of the save menu
+16220 b*        # close the main menu, back to the field
+16420 b*        # (safety net) one more B in case an overwrite-confirm popped up
+16520 b*        # close the main menu list itself
+16700           # end: back in the field, slot 1 saved, HP 14/60, solo party

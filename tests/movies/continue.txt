@@ -1,0 +1,16 @@
+# Continue from the save made by tests/movies/newgame.txt (the difftests make that .sav first and
+# passes it with --sram; it is never committed: SRAM holds map data copied from the ROM).
+# With a save present the title menu's cursor starts on つづき (continue).
+600 start*      # skip the opening text
+1200 a*         # title: PUSH ANY BUTTON
+1500 a*         # つづき -> load menu (ロード), cursor on slot 1
+1800 a*         # slot 1 -> このデータを ロードしますか？ はい/いいえ, cursor on はい
+2100 a*         # はい -> back on the continent map (~2220)
+2400 left       # walk a little
+2460
+2520 up
+2580
+2640 right
+2700
+2760 down
+2820

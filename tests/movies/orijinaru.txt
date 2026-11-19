@@ -1,0 +1,6 @@
+# ORIJINARU (GB-layout) mode from power-on.
+600 start*      # skip the opening text
+1200 a*         # title: PUSH ANY BUTTON
+1300 down*      # menu cursor: はじめから -> つづき
+1340 down*      # -> オリジナル
+1500 a*         # select オリジナル
