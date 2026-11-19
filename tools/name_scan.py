@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Reject personal identifiers in the public source tree and staged release packages.
 
-Default: git ls-files (cached plus new, nonignored files), minus DEV_ONLY. Explicit
+Default: both repository indexes plus new, nonignored files, minus DEV_ONLY. Explicit
 paths scan files/directories, including nested ZIP/ODS/APK, tar/gzip and PNG text.
 Patterns are assembled from fragments so this guard does not match its own source.
 """
@@ -11,11 +11,13 @@ import io
 import os
 from pathlib import Path
 import struct
-import subprocess
 import sys
 import tarfile
 import zipfile
 import zlib
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import repo_files as repo
 
 DEV_ONLY = ('AGENTS.md', 'CLAUDE.md', 'PLAN.md', 'docs/milestones/')
 PERSON = 'and' + 'rew'
@@ -59,10 +61,8 @@ def excluded(name):
 
 
 def public_files(root):
-    names = subprocess.check_output(
-        ['git', '-C', str(root), 'ls-files', '--cached', '--others', '--exclude-standard', '-z'])
-    return [root / os.fsdecode(n) for n in sorted(set(names.split(b'\0'))) if n
-            and not excluded(os.fsdecode(n)) and (root / os.fsdecode(n)).exists()]
+    paths = repo.both(root) | repo.untracked(root)
+    return [root / n for n in sorted(paths) if not excluded(n) and (root / n).exists()]
 
 
 class Scanner:

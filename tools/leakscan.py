@@ -5,17 +5,18 @@ Source derived from the ROM (asm, C) is fine; binary ROM data is not. Any run of
 --min bytes (default 32) that also occurs in the baseline ROM is reported, unless the run is
 low-entropy filler (fewer than 4 distinct byte values).
 
-Usage: leakscan.py [--staged | --all | FILE ...] [--min N]
-  --staged  files in the git index (the pre-commit hook uses this)
-  --all     every tracked file (default)
+Usage: leakscan.py [--staged [--overlay] | --all | FILE ...] [--min N]
+  --staged  staged bytes in the public index (the pre-commit hook uses this)
+  --overlay with --staged: the sawgod-dev overlay's index (its pre-commit hook)
+  --all     every tracked file in both repositories (default)
 Without the ROM (public CI, contributors who haven't set one up) it warns and exits 0.
 """
 import argparse
-import subprocess
 import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+import repo_files as repo
 from paths import SAWGOD_ROM, ROOT  # noqa: E402
 
 K = 16  # indexed gram length; any run >= 2*K contains a K-aligned ROM gram
@@ -61,11 +62,8 @@ def scan(data, rom, idx, minlen):
             i += 1
 
 
-def git_files(staged):
-    cmd = ["git", "diff", "--cached", "--name-only", "--diff-filter=ACMR", "-z"] if staged \
-        else ["git", "ls-files", "-z"]
-    out = subprocess.run(cmd, cwd=ROOT, capture_output=True, check=True).stdout
-    return [ROOT / p for p in out.decode().split("\0") if p]
+def git_files(staged, overlay=False):
+    return [ROOT / p for p in sorted(repo.staged(ROOT, overlay=overlay) if staged else repo.both(ROOT))]
 
 
 def main():
@@ -73,6 +71,7 @@ def main():
     ap.add_argument("files", nargs="*", type=Path)
     ap.add_argument("--staged", action="store_true")
     ap.add_argument("--all", action="store_true")
+    ap.add_argument("--overlay", action="store_true")
     ap.add_argument("--min", type=int, default=2 * K)
     a = ap.parse_args()
     if a.min < 2 * K:
@@ -82,12 +81,14 @@ def main():
         return 0
     rom = SAWGOD_ROM.read_bytes()
     idx = build_index(rom)
-    files = a.files or git_files(a.staged)
+    files = a.files or git_files(a.staged, a.overlay)
     bad = 0
     for f in files:
-        if not f.is_file():
+        if (not a.staged or a.files) and not f.is_file():
             continue
-        for fo, ro, ln in scan(f.read_bytes(), rom, idx, a.min):
+        data = (repo.git(ROOT, 'show', ':' + f.relative_to(ROOT).as_posix(), overlay=a.overlay, index_env=True)
+                if a.staged and not a.files else f.read_bytes())
+        for fo, ro, ln in scan(data, rom, idx, a.min):
             bad += 1
             print(f"LEAK {f.relative_to(ROOT) if f.is_relative_to(ROOT) else f}: "
                   f"{ln} bytes at file 0x{fo:X} match ROM 0x{ro:06X}")

@@ -13,6 +13,7 @@ import zipfile
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / 'tools'))
 from paths import SAWGOD_REF  # noqa: E402
+import repo_files as repo
 import notices  # noqa: E402
 
 
@@ -95,8 +96,8 @@ def stage(target, build):
             raise RuntimeError('Executable needs $ORIGIN/lib in its runtime search path')
     notices.audit(target, out)
     # Manifest is useful when checking an unpacked release, and contains no local paths or ROM data.
-    manifest = {'platform': target, 'revision': run('git', '-C', str(ROOT), 'rev-parse', 'HEAD').strip(),
-                'modified_checkout': bool(run('git', '-C', str(ROOT), 'status', '--porcelain').strip()),
+    manifest = {'platform': target, 'revision': repo.revisions(ROOT)['public'],
+                'modified_checkout': repo.dirty(ROOT),
                 'runtime_imports': imports,
                 'files': {str(p.relative_to(out)): hashlib.sha256(p.read_bytes()).hexdigest()
                           for p in sorted(out.rglob('*')) if p.is_file()}}

@@ -8,6 +8,9 @@ import shutil
 import subprocess
 import sys
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+import repo_files as repo
+
 from package import ROOT, SAWGOD_REF
 import notices
 
@@ -139,8 +142,8 @@ def stage(build):
     manifest = {'platform': 'macos', 'architecture': 'arm64',
                 'minimum_macos': info['LSMinimumSystemVersion'],
                 'version': info['CFBundleShortVersionString'],
-                'revision': run('git', '-C', ROOT, 'rev-parse', 'HEAD'),
-                'modified_checkout': bool(run('git', '-C', ROOT, 'status', '--porcelain')),
+                'revision': repo.revisions(ROOT)['public'],
+                'modified_checkout': repo.dirty(ROOT),
                 'runtime_imports': audit,
                 'files': {str(p.relative_to(out)): hashlib.sha256(p.read_bytes()).hexdigest()
                           for p in sorted(out.rglob('*')) if p.is_file()}}
