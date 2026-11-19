@@ -11,7 +11,7 @@ all of it: the game plays like the WSC by default. Fixing one is a deliberate de
 | Routine | What the code does | Player effect | Status |
 |---|---|---|---|
 | `execute_strength_technique_action_core` | Uses the caster's **magic** (field 0Ah) and the target's raw defense, despite being the strength technique. | Strength techniques scale with magic. | kept |
-| `execute_chainsaw_action_core` | The instant kill happens when adjusted strength is **below** the target's defense (comparison reversed). | Chainsaw kills more readily vs. tough targets: the famous chainsaw-kills-Creator trick. | **won't fix** ("that's probably what gets Creator") |
+| `execute_chainsaw_action_core` | The instant kill happens when adjusted strength is **below** the target's defense (comparison reversed). | Chainsaw kills more readily vs. tough targets: the famous chainsaw-kills-Creator trick. | **won't fix** |
 | `execute_elemental_magic_action_core` | Target magic is subtracted only for the "does it do damage" test; the damage dealt is the unreduced amount, doubled. | Elemental spells ignore the target's magic. | kept |
 | `execute_innate_magic_damage_action_core` | The random spread is put in BH while the random helper reads AH (zero), and the target's magic is **added** to damage. | No damage spread; higher target magic means more damage. ? | kept |
 | `execute_revenge_weapon_action_core` | The defense-reduction input saves a leftover register byte instead of the target's defense. | ? | kept |

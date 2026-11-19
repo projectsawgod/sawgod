@@ -77,7 +77,7 @@ jobs:
           cache: pip
           cache-dependency-path: tools/requirements.txt
 
-      # Enhanced-music tables import numpy at configure time; text extraction needs Pillow/openpyxl.
+      # Enhanced-music tables import numpy at configure time; text extraction needs Pillow.
       - name: Install tool requirements
         run: python -m pip install -r tools/requirements.txt
 
@@ -166,7 +166,6 @@ jobs:
           retention-days: 14
 
   macos:
-    # macOS costs 10x: ordinary branch pushes and PRs never allocate a Mac runner.
     if: inputs.platforms == '' || inputs.platforms == 'all' || inputs.platforms == 'macos'
     needs: [release-plan, lint]
     runs-on: macos-15 # Xcode 16 (Apple clang 16): the C++20 features the code uses; the app still targets macOS 11

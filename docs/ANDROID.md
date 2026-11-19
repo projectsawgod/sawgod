@@ -121,7 +121,8 @@ versions. The SDK/NDK/CMake directories, pinned source inputs and Gradle caches 
 no ROM, extracted assets or signing key is cached. Java is Temurin 21. Platform-tools may
 receive upstream revisions; the compile/target SDK and native toolchain stay pinned.
 
-Configure exactly four repository Actions secrets:
+Configure exactly four repository Actions secrets. Only tag (release) builds receive them; pushes and pull
+requests build debug-signed APKs:
 
 - `SAWGOD_ANDROID_KEYSTORE_BASE64`: base64 encoding of the release keystore file (not a path).
 - `SAWGOD_ANDROID_STORE_PASSWORD`: keystore password.

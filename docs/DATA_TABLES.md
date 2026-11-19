@@ -63,7 +63,7 @@ replacing existing edits. Headless equivalence runs normally leave this store em
 **ROM/importer limits:** the row counts, character lengths, addresses and packing sizes in the survey table
 above describe the source ROM and the Python round-trip importer. They are not native text or mod asset budgets.
 In particular the ROM formation pack's 0x460 bytes and item name/description lengths do not cap native mods.
-Text resources use real strings and the host UI's fit budgets (see TEXT.md and UI_LOCALIZATION_CONTRACT.md).
+Text resources use real strings and the host UI's fit budgets.
 
 **Current native adapter limits:** gameplay IDs are still bytes: 256 items and formations, 200 monster
 classes, 22 ordinary shops plus the special debug shop. Battle storage permits three enemy groups and eight
@@ -73,13 +73,11 @@ formations). These are implementation limits of the current native adapters, not
 host mod formats. Native mods need no free space in the original ROM record region. Map rebuilding still
 uses the existing bank adapters; keep ROM-import/round-trip constraints distinct from host resource design.
 
-Historical routing and validation details: git history.
-
 ## Battle action preview mapping
 
 `battle_item_details` in `src/game/ui_items.cpp` reads the loaded `tables/items` through `table_u8`
 (including mod overrides). It supplies the enemy-target panel's third row; descriptions never enter it.
-Cross-checked against the extracted `build/info/items_full.csv` and these decompiled handlers:
+Cross-checked against these decompiled handlers:
 
 - `passive_bits` is an attack-kind mask **only for actions 7, 26, 27, 31, 34 and 48**:
   `execute_element_slayer_weapon_action`, `execute_elemental_magic_action`, `execute_status_magic_action`,
@@ -157,7 +155,7 @@ guessed one.
   for the four party actors. No decompiled routine reads battle actor +1 back. Values across the 200 rows
   are only 0, 1, 2, 4 or 8 -- shaped like a one-bit trait mask, but the bit meanings aren't identified.
 
-**`tables/maps` record**: the last byte is `running_allowed`, already a named RAM symbol
-(`symbols/ram.toml`, 0xD59C). `load_field_map_core` (rom 0x351334) copies it there only when `data_bank` is
+**`tables/maps` record**: the last byte is `running_allowed`, already a named RAM variable
+(0xD59C). `load_field_map_core` (rom 0x351334) copies it there only when `data_bank` is
 nonzero; `prepare_player_scroll_core` (rom 0x350863) checks it to gate the run/dash button, when no field
 script is active and `travel_mode` is 0.

@@ -21,8 +21,6 @@ is extracted into resource archives (`wsc.sgz`, `gb.sgz`) that the game reads, a
 | `tests/` | Unit tests (doctest and Python). |
 | `android/` | Android gamepad app: SDLActivity, manifest, Gradle project and launcher icon. Build/storage notes: `docs/ANDROID.md`. |
 | `assets/` | Port-made assets that ship (logo, world-card lettering, GB maps). Never ROM bytes. |
-| `translation/` | The translation sheets (`.ods`, one row per string). |
-| `symbols/` | Names for ROM routines and RAM variables (`symbols/*.toml`). |
 | `docs/` | Feature docs and this map. |
 
 ## How a frame runs
@@ -66,7 +64,7 @@ Each routine is named and commented; `// rom: 0x...` gives its address. The rule
 
 `battle_rewards.cpp` shows the style for rules made readable: the rule as plain typed C++ behind the original entry
 point. Most other rules are still in the decompiler's register-level style (`m.ax()`, `m.rd16(...)`); restructuring
-them is planned after 1.0 (after the release).
+them is planned for later releases.
 
 ## Changing the game without code: mods
 
@@ -77,7 +75,7 @@ be overridden. Table columns: `docs/DATA_TABLES.md`; text keys: `game/text.h`.
 ## Changing the game with code: hooks
 
 Features attach to the game through hooks instead of editing its logic (`game/hooks.h`). With nothing subscribed,
-every hook is a no-op and the game is exactly the WSC original; that is what the difftests check.
+every hook is a no-op and the game is exactly the WSC original.
 
 - **Values** (`hooks::filter`): a number the game is about to use, which a subscriber may change. `BattleGold`,
   `BattleMeterChange` (damage and healing), `StatGain`, `FieldTeleport`, `TitleMenuOptions`, and key polls for

@@ -6,5 +6,3 @@ needed for these resources. The native app hides the original title menu's ORIJI
 
 The GB picture and our GB CPU/APU music driver run alongside the WSC game, using the extracted resources.
 See [configuration](CONFIG.md) for details.
-
-Historical survey and resume notes: git history.

@@ -20,7 +20,7 @@ included, and none will be provided.
 - **Moddable:** graphics, game data and text are plain resource files you can easily override.
 
 SawGod is not an emulator wrapper: it is built on a function-complete decompilation of the WonderSwan Color game.
-It plays like the original unless an option is turned on. The game defaults to Enhanced with some quality-of-life
+The game defaults to Enhanced with some quality-of-life
 options.
 
 ## Play

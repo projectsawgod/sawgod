@@ -321,7 +321,7 @@ existing pitch-preserving grain processor after the two timelines are mixed.
 
 `audio.soundfont` is a file-only string setting; changing it requires restarting the app. The development
 default is the build's source checkout `ref/soundfonts/GeneralUser-GS.sf2` (an absolute path written into
-new configs). Worktrees without `ref/` should set it to the reference checkout's soundfont. Missing
+new configs; `python3 tools/release/fetch_soundfont.py` downloads it). Point it at any other copy if needed. Missing
 FluidSynth or a missing/unreadable soundfont keeps WSC music and logs once, with no dialog. The app loads
 FluidSynth dynamically (`libfluidsynth.so.3`, `libfluidsynth.3.dylib`, or the FluidSynth Windows DLL); it does
 not statically link it. Release packages ship the library, soundfont and their license materials;
@@ -410,7 +410,7 @@ output-pixel anchor. Party/NPC ellipses have radii 6.6×2.2 native pixels; battl
 portrait-cell anchors.
 
 The current effects include actor/enemy contact shadows, warm grading, bloom, tagged lights,
-reviewed water and the native fire-landing light. Warm grade defaults off; map bloom
+tagged water and the native fire-landing light. Warm grade defaults off; map bloom
 (field maps and world maps) uses 25% of the setting and battle bloom 100%. Field dialogue keeps effects while map, scroll
 and screen bases remain unchanged; native fire light reaches enemies/background/floor, never UI
 or the effect art. Bloom extraction and both Gaussian axes use fixed 672×432 GPU targets (22 bilinear taps per axis).
@@ -458,9 +458,7 @@ centroids from enlarging support. Spell art is restored exactly and excluded fro
 bloom extraction; the existing scene bloom remains independent. Moving delivery lights
 visible enemies/background/floor as it travels; UI stays protected. Separate breath/gaze/physical
 animations, stone, WSC and GB stay unchanged. `SAWGOD_BATTLE_TRACE=1` logs native animation
-returns and HP changes for the review's hit-frame comparison. The slower real-app
-regression uses private saved-state fixtures and stays in the developer suite;
-it returns skip code 77 unless `SAWGOD_VERIFY=1` is set.
+returns and HP changes for hit-frame comparisons.
 
 **GB style.** While the picture is in GB graphics (Graphics = GB, or the Swap track stepped down to GB), the
 Options menu and the FF / Encounters badges are drawn black on white: white windows with a black line, text
@@ -476,11 +474,11 @@ settled view. Scripted layouts, dark rooms and legacy rendering use overhead
 presentation. The wider
 view samples the loaded map and its authored border, clamping outside it; the game does not wrap.
 The GPU resolves the loaded 80×80 cell layout (160×160 quadrant words), packed 32 KiB tile RAM,
-palettes, and reviewed water tags. Ground repair and field-ring/event edits change only the cell layout;
+palettes, and water tags. Ground repair and field-ring/event edits change only the cell layout;
 tile/palette animation uploads only those small textures. GPU-generated color mip levels with Lanczos
 reconstruction smooth minified ground while magnified WSC texels stay crisp. The plane, standing cards,
 water, lights, bloom, and grade render at the game picture's output resolution. Mode 7 ignores pixel snap;
-flat Enhanced retains it. The ordinary sharply scaled UI is restored on top. Reviewed landmarks and actors share depth-sorted, cached
+flat Enhanced retains it. The ordinary sharply scaled UI is restored on top. Tagged landmarks and actors share depth-sorted, cached
 textured cards. Suzaku ruined blocks stay flat; Tokyo Tower stands at its original height with its painted
 shadow. Perspective water keeps tint/shimmer; shoreline reflection remains an overhead-only effect.
 
@@ -557,13 +555,13 @@ when built-in defaults change; edited or unstamped custom files are preserved wi
 
 Offline shader generation: `tools/compile_shaders.py --name identity|enhanced|mode7 --dxc PATH`, with DXC's
 library directory on the platform library path. Normal builds need only the embedded outputs;
-`--check` validates source/output hashes. SPIR-V and DXIL are embedded; Metal remains deferred
-until an offline cross-compiler is available.
+`--check` validates source/output hashes. SPIR-V, DXIL and MSL are embedded (MSL is generated
+from the SPIR-V with SPIRV-Cross, `--msl-only`).
 
-For the fidelity review sequence, `--shot-fidelity-steps` with `--shot-map ID,X,Y`, `--shot-page none` and
+For a capture of the fidelity sequence, `--shot-fidelity-steps` with `--shot-map ID,X,Y`, `--shot-page none` and
 `--shot-overlay PREFIX` emits PREFIX_000.png through PREFIX_180.png. It samples the same fade state and
 GPU passes at 40 samples per game second; playing them at 20 fps shows Enhanced → WSC → GB → WSC → Enhanced
-at half speed. The fixture halts gameplay; captions are added only to the review GIF.
+at half speed. The fixture halts gameplay.
 
 `--frame-timing-log FILE` enables an opt-in CSV with one row per SDL presentation. The historical
 `SAWGOD_FRAME_LOG=FILE` also enables it in normal runs. Start with Graphics locked to WSC, GB or Enhanced,
@@ -673,7 +671,7 @@ for the game's current tile move to complete, as in Exact. `SAWGOD_MOTION_TRACE=
 tick and one per present.
 
 `--shot-display-hz 60|120|144|240` with `--shot-run N` samples N presentations on a deterministic
-clock through the same app tick/collection/upload/draw path. It is a review/test control, not a saved
+clock through the same app tick/collection/upload/draw path. It is a test control, not a saved
 setting. Capture CSVs distinguish simulated presentation times from measured software GPU throughput. Physical scanout timestamps
 are not available through the existing SDL renderer, so hardware logs need a manual review.
 

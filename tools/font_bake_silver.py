@@ -8,7 +8,7 @@ ROM is loaded and so can't use the game's own font. Silver's pixel grid is 100 u
 it is rendered at 19 px, one font pixel per output pixel. Two tables are written (both committed; the TTF is
 not):
 
-  src/engine/font_silver.inc          every glyph in the font (2026-10-25: the whole font, so the
+  src/engine/font_silver.inc          every glyph in the font (the whole font, so the
                                       ROM screen's strings can change without a rebake)
   src/engine/font_silver_prompts.inc  Silver's gamepad/keyboard/mouse prompt glyphs (U+2460-24ED, arrows,
                                       keyboard symbols), for the later controller icons; not wired yet

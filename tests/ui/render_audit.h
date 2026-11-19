@@ -475,7 +475,7 @@ inline std::vector<std::string> audit(const std::vector<game::Chrome::Draw> &rec
             // its item-name table at ROM 0x334640, 7 characters + uses): a name that starts with the heart,
             // circle or cross character (0x42-0x44) shows that GB tile (ROM 0x32BF00 + 16 * (code - 0x40));
             // the GB game has no symbol for anything else, which shows the WSC icon's shape.
-            // GB style draws the approved icon of the item's WSC symbol (Chrome::gb_item_icon), paper left
+            // GB style draws the GB icon of the item's WSC symbol (Chrome::gb_item_icon), paper left
             // open
             std::vector<uint32_t> shape;
             const char *art = game::Chrome::gb_item_icon(native.rd8(0x9000, uint16_t(0x6EE0 + run.item)));
@@ -484,7 +484,7 @@ inline std::vector<std::string> audit(const std::vector<game::Chrome::Draw> &rec
                     if (art[y * 8 + x] != '.')
                         shape.push_back(uint32_t((icon->y + y) * 224 + icon->x + x));
             if (shape != icon->ink)
-                errors.push_back("GB item icon is not the approved GB icon for item " +
+                errors.push_back("GB item icon is not the expected GB icon for item " +
                                  std::to_string(run.item));
         }
         if (gb)
@@ -644,7 +644,7 @@ struct Renderer {
                 ppm(out / result.file, px);
                 if (results.empty()) {
                     // Deliberate regression for a sample review, produced by the actual
-                    // screen. Baseline is a candidate, never marked approved by this tool.
+                    // screen. Baseline is a candidate, never marked final by this tool.
                     uint8_t previous = m.w.ram[0xD07D];
                     m.w.ram[0xD07D] = 49;
                     auto changed = m.inventory.picture(m.w, emu::Wsc::ColorMode::Raw, false);

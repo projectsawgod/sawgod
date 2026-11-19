@@ -106,7 +106,7 @@ code was copied from them: emulators were run side by side as references, and do
 ### Inspiration
 
 - The decompilation projects of [pret](https://github.com/pret), [Zelda Reverse Engineering Team](https://github.com/zeldaret)
-  and [n64decomp](https://github.com/n64decomp), whose methods SawGod's decompilation follows.
+  and [n64decomp](https://github.com/n64decomp), which inspired SawGod's decompilation.
 - [Ship of Harkinian](https://github.com/HarbourMasters/Shipwright) by HarbourMasters: a native port built on a
   decompilation, with assets extracted from the player's ROM, mods and enhancements.
 - [Denhonator](https://github.com/Denhonator)'s [Romancing SaGa 2](https://github.com/Denhonator/RS2UIMod) and

@@ -21,8 +21,8 @@ G/H steps Swap down/up; hold Tab for fast-forward. M toggles the minimap;
 C toggles encounters. Bindings can be changed in Options.
 
 Default gamepad (buttons by position): D-pad/left stick moves; bottom face
-button confirms; right face button cancels/runs; Start is Start; top face
-button opens Options. Right stick is the secondary directional pad. L1/R1
+button confirms; right face button cancels/runs; Start or the top face
+button is Start; Select (Back/View) opens Options. Right stick is the secondary directional pad. L1/R1
 steps Swap down/up; hold R2 for fast-forward. Click right stick for minimap;
 click left stick for encounters. Face-button labels vary by controller.
 

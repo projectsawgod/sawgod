@@ -3,7 +3,7 @@
 From a Linux x86_64 host, install CMake >= 3.24, Ninja, Clang, GCC/G++, Python 3,
 and SDL's Linux development dependencies (see `.github/workflows/ci.yml`). Windows cross builds
 also need `g++-mingw-w64-x86-64` with its POSIX threading compilers. Python needs the project's
-tool requirements (`tools/requirements.txt`, including openpyxl for translation sheets).
+tool requirements (`tools/requirements.txt`).
 
 Point `SAWGOD_REF` at your reference folder, containing `soundfonts/GeneralUser-GS.sf2`
 (GeneralUser GS 2.0.3). No ROM is needed to build a release.
@@ -24,7 +24,6 @@ Each command configures an isolated Release build, builds SawGod and a minimal *
 optional offline source mirrors are `ref/deps/{sdl3,miniz,imgui,lzma7z}-src`.
 FluidSynth and GCEM archives are copied from `SAWGOD_REF/fluidsynth/` when present,
 otherwise fetched into this checkout's `ref/fluidsynth/` with pinned SHA-256 checks.
-Record any newly supplied reference material in `ref/SOURCES.md`.
 
 Packages include authored `gb_maps/`, `text/en.csv`, the soundfont, all licenses,
 FluidSynth/GCEM source with the exact rebuilding script, and a file/import manifest.
@@ -100,6 +99,7 @@ macOS arm64 and Android arm64-v8a. The existing Linux/Windows tests and macOS bu
 jobs gate the draft. Linux/macOS packaging reuses the tested build directories. All native
 builds use at most four jobs, under `nice` where available. No job downloads a ROM.
 
+Every push to `main` and every pull request runs the same builds and tests, with no release.
 A pushed `v1.0.0` tag builds everything and creates a **draft**, never a published release.
 For a manual retry, select the same existing tag and supply the version. The workflow checks
 that the tag resolves to the checkout SHA and rejects a version with a partial platform selection:

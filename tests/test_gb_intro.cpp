@@ -302,16 +302,16 @@ TEST_CASE("English world lettering observes native raster edges, fades, language
         cards.composite(w, picture);
         CHECK(picture != native);
         const auto &whole = cards.image(card);
-        auto approved = native;
-        for (size_t i = 0; i < approved.size(); ++i) {
+        auto expected = native;
+        for (size_t i = 0; i < expected.size(); ++i) {
             const uint32_t src = whole.pixels[i], dst = native[i];
             const unsigned a = src >> 24;
             auto channel = [&](int shift) {
                 return (((src >> shift & 255) * a + (dst >> shift & 255) * (255 - a) + 127) / 255) << shift;
             };
-            approved[i] = channel(16) | channel(8) | channel(0);
+            expected[i] = channel(16) | channel(8) | channel(0);
         }
-        CHECK(picture == approved); // Splitting the reveal preserves the approved finished bake exactly.
+        CHECK(picture == expected); // Splitting the reveal preserves the finished bake exactly.
         const auto &large = cards.image(card, true);
         CHECK(large.width == 1792);
         CHECK(large.height == 1152);

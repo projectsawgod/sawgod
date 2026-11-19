@@ -118,7 +118,7 @@ identity.
 - **Nine slots are standard**, with AUTO first. The redesigned lists show three rows and scroll without wrapping
   (`src/game/save_ui.cpp`); the storage boundary still maps the selection row to `top + row`.
   Headless/fallback tests can still exercise the original three-row menus.
-- **Without a store** -- the difftests and key fuzz (`sawgod-headless` without `--store`), `--native none`
+- **Without a store** -- headless runs (`sawgod-headless` without `--store`), `--native none`
   (the original code) and `--sram FILE` -- slots 1-3 are the original SRAM slots, byte for byte, so the
   equivalence checks compare the original save path. `--native none` reads and writes the raw SRAM image
   `<rom name>.sav` (separate from the store); `--sram FILE` loads a raw image (to replay
