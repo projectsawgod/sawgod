@@ -22,18 +22,19 @@ inline bool WriteFileAtomic(const std::string &path, const std::vector<uint8_t> 
 // The temporary file WriteFileAtomic writes first (exposed for tests).
 std::string AtomicTempPath(const std::string &path);
 
-// Writes the battery save during play, not only at exit, so a crash or killed process keeps the player's
-// saves. The game also uses SRAM as work memory, which changes every frame, so only the save area is
-// watched: once it differs from what was last written and has then stayed unchanged for `settle` frames
-// (the game writes a slot's primary and backup copies in turn), the whole SRAM image is written with
-// WriteFileAtomic. The file stays the raw SRAM image, byte for byte. Filesystem work happens here, at the
-// host's frame boundary, never inside the game's own save routine.
+// Persists cartridge SRAM during play and on exit. Watch a selected range, debounce changes until
+// stable for `settle` frames, then atomically write the whole raw image. The port watches its save area;
+// the original-cartridge front end watches all SRAM with a maximum dirty interval, since work memory
+// can keep changing every frame. Filesystem work stays at host frame boundaries.
 class SaveFlusher {
   public:
     using Writer = bool (*)(const std::string &path, const std::vector<uint8_t> &data, std::string *error);
 
     SaveFlusher(std::string path, size_t area_begin, size_t area_end, int settle = 30,
-                Writer writer = &WriteFileAtomic);
+                Writer writer = &WriteFileAtomic, int max_wait = 0);
+
+    // max_wait bounds the dirty interval even while writes continue (zero: no bound).
+    // Useful when watching all cartridge SRAM, including continuously changing work memory.
 
     // The SRAM as loaded (or as last written): the baseline that later frames are compared against.
     void reset(const std::vector<uint8_t> &sram);
@@ -50,7 +51,7 @@ class SaveFlusher {
 
     std::string path_;
     size_t begin_, end_;
-    int settle_;
+    int settle_, max_wait_, dirty_age_ = 0;
     Writer writer_;
     std::vector<uint8_t> written_; // the save area as last written (or loaded)
     std::vector<uint8_t> last_;    // the save area at the previous frame

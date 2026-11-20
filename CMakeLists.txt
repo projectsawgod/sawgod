@@ -174,6 +174,8 @@ set_property(SOURCE src/engine/version.cpp PROPERTY COMPILE_DEFINITIONS
 add_library(sawgod_engine STATIC
     src/engine/version.cpp
     src/engine/version.h
+    src/engine/sha1.cpp
+    src/engine/rom_identity.cpp
     src/engine/assets.cpp
     src/engine/assets.h
     src/engine/config.cpp
@@ -250,6 +252,7 @@ endif()
 
 # --- decompiled game code ----------------------------------------------------
 add_library(sawgod_game STATIC
+    src/game/setup.cpp
     src/game/machine.h
     src/game/fiber.cpp
     src/game/hooks.cpp
@@ -404,6 +407,7 @@ add_library(sawgod_ui STATIC
     src/engine/overlay.cpp
     src/engine/overlay.h
     src/engine/input.cpp
+    src/engine/input_defaults.cpp
     src/engine/input.h
     src/engine/data_dir.cpp
     src/engine/data_dir.h
@@ -518,6 +522,26 @@ if(WIN32)
     file(CONFIGURE OUTPUT ${CMAKE_BINARY_DIR}/generated/sawgod.rc
         CONTENT "1 ICON \"${CMAKE_SOURCE_DIR}/assets/ui/sawgod.ico\"\n")
     target_sources(sawgod PRIVATE ${CMAKE_BINARY_DIR}/generated/sawgod.rc)
+endif()
+
+# The original cartridge front end has no dependency on host UI or Enhanced presentation.
+if(NOT ANDROID)
+    add_executable(sawgod-decomp src/decomp/main.cpp src/decomp/input.cpp
+        src/engine/input_defaults.cpp src/app/input_movie.cpp
+        src/app/audio_output.cpp src/app/audio_queue.cpp)
+    target_link_libraries(sawgod-decomp PRIVATE sawgod_game SDL3::SDL3 sawgod_warnings)
+    set_target_properties(sawgod-decomp PROPERTIES WIN32_EXECUTABLE TRUE)
+    if(MINGW)
+        target_link_options(sawgod-decomp PRIVATE -static -static-libgcc -static-libstdc++ -Wl,--stack,8388608)
+    elseif(MSVC)
+        target_link_options(sawgod-decomp PRIVATE /STACK:8388608)
+    endif()
+    if(APPLE)
+        set_target_properties(sawgod-decomp PROPERTIES MACOSX_BUNDLE TRUE
+            MACOSX_BUNDLE_INFO_PLIST "${CMAKE_SOURCE_DIR}/cmake/DecompInfo.plist.in")
+    endif()
+    include(cmake/DecompLinkCheck.cmake)
+    sawgod_check_decomp_link(sawgod-decomp)
 endif()
 
 # --- tests ------------------------------------------------------------------

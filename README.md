@@ -30,6 +30,15 @@ Download the package for your system from the
 choose your ROM (`.wsc`, `.zip` or `.7z`); SawGod checks it and extracts the game data locally. Each package
 includes a README with controls, data locations and platform notes. Android builds **require** a gamepad for now.
 
+## The original game: sawgod-decomp
+
+The desktop releases also include **sawgod-decomp**, a small SDL3 front end for the original Japanese WSC
+game, with its own menus, sound, three save slots and cartridge behavior. Supply the supported `.wsc` ROM
+on the command line, place it beside the executable, or select it in the file picker. Raw SRAM saves go
+beside the ROM as `<rom name>.sav`. See the package README for controls and optional input mappings.
+
+This is a complete, non-matching decompilation, verified routine by routine by differential tests and fuzzing.
+
 ## Build, mod and contribute
 
 - [Build and test](docs/BUILDING.md)

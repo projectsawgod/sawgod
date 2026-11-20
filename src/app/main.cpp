@@ -148,6 +148,7 @@
 #include "game/presentation_scene.h"
 #include "game/resources.h"
 #include "game/save_file.h"
+#include "game/setup.h"
 #include "game/session.h"
 #include "game/tables.h"
 #include "game/terrain_veil.h"
@@ -256,10 +257,9 @@ int main(int argc, char **argv) {
         std::vector<uint8_t> rom = std::move(loaded.rom);
         english_text = std::move(loaded.english_text);
         english_graphics = std::move(loaded.english_graphics);
-        static const size_t kSram[] = {0, 0x2000, 0x8000, 0x20000, 0x40000, 0x80000};
-        uint8_t save_type = rom[rom.size() - 16 + 0x0B];
+        const size_t sram_size = sawgod::game::cartridge_sram_size(rom);
         gb_music.load(rom); // the GB music from the GB game on the cartridge (ORIJINARU)
-        wsc = std::make_unique<Wsc>(std::move(rom), save_type <= 5 ? kSram[save_type] : 0);
+        wsc = std::make_unique<Wsc>(std::move(rom), sram_size);
         // ORIJINARU hidden from the title menu (game/port_policy.h). Natives only: the
         // interpreter runs the original menu.
         hide_orijinaru = sawgod::game::hide_orijinaru(sawgod::game::Session::of(*wsc));
@@ -934,7 +934,7 @@ int main(int argc, char **argv) {
         sawgod::debug_log::errorf("options", "cannot build the options menu's font");
 
     // The WonderSwan refreshes at 3,072,000 / (159 * 256) = ~75.47 Hz; game logic always runs on that clock.
-    const uint64_t frame_ns = uint64_t(1e9 * 159 * 256 / 3072000.0);
+    const uint64_t frame_ns = sawgod::game::kWscFrameNs;
     uint64_t next_frame = SDL_GetTicksNS();
 
     // --record and --inputs (app/input_movie.h). movie_frame: the count of run_frame() calls completed.

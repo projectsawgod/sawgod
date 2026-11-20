@@ -76,6 +76,7 @@
 #include "game/save_file.h"
 #include "game/save_ui.h"
 #include "game/service_ui.h"
+#include "game/setup.h"
 #include "game/session.h"
 #include "game/tables.h"
 #include "game/text.h"
@@ -743,10 +744,7 @@ int main(int argc, char **argv) {
             }
         }
     }
-    // footer byte 0x0B: save type; 0x01-0x05 are SRAM sizes
-    static const size_t kSram[] = {0, 0x2000, 0x8000, 0x20000, 0x40000, 0x80000};
-    uint8_t save_type = rom[rom.size() - 16 + 0x0B];
-    size_t sram_size = save_type <= 5 ? kSram[save_type] : 0;
+    const size_t sram_size = sawgod::game::cartridge_sram_size(rom);
     Wsc wsc(rom, sram_size);
     if (!export_resources.empty()) {
         for (const sawgod::game::ResourceRegion &r : sawgod::game::resource_regions()) {

@@ -1,6 +1,5 @@
 // Owns native execution, resources, save services, and text hooks for one machine.
 #include "game/session.h"
-#include "game/gfx_swap.h"
 
 namespace sawgod::game {
 
@@ -30,7 +29,10 @@ void Session::apply_scene_settings(emu::Wsc &w) {
             raster_field_->game_session = std::shared_ptr<void>(this, [](void *) {});
         }
         w.copy_presentation_to(*raster_field_);
-        raster_field_words_ = GfxSwap::field_world_words(w);
+        if (raster_world_words_hook)
+            raster_field_words_ = raster_world_words_hook(w);
+        else
+            raster_field_words_.clear();
     }
     scene_requests_ = {};
     Machine m(w);

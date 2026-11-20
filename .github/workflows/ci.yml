@@ -122,6 +122,8 @@ jobs:
           path: |
             dist/sawgod-linux-x86_64.tar.gz
             dist/sawgod-linux-x86_64.tar.gz.sha256
+            dist/sawgod-decomp-linux-x86_64.tar.gz
+            dist/sawgod-decomp-linux-x86_64.tar.gz.sha256
           if-no-files-found: error
           retention-days: 14
 
@@ -162,6 +164,8 @@ jobs:
           path: |
             dist/sawgod-windows-x86_64.zip
             dist/sawgod-windows-x86_64.zip.sha256
+            dist/sawgod-decomp-windows-x86_64.zip
+            dist/sawgod-decomp-windows-x86_64.zip.sha256
           if-no-files-found: error
           retention-days: 14
 
@@ -220,6 +224,8 @@ jobs:
           path: |
             dist/sawgod-macos-arm64.zip
             dist/sawgod-macos-arm64.zip.sha256
+            dist/sawgod-decomp-macos-arm64.zip
+            dist/sawgod-decomp-macos-arm64.zip.sha256
           if-no-files-found: error
           retention-days: 14
 

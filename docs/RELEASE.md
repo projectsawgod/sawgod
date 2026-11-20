@@ -92,7 +92,7 @@ launch, ROM import/relaunch, WSC/GB/Enhanced (including Mode 7), audio/Enhanced 
 fullscreen and the user data location. Repeat after moving the app to Applications; no Homebrew
 libraries should be needed at runtime.
 
-## One tag, four packages
+## One tag, seven packages
 
 `.github/workflows/ci.yml` builds Linux x86_64, Windows x86_64 (MinGW on Ubuntu),
 macOS arm64 and Android arm64-v8a. The existing Linux/Windows tests and macOS build/test
@@ -119,9 +119,9 @@ repository's default branch for dispatch. Do not dispatch on top of an already r
 Branch/tag pushes performed with `GITHUB_TOKEN` do not start a second workflow.
 
 Artifacts: `sawgod-linux-x86_64`, `sawgod-windows-x86_64`, `sawgod-macos-arm64`,
-`sawgod-android-arm64-v8a`. Each holds its package and `.sha256`; Android also records signing
-status for the release body. The draft attaches all four packages, their four checksum files,
-and `SHA256SUMS.txt` (nine assets). Android's package is
+`sawgod-android-arm64-v8a`. Each desktop artifact holds both flavors and their `.sha256` files; Android also records signing
+status for the release body. The draft attaches all seven packages, their seven checksum files,
+and `SHA256SUMS.txt` (15 assets). Android's package is
 `sawgod-android-arm64-v8a-release.apk`; "release" describes optimization, not signing trust.
 Without all four signing secrets it uses a debug key and the body prominently says **TESTING BUILD**.
 Partial signing credentials fail the job. See [ANDROID.md](ANDROID.md) for secrets and pinned SDK versions.
@@ -153,7 +153,7 @@ Sources: [Silver](https://poppyworks.itch.io/silver),
 [OFL artwork FAQ](https://openfontlicense.org/ofl-faq/),
 [SPIRV-Cross license](https://github.com/KhronosGroup/SPIRV-Cross/blob/vulkan-sdk-1.4.328.1/LICENSE).
 
-Every package ships the exact hash-checked, unmodified FluidSynth 2.6.1 and GCEM archives,
+Every enhanced-port package ships the exact hash-checked, unmodified FluidSynth 2.6.1 and GCEM archives,
 rebuild options/script and replacement instructions. FluidSynth stays dynamically loaded and
 replaceable; Android users can rebuild, replace and sign an APK with their own key. This uses
 source distribution rather than a time-limited written offer. See LGPL-2.1 section 6 in
@@ -173,3 +173,23 @@ Packaging fails before archiving/signing if a notice, README, required text or F
 source/rebuild file is missing. The Android APK is audited again after Gradle packaging;
 macOS rejects unexpected non-system dylibs, and desktop runtime-import audits remain mandatory.
 License auditing establishes the packaged inventory; it is not a substitute for legal advice.
+
+## Original cartridge packages
+
+Each desktop `tools/package.sh` command also builds and packages `sawgod-decomp`, from the same tree:
+`sawgod-decomp-linux-x86_64.tar.gz`, `sawgod-decomp-windows-x86_64.zip`, and
+`sawgod-decomp-macos-arm64.zip`, each with a SHA-256 checksum. They ship beside the enhanced port in the
+same release; there is no Android decomp package. The macOS app is ad-hoc signed.
+
+These packages contain the executable, short player README, manifest and applicable license notices.
+They do not include extracted resources, English text, GB maps, a soundfont or FluidSynth. The original
+Japanese menus and sound come directly from the player's supported ROM; raw SRAM goes beside that ROM.
+The decompilation is complete and non-matching, verified routine by routine by differential tests and fuzzing.
+
+For a local decomp-only package without building the enhanced port or FluidSynth, use
+`tools/package.sh linux decomp` (or `windows decomp`, `macos decomp`). The standard command produces both.
+Builds use the same presets; `sawgod-decomp` does not link host UI, ImGui, Enhanced music or the Enhanced
+renderer. CMake checks its dependency graph, and CTest checks the generated link command. With
+`SAWGOD_WSC_ROM` set to the supported WSC ROM, CTest `decomp_recording_replay` compares work RAM,
+raw SRAM and picture hashes for existing recordings against `sawgod-headless --native all`, including
+continuing from a save. The shipped binary's `--frames` mode uses the same setup as its SDL front end.

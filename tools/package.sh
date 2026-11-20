@@ -10,7 +10,10 @@ if [[ ! $SAWGOD_PACKAGE_JOBS =~ ^[1-4]$ ]]; then
   echo "SAWGOD_PACKAGE_JOBS must be between 1 and 4" >&2; exit 2
 fi
 target=${1:-}
+flavor=${2:-both}
+case "$flavor" in both|decomp) ;; *) echo "Flavor must be both or decomp" >&2; exit 2 ;; esac
 if [[ "$target" == android ]]; then
+  [[ "$flavor" == both ]] || { echo "The decomp front end is desktop-only" >&2; exit 2; }
   cd "$R"
   python3 "$R/tools/android_prepare.py"
   variant=${SAWGOD_ANDROID_VARIANT:-debug}
@@ -32,7 +35,7 @@ case "$target" in
   windows) preset=windows-mingw ;;
   linux) preset=linux-release ;;
   macos) preset=macos-release ;;
-  *) echo 'Usage: tools/package.sh windows|linux|macos|android' >&2; exit 2 ;;
+  *) echo 'Usage: tools/package.sh windows|linux|macos|android [both|decomp]' >&2; exit 2 ;;
 esac
 cd "$R"
 jobs=$SAWGOD_PACKAGE_JOBS
@@ -58,17 +61,31 @@ if [[ "$target" == macos ]]; then
   args+=(-DSAWGOD_BUILD_TESTS=ON)
 fi
 nice -n 10 cmake "${args[@]}"
-nice -n 10 cmake --build "$build" --target sawgod --parallel "$jobs"
+if [[ "$flavor" == decomp ]]; then
+  nice -n 10 cmake --build "$build" --target sawgod-decomp --parallel "$jobs"
+  python3 "$R/tools/release/package_decomp.py" "$target" "$build"
+  case "$target" in
+    linux) decomp_name=sawgod-decomp-linux-x86_64; extension=tar.gz ;;
+    windows) decomp_name=sawgod-decomp-windows-x86_64; extension=zip ;;
+    macos) decomp_name=sawgod-decomp-macos-arm64; extension=zip ;;
+  esac
+  python3 "$R/tools/name_scan.py" "$R/dist/$decomp_name" "$R/dist/$decomp_name.$extension"
+  exit 0
+fi
+nice -n 10 cmake --build "$build" --target sawgod sawgod-decomp --parallel "$jobs"
 nice -n 10 "$R/tools/release/build_fluidsynth.sh" "$target" "$R/ref/fluidsynth" "$build/fluidsynth"
 if [[ "$target" == macos ]]; then
   python3 "$R/tools/release/package_macos.py" "$build"
 else
   python3 "$R/tools/release/package.py" "$target" "$build"
 fi
+python3 "$R/tools/release/package_decomp.py" "$target" "$build"
 case "$target" in
   windows) package_name=sawgod-windows-x86_64; extension=zip ;;
   linux) package_name=sawgod-linux-x86_64; extension=tar.gz ;;
   macos) package_name=sawgod-macos-arm64; extension=zip ;;
 esac
 python3 "$R/tools/name_scan.py" "$R/dist/$package_name" "$R/dist/$package_name.$extension"
+decomp_name=${package_name/sawgod-/sawgod-decomp-}
+python3 "$R/tools/name_scan.py" "$R/dist/$decomp_name" "$R/dist/$decomp_name.$extension"
 printf 'Package completed in %s seconds.\n' "$SECONDS"

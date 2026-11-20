@@ -59,6 +59,8 @@ class Session {
     const emu::Wsc &raster_field(const emu::Wsc &fallback) const {
         return raster_field_ ? *raster_field_ : fallback;
     }
+    // Optional presentation provider; the native runtime does not depend on the GB renderer.
+    static inline std::map<int, std::array<uint16_t, 4>> (*raster_world_words_hook)(const emu::Wsc &) = nullptr;
     const auto &raster_field_words() const { return raster_field_words_; }
     SaveSlots &save_slots() { return save_slots_; }
     // The loaded language's strings (text.h); empty: the original Japanese.

@@ -415,6 +415,7 @@ bool GfxSwap::add_title(const std::vector<uint8_t> &png, std::string *error) {
 
 void GfxSwap::install_hooks() {
     active_ = this;
+    Session::raster_world_words_hook = &GfxSwap::field_world_words;
     Machine::player_sprite_hook = &GfxSwap::player_hook;
     Machine::npc_sprite_hook = &GfxSwap::npc_hook;
     Machine::field_cell_hook = &GfxSwap::field_cell_hook;
@@ -425,6 +426,7 @@ void GfxSwap::install_hooks() {
 GfxSwap::~GfxSwap() {
     if (active_ == this) {
         active_ = nullptr;
+        Session::raster_world_words_hook = nullptr;
         Machine::player_sprite_hook = nullptr;
         Machine::npc_sprite_hook = nullptr;
         Machine::field_cell_hook = nullptr;
