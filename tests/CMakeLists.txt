@@ -45,6 +45,7 @@ endif()
 
 include(${doctest_SOURCE_DIR}/scripts/cmake/doctest.cmake)
 doctest_discover_tests(sawgod_tests)
+add_subdirectory(${CMAKE_SOURCE_DIR}/wsc-re-kit ${CMAKE_BINARY_DIR}/wsc-re-kit)
 # Optional SAWGOD_WSC_ROM fixture; bounded single-process replay of the chapter checkpoints.
 add_test(NAME hoststate_save_sweep COMMAND ${SAWGOD_WINE_EXECUTABLE} $<TARGET_FILE:sawgod_tests>
     --no-skip=true "--test-case=saves made across the story*")
