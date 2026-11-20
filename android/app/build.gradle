@@ -7,6 +7,15 @@ if (signingNames.any { System.getenv(it) } && !signingNames.every { System.geten
     throw new GradleException('Supply all four SAWGOD_ANDROID signing environment variables')
 }
 def signingStore = System.getenv('SAWGOD_ANDROID_KEYSTORE')
+// versionCode from the release tag: major*10000 + minor*100 + patch (v1.1.0 = 10100); untagged builds use 1.
+def releaseVersion = (System.getenv('SAWGOD_RELEASE_VERSION') ?: '').replaceFirst('^v', '')
+def releaseCode = { String v ->
+    def m = v =~ /^(\d+)\.(\d+)(?:\.(\d+))?(?:[-+].*)?$/
+    if (!m.matches()) return 1
+    def (major, minor, patch) = [m.group(1), m.group(2), m.group(3) ?: '0'].collect { it as int }
+    if (minor > 99 || patch > 99) throw new GradleException("Version ${v}: minor and patch must be at most 99")
+    return major * 10000 + minor * 100 + patch
+}(releaseVersion)
 def prepareSawGod = tasks.register('prepareSawGod', Exec) {
     workingDir repoRoot
     commandLine 'python3', new File(repoRoot, 'tools/android_prepare.py')
@@ -21,8 +30,8 @@ android {
         applicationId 'org.sawgod.app'
         minSdk 26
         targetSdk 36
-        versionCode 1
-        versionName((System.getenv('SAWGOD_RELEASE_VERSION') ?: '1.0').replaceFirst('^v', ''))
+        versionCode releaseCode
+        versionName(releaseVersion ?: '1.0')
         ndk { abiFilters(*(project.findProperty('sawgodAbis') ?: 'arm64-v8a').split(',')) }
         externalNativeBuild {
             cmake {
