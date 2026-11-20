@@ -128,8 +128,9 @@ Partial signing credentials fail the job. See [ANDROID.md](ANDROID.md) for secre
 A retry may replace assets on an existing draft; it refuses to change a published release.
 Test the downloaded packages on their devices before publishing the draft. The tag/version flows through
 `SAWGOD_RELEASE_VERSION` to the in-app version, numeric macOS bundle version and Android
-versionName; ordinary development builds keep their dev label. Increment Android versionCode
-when shipping an update (the 1.0 build uses 1).
+versionName; ordinary development builds keep their dev label. Android versionCode comes from the
+same version: major*10000 + minor*100 + patch (1.1.0 = 10100; minor and patch at most 99), so each release
+installs over the last; untagged builds use 1 (as did the 1.0 build).
 
 ## Package license gate
 
