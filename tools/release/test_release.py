@@ -50,7 +50,7 @@ class ReleaseTests(unittest.TestCase):
         self.assertIn('--verify-tag', calls[0])
         self.assertIn('create', calls[0])
         uploads = calls[1]
-        self.assertEqual(sum(str(self.folder) in arg for arg in uploads), 9)
+        self.assertEqual(sum(str(self.folder) in arg for arg in uploads), 2 * len(draft_release.PACKAGES) + 1)
         self.assertIn('TESTING BUILD', (self.folder / 'release-body.md').read_text(encoding='utf-8'))
 
     def test_existing_draft_updates_without_publishing(self):

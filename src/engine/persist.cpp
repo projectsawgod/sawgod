@@ -112,30 +112,37 @@ bool WriteFileAtomic(const std::string &path, const void *data, size_t size, std
     return true;
 }
 
-SaveFlusher::SaveFlusher(std::string path, size_t area_begin, size_t area_end, int settle, Writer writer)
-    : path_(std::move(path)), begin_(area_begin), end_(area_end), settle_(settle), writer_(writer) {}
+SaveFlusher::SaveFlusher(std::string path, size_t area_begin, size_t area_end, int settle, Writer writer,
+                         int max_wait)
+    : path_(std::move(path)), begin_(area_begin), end_(area_end), settle_(settle),
+      max_wait_(std::max(max_wait, 0)), writer_(writer) {}
 
 bool SaveFlusher::area_equal(const std::vector<uint8_t> &a, const std::vector<uint8_t> &b) const {
-    return std::memcmp(a.data(), b.data(), b.size()) == 0;
+    return a.size() == b.size() && (a.empty() || std::memcmp(a.data(), b.data(), b.size()) == 0);
 }
 
 void SaveFlusher::reset(const std::vector<uint8_t> &sram) {
     const size_t end = std::min(end_, sram.size()), begin = std::min(begin_, end);
     written_.assign(sram.begin() + long(begin), sram.begin() + long(end));
     last_ = written_;
-    stable_ = 0;
+    stable_ = dirty_age_ = 0;
 }
 
 bool SaveFlusher::frame(const std::vector<uint8_t> &sram, std::string *error) {
     const size_t end = std::min(end_, sram.size()), begin = std::min(begin_, end);
     const std::vector<uint8_t> area(sram.begin() + long(begin), sram.begin() + long(end));
-    if (area.size() != last_.size() || !area_equal(area, last_)) {
+    if (area_equal(area, written_)) {
         last_ = area;
-        stable_ = 0;
+        stable_ = dirty_age_ = 0;
         return true;
     }
-    if (area_equal(area, written_) || ++stable_ < settle_)
+    ++dirty_age_;
+    const bool changed = area.size() != last_.size() || !area_equal(area, last_);
+    last_ = area;
+    stable_ = changed ? 0 : stable_ + 1;
+    if (stable_ < settle_ && (!max_wait_ || dirty_age_ < max_wait_))
         return true;
+    dirty_age_ = 0;
     if (!writer_(path_, sram, error)) {
         written_ = area; // don't retry every frame: the next change in the save area tries again
         return false;

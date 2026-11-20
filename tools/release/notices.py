@@ -117,6 +117,57 @@ def stage(target, folder):
     (folder / 'THIRD_PARTY_NOTICES.txt').write_text(notice_text(target), encoding='utf-8', newline='')
 
 
+# Shared native text helpers remain in the original-cartridge executable, although
+# its setup never loads replacement text or button icons.
+DECOMP_COMPONENTS = {'SDL', 'SDL HIDAPI', 'SDL fdlibm', 'SDL yuv2rgb', 'miniz', 'm5x7', 'Silver'}
+
+
+def decomp_entries(target):
+    if target not in ('linux', 'windows', 'macos'):
+        raise ValueError('The decomp front end is desktop-only')
+    return [entry for entry in COMMON if entry[0] in DECOMP_COMPONENTS] + PLATFORM[target]
+
+
+def decomp_notice_text(target):
+    lines = [f'SawGod Decomp: third-party notices ({target})', '',
+             'Our code: public domain (CC0 1.0); see LICENSE.',
+             'No ROM or extracted game data is included.', '']
+    for component, version, license_name, files, detail in decomp_entries(target):
+        lines += [f'{component} | {version} | {license_name}',
+                  'License text: ' + ', '.join('licenses/' + f for f in files)]
+        if detail:
+            lines.append(detail)
+        lines.append('')
+    return '\n'.join(lines) + '\n'
+
+
+def stage_decomp(target, folder):
+    folder.mkdir(parents=True, exist_ok=True)
+    for _, _, _, files, _ in decomp_entries(target):
+        for filename in files:
+            dest = folder / 'licenses' / filename
+            dest.parent.mkdir(exist_ok=True)
+            shutil.copy2(ROOT / 'licenses' / filename, dest)
+    shutil.copy2(ROOT / 'LICENSE', folder / 'LICENSE')
+    shutil.copy2(ROOT / 'tools/release/README-decomp.txt', folder / 'README.txt')
+    (folder / 'THIRD_PARTY_NOTICES.txt').write_text(decomp_notice_text(target), encoding='utf-8', newline='')
+
+
+def audit_decomp(target, folder):
+    audit_payload(str(p.relative_to(folder)) for p in folder.rglob('*') if p.is_file())
+    required = {'LICENSE', 'README.txt', 'THIRD_PARTY_NOTICES.txt'}
+    for _, _, _, files, _ in decomp_entries(target):
+        required.update('licenses/' + f for f in files)
+    if target != 'macos':
+        required.add('toolchain.txt')
+    for name in required:
+        if not (folder / name).is_file() or not (folder / name).stat().st_size:
+            raise RuntimeError(f'{target} decomp: missing notice file {name}')
+    if (folder / 'THIRD_PARTY_NOTICES.txt').read_text(encoding='utf-8') != decomp_notice_text(target):
+        raise RuntimeError('Stale decomp notice inventory')
+    print(f'{target} decomp: notice audit passed ({len(required)} required files)')
+
+
 def staging_list(target):
     resource = 'SawGod.app/Contents/Resources/' if target == 'macos' else 'assets/' if target == 'android' else ''
     files = set(required(target))

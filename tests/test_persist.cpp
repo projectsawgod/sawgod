@@ -145,3 +145,25 @@ TEST_CASE("SaveFlusher writes once the save area settles, ignores work memory, a
     CHECK(g_writes == 2);
     CHECK((g_last == sram));
 }
+
+TEST_CASE("SaveFlusher bounds persistence while all cartridge SRAM keeps changing") {
+    g_writes = 0;
+    g_fail = false;
+    std::vector<uint8_t> sram(32, 0);
+    sawgod::SaveFlusher f("x.sav", 0, sram.size(), 5, &FakeWriter, 3);
+    f.reset(sram);
+    for (int frame = 0; frame < 9; ++frame) {
+        sram[0] = uint8_t(frame + 1);
+        REQUIRE(f.frame(sram));
+        CHECK(f.writes() == (frame + 1) / 3);
+    }
+    CHECK(g_writes == 3);
+    CHECK(g_last == sram);
+    for (int frame = 0; frame < 10; ++frame)
+        REQUIRE(f.frame(sram));
+    CHECK(g_writes == 3);
+    sram.back() = 42;
+    REQUIRE(f.frame(sram));
+    REQUIRE(f.flush(sram));
+    CHECK(g_writes == 4);
+}
