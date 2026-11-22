@@ -1302,12 +1302,14 @@ void GfxSwap::import_field_sprites(emu::Wsc &w) {
         if (set < 29 && sprite_of_type_[size_t(type)] >= 0)
             sprite_of_set_[size_t(set)] = sprite_of_type_[size_t(type)];
     }
-    // GB rows for the WSC-only people sets (31 and 41 from the GB rooms'
-    // NPC records: 31 (91), 41 (87)). 35 is the Dragon King; 39 is Sayaka, the only one on row 17. 32, 36 and
-    // 37 use the party classes' sprites (Human M, Human F, Esper F); 29 and 30 have no fitting GB sprite, so
-    // their WSC art shows in GB greys. 38 and 40 are still assigned by role.
-    constexpr std::pair<int, int> people[] = {{31, 4}, {32, 0},  {33, 10}, {34, 11}, {35, 16}, {36, 1},
-                                              {37, 3}, {38, 19}, {39, 17}, {40, 19}, {41, 16}, {42, 20}};
+    // GB rows for the WSC-only people sets (41 from the GB rooms' NPC records: 41 (87)). 29, 30 and 31 are the
+    // kings (maps 92, 101 and 91; 29 also on 198 and 200): the GB game draws its kings with the knight, row 13
+    // (the owner, 2026-11-21; 29 and 30 had shown their WSC art in GB greys). 35 is the Dragon King; 39 is
+    // Sayaka, the only one on row 17. 32, 36 and 37 use the party classes' sprites (Human M, Human F, Esper F).
+    // 38 and 40 are still assigned by role.
+    constexpr std::pair<int, int> people[] = {{29, 13}, {30, 13}, {31, 13}, {32, 0},  {33, 10}, {34, 11},
+                                              {35, 16}, {36, 1}, {37, 3},  {38, 19}, {39, 17}, {40, 19},
+                                              {41, 16}, {42, 20}};
     for (auto [set, gb] : people)
         if (size_t(gb) < sprites_.size())
             sprite_of_set_[size_t(set)] = gb;
