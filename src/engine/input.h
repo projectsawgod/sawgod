@@ -187,6 +187,7 @@ class Input {
     MenuActions take_menu_actions(double now_s);
 
     int gamepad_count() const;
+    bool has_gamepad(SDL_JoystickID id) const;
     std::string gamepad_name() const;     // preferred real pad's name, or ""
     SDL_GamepadType gamepad_type() const; // preferred real pad's type, or SDL_GAMEPAD_TYPE_UNKNOWN
     // Whether the player last pressed something on a gamepad (else the keyboard): the device whose buttons

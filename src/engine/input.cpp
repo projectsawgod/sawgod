@@ -672,6 +672,9 @@ bool Input::real_controller_connected() const {
     });
 }
 int Input::gamepad_count() const { return int(pads_.size()); }
+bool Input::has_gamepad(SDL_JoystickID id) const {
+    return std::any_of(pads_.begin(), pads_.end(), [id](auto *pad) { return SDL_GetGamepadID(pad) == id; });
+}
 Input::~Input() {
     for (SDL_Gamepad *p : pads_)
         SDL_CloseGamepad(p);
@@ -805,8 +808,7 @@ void Input::handle_event(const SDL_Event &e) {
         }
         break;
     case SDL_EVENT_GAMEPAD_ADDED:
-        if (std::any_of(pads_.begin(), pads_.end(),
-                        [&](auto *p) { return SDL_GetGamepadID(p) == e.gdevice.which; }))
+        if (has_gamepad(e.gdevice.which))
             break;
         if (SDL_Gamepad *p = SDL_OpenGamepad(e.gdevice.which))
             pads_.push_back(p);
