@@ -1,12 +1,12 @@
 // Minimal SDL shell for the original cartridge configuration.
 #include "app/audio_output.h"
 #include "app/input_movie.h"
-#include "decomp/input.h"
 #include "emu/png.h"
 #include "engine/assets.h"
 #include "engine/persist.h"
 #include "engine/rom_check.h"
 #include "game/setup.h"
+#include "vanilla/input.h"
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_main.h>
 #include <algorithm>
@@ -180,7 +180,7 @@ int desktop(Args args) {
         using Window = std::unique_ptr<SDL_Window, decltype(&SDL_DestroyWindow)>;
         using Renderer = std::unique_ptr<SDL_Renderer, decltype(&SDL_DestroyRenderer)>;
         using Texture = std::unique_ptr<SDL_Texture, decltype(&SDL_DestroyTexture)>;
-        Window window(SDL_CreateWindow("SawGod Decomp", Wsc::kWidth * args.scale, Wsc::kHeight * args.scale,
+        Window window(SDL_CreateWindow("SawGod Vanilla", Wsc::kWidth * args.scale, Wsc::kHeight * args.scale,
                                        SDL_WINDOW_RESIZABLE | (args.fullscreen ? SDL_WINDOW_FULLSCREEN : 0)),
                       SDL_DestroyWindow);
         if (!window)
@@ -199,8 +199,8 @@ int desktop(Args args) {
         sawgod::app::AudioOutput audio;
         if (!audio.open())
             throw std::runtime_error(SDL_GetError());
-        sawgod::decomp::Input input;
-        input.load(base / "sawgod-decomp-input.txt");
+        sawgod::vanilla::Input input;
+        input.load(base / "sawgod-vanilla-input.txt");
         bool running = true;
         uint64_t next_frame = SDL_GetTicksNS();
         while (running) {
@@ -258,7 +258,7 @@ int desktop(Args args) {
             throw std::runtime_error(error);
         return 0;
     } catch (const std::exception &error) {
-        SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "SawGod Decomp", error.what(), nullptr);
+        SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "SawGod Vanilla", error.what(), nullptr);
         throw;
     }
 }
@@ -294,7 +294,7 @@ int main(int argc, char **argv) {
             else if (flag == "--shot")
                 args.shot = from_utf8(value());
             else if (flag == "--help") {
-                std::puts("sawgod-decomp [ROM.wsc] [--scale N] [--fullscreen]\n"
+                std::puts("sawgod-vanilla [ROM.wsc] [--scale N] [--fullscreen]\n"
                           "Replay: ROM.wsc --frames N [--inputs FILE] [--sram FILE] [--savesram FILE]\n"
                           "        [--goldendir DIR --goldenevery N] [--shot FILE]");
                 return 0;
@@ -317,7 +317,7 @@ int main(int argc, char **argv) {
             throw std::runtime_error("Replay options require --frames.");
         return desktop(args);
     } catch (const std::exception &error) {
-        std::fprintf(stderr, "sawgod-decomp: %s\n", error.what());
+        std::fprintf(stderr, "sawgod-vanilla: %s\n", error.what());
         return 1;
     }
 }

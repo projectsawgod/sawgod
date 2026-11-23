@@ -8,8 +8,8 @@ import sys
 
 PACKAGES = ('sawgod-windows-x86_64.zip', 'sawgod-linux-x86_64.tar.gz',
             'sawgod-macos-arm64.zip', 'sawgod-android-arm64-v8a-release.apk',
-            'sawgod-decomp-windows-x86_64.zip', 'sawgod-decomp-linux-x86_64.tar.gz',
-            'sawgod-decomp-macos-arm64.zip')
+            'sawgod-vanilla-windows-x86_64.zip', 'sawgod-vanilla-linux-x86_64.tar.gz',
+            'sawgod-vanilla-macos-arm64.zip')
 
 
 def main(folder):
@@ -29,9 +29,9 @@ def main(folder):
     body.write_text('SawGod ' + os.environ['RELEASE_VERSION'] + '\n\n'
                     'Fan port of Makai Toushi SaGa for WonderSwan Color. Supply your own legally obtained ROM. '
                     'No ROM or extracted game data is included.\n\n'
-                    'The desktop sawgod-decomp packages play the original Japanese cartridge game. '
-                    'The decompilation is complete and non-matching, verified routine by routine '
-                    'by differential tests and fuzzing.\n\n'
+                    'The desktop sawgod-vanilla packages play the original Japanese cartridge game. '
+                    "They run SawGod's static recompilation (partially decompiled for readability), "
+                    'verified routine by routine against the original by differential tests and fuzzing.\n\n'
                     + signing + '\n\nmacOS: Apple Silicon, ad-hoc signed and not notarized. '
                     'See each package README for first run, controls and storage. '
                     'Android README/notices/source are inside APK assets/.\n\n'

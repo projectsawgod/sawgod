@@ -526,22 +526,22 @@ endif()
 
 # The original cartridge front end has no dependency on host UI or Enhanced presentation.
 if(NOT ANDROID)
-    add_executable(sawgod-decomp src/decomp/main.cpp src/decomp/input.cpp
+    add_executable(sawgod-vanilla src/vanilla/main.cpp src/vanilla/input.cpp
         src/engine/input_defaults.cpp src/app/input_movie.cpp
         src/app/audio_output.cpp src/app/audio_queue.cpp)
-    target_link_libraries(sawgod-decomp PRIVATE sawgod_game SDL3::SDL3 sawgod_warnings)
-    set_target_properties(sawgod-decomp PROPERTIES WIN32_EXECUTABLE TRUE)
+    target_link_libraries(sawgod-vanilla PRIVATE sawgod_game SDL3::SDL3 sawgod_warnings)
+    set_target_properties(sawgod-vanilla PROPERTIES WIN32_EXECUTABLE TRUE)
     if(MINGW)
-        target_link_options(sawgod-decomp PRIVATE -static -static-libgcc -static-libstdc++ -Wl,--stack,8388608)
+        target_link_options(sawgod-vanilla PRIVATE -static -static-libgcc -static-libstdc++ -Wl,--stack,8388608)
     elseif(MSVC)
-        target_link_options(sawgod-decomp PRIVATE /STACK:8388608)
+        target_link_options(sawgod-vanilla PRIVATE /STACK:8388608)
     endif()
     if(APPLE)
-        set_target_properties(sawgod-decomp PROPERTIES MACOSX_BUNDLE TRUE
-            MACOSX_BUNDLE_INFO_PLIST "${CMAKE_SOURCE_DIR}/cmake/DecompInfo.plist.in")
+        set_target_properties(sawgod-vanilla PROPERTIES MACOSX_BUNDLE TRUE
+            MACOSX_BUNDLE_INFO_PLIST "${CMAKE_SOURCE_DIR}/cmake/VanillaInfo.plist.in")
     endif()
-    include(cmake/DecompLinkCheck.cmake)
-    sawgod_check_decomp_link(sawgod-decomp)
+    include(cmake/VanillaLinkCheck.cmake)
+    sawgod_check_vanilla_link(sawgod-vanilla)
 endif()
 
 # --- tests ------------------------------------------------------------------

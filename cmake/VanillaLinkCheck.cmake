@@ -1,5 +1,5 @@
 # Check the complete target dependency graph, including transitive static dependencies.
-function(sawgod_check_decomp_link root)
+function(sawgod_check_vanilla_link root)
     set(pending "${root}")
     set(visited "")
     while(pending)

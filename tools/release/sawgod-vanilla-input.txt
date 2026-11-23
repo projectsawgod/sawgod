@@ -1,0 +1,34 @@
+# SawGod Vanilla input mapping. Edit beside the executable (beside the .app on macOS).
+# Defaults below are inactive until you remove their leading #.
+# Format: DEVICE WSC_BUTTON CONTROL [DEVICE CONTROL]; # starts a comment.
+# Each line replaces that button's keyboard or gamepad bindings (up to two).
+# Devices: key (SDL scancode), button (SDL gamepad button or south/east/west/north),
+#   axis (SDL gamepad axis with + or -). Use none to clear, e.g. key a none.
+# A second pair must use the same input type (keyboard or gamepad).
+# Omitted buttons keep defaults. Esc, F11 and Alt+Enter are reserved; deadzone is 40%.
+
+# Keyboard: X pad, Y pad, A, B, Start.
+# key x1 Up
+# key x2 Right
+# key x3 Down
+# key x4 Left
+# key y1 W
+# key y2 D
+# key y3 S
+# key y4 A
+# key a X
+# key b Z
+# key start Return
+
+# Gamepad: X pad (D-pad and left stick), Y pad (right stick), A, B, Start.
+# button x1 dpup axis lefty-
+# button x2 dpright axis leftx+
+# button x3 dpdown axis lefty+
+# button x4 dpleft axis leftx-
+# axis y1 righty-
+# axis y2 rightx+
+# axis y3 righty+
+# axis y4 rightx-
+# button a south
+# button b east
+# button start start button north

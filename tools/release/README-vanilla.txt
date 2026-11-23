@@ -1,13 +1,13 @@
-SawGod Decomp — the original WonderSwan Color game
+SawGod Vanilla — the original WonderSwan Color game
 
-A small SDL3 front end over the complete, non-matching decompilation of
-Makai Toushi SaGa (WonderSwan Color), verified routine by routine by
-differential tests and fuzzing. Original Japanese text, menus, sound and
-cartridge behavior. No game data is included. Supply your own supported,
-unmodified Japanese WSC ROM.
+A small SDL3 front end that runs the original Japanese game from SawGod's
+static recompilation (partially decompiled for readability), verified routine by
+routine against the original by differential tests and fuzzing. Original
+Japanese text, menus, sound and cartridge behavior. No game data is included.
+Supply your own supported, unmodified Japanese WSC ROM.
 
 Start
-  Run sawgod-decomp (sawgod-decomp.exe on Windows; sawgod-decomp.app on macOS).
+  Run sawgod-vanilla (sawgod-vanilla.exe on Windows; sawgod-vanilla.app on macOS).
   Give it a ROM path on the command line, place a .wsc beside the executable
   (beside the .app on macOS), or select the ROM in the open-file dialog.
   Only this project's supported WSC dump is accepted.
@@ -32,13 +32,17 @@ Controls
   filtering. --scale N chooses the initial scale; --fullscreen starts fullscreen.
 
 Optional input mapping
-  Create sawgod-decomp-input.txt beside the executable (beside the .app on
-  macOS). Omitted buttons retain their defaults. Each nonblank line is:
+  Edit the shipped sawgod-vanilla-input.txt beside the executable (beside the
+  .app on macOS). Uncomment a binding to change it; omitted buttons retain
+  their defaults. Each nonblank, noncomment line is:
     key a Space
     button b west
     axis x1 lefty-
-  A line replaces that device's bindings for one WSC button; "none" clears
-  them. Lines starting with # are comments. WSC button names are x1..x4,
+  A line replaces the keyboard or gamepad bindings for one WSC button;
+  "none" clears them. An optional second device/control pair adds a second
+  binding of the same input type (keyboard or gamepad), for example:
+    button x1 dpup axis lefty-
+  Lines starting with # are comments. WSC button names are x1..x4,
   y1..y4, a, b, start. Keys use SDL scancode names without spaces (Up, Return,
   X, Space). Gamepad buttons accept position names: south, east, west, north,
   start, back, dpup, dpright, dpdown, dpleft (also SDL a/b/x/y). Axes: leftx, lefty, rightx,
@@ -46,7 +50,7 @@ Optional input mapping
   Stick deadzone is 40%. Esc, F11 and Alt+Enter are reserved.
 
 Headless recording replay
-  sawgod-decomp game.wsc --frames 15000 --inputs recording.inputs --savesram out.sav
+  sawgod-vanilla game.wsc --frames 15000 --inputs recording.inputs --savesram out.sav
   Input lines are "FRAME buttons", held until the next change; buttons are
   up,right,down,left,up2,right2,down2,left2,a,b,start (comma-separated).
   Changes apply after the numbered frame completes, as in sawgod-headless.

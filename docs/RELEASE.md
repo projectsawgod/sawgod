@@ -176,20 +176,22 @@ License auditing establishes the packaged inventory; it is not a substitute for 
 
 ## Original cartridge packages
 
-Each desktop `tools/package.sh` command also builds and packages `sawgod-decomp`, from the same tree:
-`sawgod-decomp-linux-x86_64.tar.gz`, `sawgod-decomp-windows-x86_64.zip`, and
-`sawgod-decomp-macos-arm64.zip`, each with a SHA-256 checksum. They ship beside the enhanced port in the
-same release; there is no Android decomp package. The macOS app is ad-hoc signed.
+Each desktop `tools/package.sh` command also builds and packages `sawgod-vanilla`, from the same tree:
+`sawgod-vanilla-linux-x86_64.tar.gz`, `sawgod-vanilla-windows-x86_64.zip`, and
+`sawgod-vanilla-macos-arm64.zip`, each with a SHA-256 checksum. They ship beside the enhanced port in the
+same release; there is no Android vanilla package. The macOS app is ad-hoc signed.
 
-These packages contain the executable, short player README, manifest and applicable license notices.
+These packages contain the executable, short player README, commented default input mapping file, manifest
+and applicable license notices.
 They do not include extracted resources, English text, GB maps, a soundfont or FluidSynth. The original
 Japanese menus and sound come directly from the player's supported ROM; raw SRAM goes beside that ROM.
-The decompilation is complete and non-matching, verified routine by routine by differential tests and fuzzing.
+The program runs SawGod's static recompilation (partially decompiled for readability), verified routine by
+routine against the original by differential tests and fuzzing.
 
-For a local decomp-only package without building the enhanced port or FluidSynth, use
-`tools/package.sh linux decomp` (or `windows decomp`, `macos decomp`). The standard command produces both.
-Builds use the same presets; `sawgod-decomp` does not link host UI, ImGui, Enhanced music or the Enhanced
+For a local vanilla-only package without building the enhanced port or FluidSynth, use
+`tools/package.sh linux vanilla` (or `windows vanilla`, `macos vanilla`). The standard command produces both.
+Builds use the same presets; `sawgod-vanilla` does not link host UI, ImGui, Enhanced music or the Enhanced
 renderer. CMake checks its dependency graph, and CTest checks the generated link command. With
-`SAWGOD_WSC_ROM` set to the supported WSC ROM, CTest `decomp_recording_replay` compares work RAM,
+`SAWGOD_WSC_ROM` set to the supported WSC ROM, CTest `vanilla_recording_replay` compares work RAM,
 raw SRAM and picture hashes for existing recordings against `sawgod-headless --native all`, including
 continuing from a save. The shipped binary's `--frames` mode uses the same setup as its SDL front end.

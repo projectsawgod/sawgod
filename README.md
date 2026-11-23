@@ -1,7 +1,7 @@
 # What is SawGod?
 
-**魔界塔士 Sa・Ga / The Final Fantasy Legend**: a decompilation and native rebuild of the 2002 WonderSwan Color remake
-of the 1989 Game Boy RPG, for Windows, macOS, Linux and Android.
+**魔界塔士 Sa・Ga / The Final Fantasy Legend**: a static recompilation (partially decompiled for readability) and
+native rebuild of the 2002 WonderSwan Color remake of the 1989 Game Boy RPG, for Windows, macOS, Linux and Android.
 
 **[sawgod.ws](https://sawgod.ws)** · **[Download](https://github.com/projectsawgod/sawgod/releases/latest)** ·
 [Report a problem](https://github.com/projectsawgod/sawgod/issues)
@@ -19,7 +19,8 @@ included, and none will be provided.
 - **Quality of life:** nine save slots and autosave, gamepad remapping, fast-forward, optional boosts and cheats.
 - **Moddable:** graphics, game data and text are plain resource files you can easily override.
 
-SawGod is not an emulator wrapper: it is built on a function-complete decompilation of the WonderSwan Color game.
+SawGod is not an emulator wrapper: it is built on a static recompilation of the WonderSwan Color game,
+partially decompiled for readability.
 The game defaults to Enhanced with some quality-of-life
 options.
 
@@ -30,14 +31,15 @@ Download the package for your system from the
 choose your ROM (`.wsc`, `.zip` or `.7z`); SawGod checks it and extracts the game data locally. Each package
 includes a README with controls, data locations and platform notes. Android builds **require** a gamepad for now.
 
-## The original game: sawgod-decomp
+## The original game: sawgod-vanilla
 
-The desktop releases also include **sawgod-decomp**, a small SDL3 front end for the original Japanese WSC
+The desktop releases also include **sawgod-vanilla**, a small SDL3 front end for the original Japanese WSC
 game, with its own menus, sound, three save slots and cartridge behavior. Supply the supported `.wsc` ROM
 on the command line, place it beside the executable, or select it in the file picker. Raw SRAM saves go
-beside the ROM as `<rom name>.sav`. See the package README for controls and optional input mappings.
+beside the ROM as `<rom name>.sav`. See the package README for controls and the shipped input mapping file.
 
-This is a complete, non-matching decompilation, verified routine by routine by differential tests and fuzzing.
+It runs SawGod's static recompilation (partially decompiled for readability), verified routine by routine
+against the original by differential tests and fuzzing.
 
 ## Build, mod and contribute
 
