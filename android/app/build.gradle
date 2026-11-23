@@ -32,6 +32,9 @@ android {
         targetSdk 36
         versionCode releaseCode
         versionName(releaseVersion ?: '1.0')
+        // -PsawgodTestApp: a separate "SawGod Test" app (org.sawgod.app.test) that installs beside the release one.
+        if (project.hasProperty('sawgodTestApp')) applicationIdSuffix '.test'
+        manifestPlaceholders = [appLabel: project.hasProperty('sawgodTestApp') ? 'SawGod Test' : '@string/app_name']
         ndk { abiFilters(*(project.findProperty('sawgodAbis') ?: 'arm64-v8a').split(',')) }
         externalNativeBuild {
             cmake {
