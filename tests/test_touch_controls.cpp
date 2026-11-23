@@ -1,3 +1,4 @@
+#include "app/battle_wipe.h"
 #include "app/picture_draw.h"
 #include "engine/fidelity.h"
 #include "engine/input.h"
@@ -129,7 +130,7 @@ TEST_CASE("touch: phone density preserves reference geometry without insets") {
     }
     check_disjoint(l);
 }
-TEST_CASE("touch: cutout bars fit minimum targets, labels and disjoint hit areas") {
+TEST_CASE("touch: cutouts keep reference pads and safe disjoint hit areas") {
     for (float bottom : {0.f, 63.f}) {
         const auto l = TouchLayout::make(2400, 1080, 1568, {128, 0, 2272, 1080 - bottom}, 57 * 2.625f / 120);
         check_disjoint(l);
@@ -139,14 +140,16 @@ TEST_CASE("touch: cutout bars fit minimum targets, labels and disjoint hit areas
             const float extent = (a.w - a.h) / 2 + radius;
             const bool right = i == size_t(TouchControl::Start) || i >= size_t(TouchControl::A);
             CHECK(a.x - extent >= doctest::Approx(right ? 2000 : 128));
-            CHECK(a.x + extent <= doctest::Approx(right ? 2400 : 400));
+            const bool pad = i == size_t(TouchControl::X) || i == size_t(TouchControl::Y);
+            if (!pad)
+                CHECK(a.x + extent <= doctest::Approx(right ? 2400 : 400));
             CHECK(a.y - radius >= 0);
             CHECK(a.y + radius <= 1080 - bottom);
             CHECK(a.h >= (i <= size_t(TouchControl::Start) ? 48 : 57) * 2.625f);
         }
         const auto pad = l.areas[size_t(TouchControl::X)];
-        CHECK(pad.w == doctest::Approx(272 / 1.2f));
-        CHECK(pad.x == doctest::Approx(264));
+        CHECK(pad.w == 320);
+        CHECK(pad.x == 320);
         CHECK(pad.y == 800);
         CHECK(l.areas[size_t(TouchControl::Y)].y == 415);
         // Rendered X/Y label boxes scale with their pad, including their offsets.
@@ -161,12 +164,16 @@ TEST_CASE("touch: cutout bars fit minimum targets, labels and disjoint hit areas
         CHECK(l.areas[size_t(TouchControl::A)].w == 172); // other side stays at reference size
     }
 }
-TEST_CASE("touch: narrow phone uses minimum targets and permits picture overlap") {
+TEST_CASE("touch: Thor keeps reference pads with picture overlap and a physical floor") {
     for (SDL_FRect safe : {SDL_FRect{0, 0, 1920, 1080}, SDL_FRect{40, 0, 1840, 1040}}) {
         const auto l = TouchLayout::make(1920, 1080, 1568, safe, 57 * 2.625f / 120);
         const auto x = l.areas[size_t(TouchControl::X)];
-        CHECK(x.w == doctest::Approx(57 * 2.625f));
+        CHECK(x.w == 320);
+        CHECK(x.x == doctest::Approx(safe.x + 192));
         CHECK(x.x + x.w * .6f > 176);
+        CHECK(l.areas[size_t(TouchControl::Y)].w == 320);
+        CHECK(l.areas[size_t(TouchControl::Y)].y == 415);
+        CHECK(x.y == 800);
         const auto mode = l.areas[size_t(TouchControl::Mode)];
         CHECK(mode.x + mode.w / 2 > 176);
         CHECK(x.x - x.w * .6f >= doctest::Approx(safe.x));
@@ -180,6 +187,9 @@ TEST_CASE("touch: narrow phone uses minimum targets and permits picture overlap"
         }
         check_disjoint(l);
     }
+    // Reference size follows height, and density can only increase it.
+    CHECK(TouchLayout::make(960, 540, 784, {0, 0, 960, 540}).areas[size_t(TouchControl::X)].w == 160);
+    CHECK(TouchLayout::make(1920, 1080, 1568, {0, 0, 1920, 1080}, 3).areas[size_t(TouchControl::X)].w == 360);
 }
 
 TEST_CASE("touch: saved Auto On Off honors controller hotplug and excludes its own joystick") {
@@ -347,7 +357,7 @@ TEST_CASE("touch: SDL virtual gamepad follows default bindings, Swap A/B, and hi
     }
     SDL_QuitSubSystem(SDL_INIT_GAMEPAD | SDL_INIT_VIDEO);
 }
-TEST_CASE("touch: open Options keeps only its hamburger active and releases gameplay controls") {
+TEST_CASE("touch: Options exposes gamepad navigation and ignores touch bindings") {
     SDL_SetHint(SDL_HINT_JOYSTICK_ALLOW_BACKGROUND_EVENTS, "1");
     REQUIRE(SDL_InitSubSystem(SDL_INIT_GAMEPAD | SDL_INIT_VIDEO));
     SDL_Window *window = SDL_CreateWindow("touch menu test", 2400, 1080, SDL_WINDOW_HIDDEN);
@@ -380,6 +390,9 @@ TEST_CASE("touch: open Options keeps only its hamburger active and releases game
         };
         // The front end dispatches Options before handing the remaining menu actions to the overlay.
         const auto dispatch = [&] {
+            SDL_Event e;
+            while (SDL_PollEvent(&e))
+                input.handle_event(e);
             if (touch.take_options())
                 input.press_options();
             const auto actions = input.take_menu_actions(0);
@@ -410,12 +423,25 @@ TEST_CASE("touch: open Options keeps only its hamburger active and releases game
         REQUIRE(pixels);
         for (size_t i = 0; i < size_t(TouchControl::Count); ++i) {
             const auto c = TouchControl(i);
-            CHECK(touch.shown(c) == (c == TouchControl::Options));
+            CHECK(touch.shown(c) == touch_menu_control(c));
             const auto a = layout.areas[i];
-            float r = 0, g = 0, b = 0, alpha = 0;
-            REQUIRE(SDL_ReadSurfacePixelFloat(pixels, int(a.x), int(a.y), &r, &g, &b, &alpha));
-            CHECK((alpha > 0) == (c == TouchControl::Options));
-            if (c != TouchControl::Options) {
+            bool ink = false;
+            for (int y = int(a.y - a.h / 2); y < a.y + a.h / 2; y += 4)
+                for (int x = int(a.x - a.w / 2); x < a.x + a.w / 2; x += 4) {
+                    float r = 0, g = 0, b = 0, alpha = 0;
+                    REQUIRE(SDL_ReadSurfacePixelFloat(pixels, x, y, &r, &g, &b, &alpha));
+                    ink |= alpha > 0;
+                }
+            CHECK(ink == touch_menu_control(c));
+            // Finger-generated mouse taps cannot also activate a menu row underneath the overlay.
+            SDL_Event pointer{};
+            pointer.type = SDL_EVENT_MOUSE_BUTTON_DOWN;
+            pointer.button.which = SDL_TOUCH_MOUSEID;
+            pointer.button.button = SDL_BUTTON_LEFT;
+            pointer.button.x = a.x;
+            pointer.button.y = a.y;
+            CHECK(touch.event(pointer, window, false) == touch_menu_control(c));
+            if (!touch_menu_control(c)) {
                 finger(SDL_EVENT_FINGER_UP, c);
                 finger(SDL_EVENT_FINGER_DOWN, c);
             }
@@ -435,6 +461,29 @@ TEST_CASE("touch: open Options keeps only its hamburger active and releases game
         CHECK(input.held(map) == 0);
         menu.set_open(true);
         touch.show(true, true);
+        // Real SDL virtual events go through Input and the actual Options frame path.
+        REQUIRE(menu.show("Gamepad", 0));
+        const auto before = menu.view().row;
+        const auto x = layout.areas[size_t(TouchControl::X)];
+        SDL_Event down{};
+        down.type = SDL_EVENT_FINGER_DOWN;
+        down.tfinger.fingerID = 1 + int(TouchControl::X);
+        down.tfinger.x = x.x / 2400;
+        down.tfinger.y = (x.y + 100) / 1080;
+        touch.event(down, window, false);
+        dispatch();
+        CHECK(menu.view().row == before + 1);
+        finger(SDL_EVENT_FINGER_UP, TouchControl::X);
+        dispatch();
+        const int icons = settings.pad_icons->get();
+        finger(SDL_EVENT_FINGER_DOWN, TouchControl::A);
+        dispatch();
+        CHECK(settings.pad_icons->get() != icons);
+        finger(SDL_EVENT_FINGER_UP, TouchControl::A);
+        finger(SDL_EVENT_FINGER_DOWN, TouchControl::B);
+        dispatch();
+        CHECK_FALSE(menu.view().in_rows);
+        finger(SDL_EVENT_FINGER_UP, TouchControl::B);
         for (const std::string page : {"Keyboard", "Gamepad"}) {
             const auto model = menu.model();
             int bind_row = -1;
@@ -451,6 +500,27 @@ TEST_CASE("touch: open Options keeps only its hamburger active and releases game
             accept.accept = true;
             menu.frame(accept, 1.f / 75);
             REQUIRE(menu.view().capturing);
+            const auto original = map;
+            for (auto c : {TouchControl::X, TouchControl::A, TouchControl::B}) {
+                finger(SDL_EVENT_FINGER_DOWN, c);
+                dispatch();
+                CHECK(input.capturing());
+                CHECK(menu.view().capturing);
+                CHECK(map.keys == original.keys);
+                CHECK(map.pad == original.pad);
+                finger(SDL_EVENT_FINGER_UP, c);
+                dispatch();
+            }
+            // Axis events from the same virtual device are ignored too, even if queued earlier.
+            SDL_Event axis{};
+            axis.type = SDL_EVENT_GAMEPAD_AXIS_MOTION;
+            axis.gaxis.which = touch.id();
+            axis.gaxis.axis = SDL_GAMEPAD_AXIS_RIGHTX;
+            axis.gaxis.value = 0;
+            input.handle_event(axis);
+            axis.gaxis.value = 32767;
+            input.handle_event(axis);
+            CHECK(input.capturing());
             finger(SDL_EVENT_FINGER_DOWN, TouchControl::Options);
             dispatch();
             CHECK(menu.is_open());
@@ -537,4 +607,77 @@ TEST_CASE("fidelity: touch cycle wraps, fades Enhanced to GB, and respects indep
             CHECK(both.music() == lock);
         }
     }
+}
+
+TEST_CASE("touch: retained field clears margins after whole-scale and picture moves") {
+    REQUIRE(SDL_InitSubSystem(SDL_INIT_VIDEO));
+    auto *window = SDL_CreateWindow("retained margins", 1920, 1080, SDL_WINDOW_HIDDEN);
+    REQUIRE(window);
+    auto *renderer = SDL_CreateRenderer(window, "software");
+    REQUIRE(renderer);
+    auto *target =
+        SDL_CreateTexture(renderer, SDL_PIXELFORMAT_XRGB8888, SDL_TEXTUREACCESS_TARGET, 1920, 1080);
+    auto *source = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_XRGB8888, SDL_TEXTUREACCESS_STATIC, 224, 144);
+    REQUIRE(target);
+    REQUIRE(source);
+    std::vector<uint32_t> art(224 * 144);
+    for (int y = 0; y < 144; ++y)
+        for (int x = 0; x < 224; ++x)
+            art[size_t(y * 224 + x)] = uint32_t(x << 16 | y << 8 | 0x80);
+    REQUIRE(SDL_UpdateTexture(source, nullptr, art.data(), 224 * 4));
+    REQUIRE(SDL_SetTextureScaleMode(source, SDL_SCALEMODE_NEAREST));
+    REQUIRE(SDL_SetRenderTarget(renderer, target));
+    app::BattleWipe wipe;
+    const auto full = app::GameRect(1920, 1080);
+    const auto whole = app::GameRect(1920, 1080, true);
+    const SDL_FRect rects[] = {{full.x, full.y, full.w, full.h},
+                               {whole.x, whole.y, whole.w, whole.h},
+                               {whole.x + 20, whole.y + 12, whole.w - 224, whole.h - 144}};
+    for (const auto rect : rects) {
+        REQUIRE(wipe.begin(renderer, 1920, 1080, 1, 1, rect));
+        REQUIRE(SDL_RenderTexture(renderer, source, nullptr, &rect));
+        wipe.end(renderer); // Copies the full retained target, just like Enhanced field presentation.
+        auto *surface = SDL_RenderReadPixels(renderer, nullptr);
+        REQUIRE(surface);
+        auto *rgb = SDL_ConvertSurface(surface, SDL_PIXELFORMAT_XRGB8888);
+        REQUIRE(rgb);
+        size_t dirty = 0;
+        for (int y = 0; y < 1080; ++y)
+            for (int x = 0; x < 1920; ++x)
+                if (x < rect.x || x >= rect.x + rect.w || y < rect.y || y >= rect.y + rect.h) {
+                    const auto *row = reinterpret_cast<const uint32_t *>(
+                        static_cast<const uint8_t *>(rgb->pixels) + y * rgb->pitch);
+                    dirty += (row[x] & 0xFFFFFF) != 0;
+                }
+        CHECK(dirty == 0);
+        SDL_DestroySurface(rgb);
+        SDL_DestroySurface(surface);
+    }
+    // Wipes must sample the retained whole-scale/moved rectangle, rather than assume full-height.
+    emu::Wsc w(std::vector<uint8_t>(0x400000), 0);
+    w.cpu.s.halted = true;
+    w.cpu.s.flags = 0;
+    w.capture_layers(true);
+    w.run_frame();
+    w.run_frame();
+    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+    SDL_RenderClear(renderer);
+    wipe.draw(renderer, w, {0, 0, 224, 144}, 1);
+    auto *surface = SDL_RenderReadPixels(renderer, nullptr);
+    REQUIRE(surface);
+    for (const auto point : {SDL_Point{20, 20}, SDL_Point{112, 72}, SDL_Point{210, 130}}) {
+        Uint8 r, g, b, a;
+        REQUIRE(SDL_ReadSurfacePixel(surface, point.x, point.y, &r, &g, &b, &a));
+        CHECK(r == point.x);
+        CHECK(g == point.y);
+        CHECK(b == 0x80);
+    }
+    SDL_DestroySurface(surface);
+    wipe.release();
+    SDL_SetRenderTarget(renderer, nullptr);
+    SDL_DestroyTexture(source);
+    SDL_DestroyTexture(target);
+    SDL_DestroyRenderer(renderer);
+    SDL_DestroyWindow(window);
+    SDL_QuitSubSystem(SDL_INIT_VIDEO);
 }

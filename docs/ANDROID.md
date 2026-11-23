@@ -73,9 +73,10 @@ connections never change a saved choice.
 
 The fixed landscape layout puts two split pads in the left bar (faint Y above X), A above/right of B
 in the right bar, Options (hamburger) and Mode (upward double chevron) at top left, and START at top right.
-Each side scales its controls and labels to fit between the safe display edge and a small picture gap,
-retaining reference vertical positions and minimum targets of 48 dp for Options/Mode/Start and about 9 mm
-for pads/A/B; only bars too narrow for those minimums allow picture overlap. Multiple fingers can hold
+Pads stay at their reference size (320 px at 1080 high, scaled with height), with a 9 mm floor.
+They center in the side bar where possible, move inward to clear safe edges, and overlap the picture
+when the bar is narrow. Other controls still fit their side bars, with minimum targets of 48 dp for
+Options/Mode/Start and about 9 mm for A/B. Multiple fingers can hold
 directions and buttons
 together. Pads have center and diagonal dead zones, and sliding changes direction without lifting.
 Button hit areas extend 20% beyond their drawn radius, with smaller top-row margins when needed. There is no layout editor or haptics.
@@ -86,7 +87,11 @@ Options opens the same menu as the Options binding; the menu accepts taps direct
 tracks **GB -> WSC -> Enhanced -> GB**, with the usual fade. Locked graphics/music stay locked; Mode
 Down/Up bindings still stop at the ends. The overlay hides and releases held buttons on the ROM screen,
 on background/focus loss, or whenever the setting hides it.
-While Options is open, only the hamburger stays visible and active; it closes the menu or cancels binding capture, and Android Back does the same (or opens Options in game) even with Touch Controls Off, without quitting.
+While Options is open, the hamburger, X pad, A and B stay visible and active: close, navigate, accept
+and back through the normal gamepad menu path. Y, Mode and START are hidden and inactive. Entering or
+leaving Options releases held touch inputs. Binding capture ignores the touch joystick; the hamburger
+cancels capture. Android Back performs the same Options action (or opens Options in game), even with
+Touch Controls Off, without quitting.
 
 Desktop builds hide the Touch Controls row. Launch with `--touch-controls` to show the same saved
 setting and enable mouse testing of the overlay. Whole-pixel picture scaling follows overlay visibility.

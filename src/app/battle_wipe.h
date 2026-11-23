@@ -16,7 +16,8 @@ class BattleWipe {
     bool available(uint64_t generation, int map) const {
         return picture_ && generation_ == generation && map_ == map;
     }
-    bool begin(SDL_Renderer *renderer, int width, int height, uint64_t generation, int map) {
+    bool begin(SDL_Renderer *renderer, int width, int height, uint64_t generation, int map,
+               const SDL_FRect &picture) {
         const bool fresh = !picture_ || width_ != width || height_ != height;
         if (fresh) {
             release();
@@ -32,8 +33,9 @@ class BattleWipe {
         target_ = SDL_GetRenderTarget(renderer);
         if (!SDL_SetRenderTarget(renderer, picture_))
             return false;
-        if (fresh) {
-            // The scene covers only the game rectangle; initialize its surrounding black bars once.
+        {
+            // The game rectangle can shrink or move without reallocating this retained target.
+            // Clear every redraw, or end() copies the old picture back into the new black bars.
             SDL_Color previous{};
             SDL_GetRenderDrawColor(renderer, &previous.r, &previous.g, &previous.b, &previous.a);
             SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
@@ -44,6 +46,7 @@ class BattleWipe {
                 return false;
             }
         }
+        picture_rect_ = picture;
         generation_ = generation;
         map_ = map;
         return true;
@@ -63,10 +66,9 @@ class BattleWipe {
         SDL_SetTextureBlendMode(picture_, weight < 1 ? SDL_BLENDMODE_BLEND : SDL_BLENDMODE_NONE);
         SDL_SetTextureAlphaModFloat(picture_, weight);
         const auto wrap = [](int n, int size) { return (n % size + size) % size; };
-        // The cached target has the same game rectangle, possibly from another window size.
-        const float scale = std::min(float(width_) / 224, float(height_) / 144);
-        const float left = (float(width_) - 224 * scale) / 2;
-        const float top = (float(height_) - 144 * scale) / 2;
+        // Sample the rectangle actually retained, including whole-pixel scaling or a moved picture.
+        const float scale = picture_rect_.w / 224;
+        const float left = picture_rect_.x, top = picture_rect_.y;
         for (int y = 0; y < 144; ++y) {
             if (!layers->valid[size_t(y)])
                 continue;
@@ -102,6 +104,7 @@ class BattleWipe {
   private:
     SDL_Texture *picture_ = nullptr, *target_ = nullptr;
     int width_ = 0, height_ = 0, map_ = -1;
+    SDL_FRect picture_rect_{};
     uint64_t generation_ = 0;
 };
 } // namespace sawgod::app

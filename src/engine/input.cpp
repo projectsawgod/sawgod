@@ -829,6 +829,14 @@ void Input::handle_event(const SDL_Event &e) {
         break;
     }
     if (capture_ != Capture::Off) {
+        // Touch remains usable for menu navigation, but its virtual controls are never bindings.
+        // Ignore them on both binding pages; the hamburger can still cancel capture.
+        if (virtual_id_ &&
+            (e.type == SDL_EVENT_GAMEPAD_BUTTON_DOWN || e.type == SDL_EVENT_GAMEPAD_BUTTON_UP) &&
+            e.gbutton.which == virtual_id_)
+            return;
+        if (virtual_id_ && e.type == SDL_EVENT_GAMEPAD_AXIS_MOTION && e.gaxis.which == virtual_id_)
+            return;
         const int threshold = 32767 * 60 / 100; // a firm push, more than the play deadzone
         switch (e.type) {
         case SDL_EVENT_KEY_DOWN:

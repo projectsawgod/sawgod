@@ -36,7 +36,7 @@ TouchLayout TouchLayout::make(float width, float height, float picture_width, SD
         if (required(s) <= available)
             return s;
         if (required(0) > available)
-            return 0.f; // Only minimum targets may cross the picture edge.
+            return 0.f; // Top-row and face-button minimums may cross the picture edge.
         float lo = 0, hi = s;
         for (int i = 0; i < 24; ++i) {
             const float mid = (lo + hi) / 2;
@@ -45,8 +45,7 @@ TouchLayout TouchLayout::make(float width, float height, float picture_width, SD
         return lo;
     };
     const float left_scale = fit(left_width, [&](float scale) {
-        return std::max(pad_size(scale) * 1.2f,
-                        top_size(scale) + std::max(160 * scale, top_size(scale)));
+        return std::max(pad_size(scale) * 1.2f, top_size(scale) + std::max(160 * scale, top_size(scale)));
     });
     const float right_scale = fit(right_width, [&](float scale) {
         return std::max(button_size(scale) * 1.2f + button_dx(scale), top_size(scale) * 2.2f);
@@ -65,19 +64,21 @@ TouchLayout TouchLayout::make(float width, float height, float picture_width, SD
     // Sacrifice only the extra hit margin when two minimum top targets need the bar.
     const float top_radius =
         std::max(top / 2, std::min({top * .6f, spacing / 2, (left_width - spacing) / 2}));
-    const float options_x = center(safe.x + 110 * left_scale, safe.x + top_radius,
-                                  bar - gap - spacing - top_radius);
+    const float options_x =
+        center(safe.x + 110 * left_scale, safe.x + top_radius, bar - gap - spacing - top_radius);
     const float top_y = safe.y + 130 * s;
     put(TouchControl::Options, options_x, top_y, top, top, top_radius);
     put(TouchControl::Mode, options_x + spacing, top_y, top, top, top_radius);
     const float start = top_size(right_scale);
     put(TouchControl::Start,
-        center(right_edge - 180 * right_scale, width - bar + gap + start * 1.1f,
-               right_edge - start * 1.1f), top_y, 2 * start, start);
+        center(right_edge - 180 * right_scale, width - bar + gap + start * 1.1f, right_edge - start * 1.1f),
+        top_y, 2 * start, start);
     // The right edge wins when the minimum cluster is wider than its bar.
     auto &start_area = l.areas[size_t(TouchControl::Start)];
     start_area.x = std::min(start_area.x, right_edge - start * 1.1f);
-    const float pad = pad_size(left_scale), pad_radius = pad * .6f;
+    // Pads retain their height-based reference size even when the bar is narrow.
+    // Translate inward only far enough to keep the full hit target inside the safe edge.
+    const float pad = pad_size(s), pad_radius = pad * .6f;
     const float left = center(bar / 2, safe.x + pad_radius, bar - gap - pad_radius);
     float y_pad = safe.y + 415 * s;
     for (auto c : {TouchControl::Options, TouchControl::Mode}) {
@@ -89,12 +90,10 @@ TouchLayout TouchLayout::make(float width, float height, float picture_width, SD
     put(TouchControl::Y, left, y_pad, pad, pad);
     put(TouchControl::X, left, std::max(safe.y + 800 * s, y_pad + 2 * pad_radius), pad, pad);
     const float button = button_size(right_scale), dx = button_dx(right_scale);
-    const float right = std::min(right_edge - button * .6f,
-                                std::max(width - bar / 2 + 92 * right_scale,
-                                         width - bar + gap + dx + button * .6f));
+    const float right = std::min(right_edge - button * .6f, std::max(width - bar / 2 + 92 * right_scale,
+                                                                     width - bar + gap + dx + button * .6f));
     put(TouchControl::A, right, safe.y + 700 * s, button, button);
-    put(TouchControl::B, right - dx, safe.y + 700 * s + std::max(170 * s, dx * 170 / 172),
-        button, button);
+    put(TouchControl::B, right - dx, safe.y + 700 * s + std::max(170 * s, dx * 170 / 172), button, button);
     return l;
 }
 int TouchState::direction(float dx, float dy, float radius) {
@@ -107,11 +106,11 @@ int TouchState::direction(float dx, float dy, float radius) {
         return dx > 0 ? 1 : 3;
     return -1;
 }
-void TouchState::down(SDL_FingerID id, float x, float y, bool options_only) {
+void TouchState::down(SDL_FingerID id, float x, float y, bool menu_open) {
     if (fingers_.contains(id))
         return;
     for (size_t i = 0; i < layout.areas.size(); ++i)
-        if ((!options_only || TouchControl(i) == TouchControl::Options) && layout.areas[i].contains(x, y)) {
+        if ((!menu_open || touch_menu_control(TouchControl(i))) && layout.areas[i].contains(x, y)) {
             const auto c = TouchControl(i);
             fingers_[id] = {c, x, y};
             options_ |= c == TouchControl::Options;
@@ -189,9 +188,8 @@ void TouchControls::layout(SDL_Window *window, SDL_Renderer *renderer, float wid
     // Desktop reproduction of phone cutouts/density, in render-output pixels.
     if (const char *insets = std::getenv("SAWGOD_TOUCH_SAFE_INSETS")) {
         float left, top, right, bottom;
-        if (std::sscanf(insets, "%f,%f,%f,%f", &left, &top, &right, &bottom) == 4 &&
-            left >= 0 && top >= 0 && right >= 0 && bottom >= 0 &&
-            left + right < width && top + bottom < height)
+        if (std::sscanf(insets, "%f,%f,%f,%f", &left, &top, &right, &bottom) == 4 && left >= 0 && top >= 0 &&
+            right >= 0 && bottom >= 0 && left + right < width && top + bottom < height)
             area = {left, top, width - left - right, height - top - bottom};
     }
     if (const char *density = std::getenv("SAWGOD_TOUCH_DISPLAY_SCALE")) {
@@ -203,13 +201,13 @@ void TouchControls::layout(SDL_Window *window, SDL_Renderer *renderer, float wid
     state_.layout = TouchLayout::make(width, height, picture_width, area, minimum);
     (void)renderer;
 }
-void TouchControls::show(bool visible, bool options_only) {
-    if (!visible || options_only_ != options_only) {
+void TouchControls::show(bool visible, bool menu_open) {
+    if (!visible || menu_open_ != menu_open) {
         state_.release();
         sync();
     }
     visible_ = visible;
-    options_only_ = options_only;
+    menu_open_ = menu_open;
 }
 void TouchControls::sync() {
     if (!joystick_)
@@ -228,34 +226,50 @@ void TouchControls::sync() {
     SDL_SetJoystickVirtualButton(joystick_, SDL_GAMEPAD_BUTTON_START, state_.held(C::Start));
     SDL_UpdateJoysticks();
 }
-void TouchControls::event(const SDL_Event &e, SDL_Window *window, bool mouse) {
+bool TouchControls::event(const SDL_Event &e, SDL_Window *window, bool mouse) {
     if (!visible_)
-        return;
+        return false;
+    bool consumed = (e.type == SDL_EVENT_FINGER_UP || e.type == SDL_EVENT_FINGER_CANCELED) &&
+                    state_.owns(e.tfinger.fingerID);
     if (e.type == SDL_EVENT_FINGER_DOWN)
-        state_.down(e.tfinger.fingerID, e.tfinger.x * width_, e.tfinger.y * height_, options_only_);
+        state_.down(e.tfinger.fingerID, e.tfinger.x * width_, e.tfinger.y * height_, menu_open_);
     else if (e.type == SDL_EVENT_FINGER_MOTION)
         state_.move(e.tfinger.fingerID, e.tfinger.x * width_, e.tfinger.y * height_);
     else if (e.type == SDL_EVENT_FINGER_UP || e.type == SDL_EVENT_FINGER_CANCELED)
         state_.up(e.tfinger.fingerID);
-    else if (mouse && (e.type == SDL_EVENT_MOUSE_BUTTON_DOWN || e.type == SDL_EVENT_MOUSE_BUTTON_UP ||
-                       e.type == SDL_EVENT_MOUSE_MOTION)) {
-        if ((e.type == SDL_EVENT_MOUSE_MOTION ? e.motion.which : e.button.which) == SDL_TOUCH_MOUSEID)
-            return;
+    else if (e.type == SDL_EVENT_MOUSE_BUTTON_DOWN || e.type == SDL_EVENT_MOUSE_BUTTON_UP ||
+             e.type == SDL_EVENT_MOUSE_MOTION) {
+        const bool synthetic =
+            (e.type == SDL_EVENT_MOUSE_MOTION ? e.motion.which : e.button.which) == SDL_TOUCH_MOUSEID;
+        if (!mouse && !synthetic)
+            return false;
         int ww = 1, wh = 1;
         SDL_GetWindowSize(window, &ww, &wh);
         const float x = (e.type == SDL_EVENT_MOUSE_MOTION ? e.motion.x : e.button.x) * width_ / float(ww);
         const float y = (e.type == SDL_EVENT_MOUSE_MOTION ? e.motion.y : e.button.y) * height_ / float(wh);
+        const bool hit =
+            std::any_of(state_.layout.areas.begin(), state_.layout.areas.end(), [&](const TouchArea &a) {
+                const auto i = &a - state_.layout.areas.data();
+                return shown(TouchControl(i)) && a.contains(x, y);
+            });
+        // SDL synthesizes mouse taps for fingers too. Swallow those over active touch controls.
+        if (synthetic)
+            return hit;
         constexpr SDL_FingerID mouse_id = -1;
+        consumed = hit || state_.owns(mouse_id);
         if (e.type == SDL_EVENT_MOUSE_MOTION)
             state_.move(mouse_id, x, y);
         else if (e.button.button == SDL_BUTTON_LEFT) {
             if (e.type == SDL_EVENT_MOUSE_BUTTON_DOWN)
-                state_.down(mouse_id, x, y, options_only_);
+                state_.down(mouse_id, x, y, menu_open_);
             else
                 state_.up(mouse_id);
         }
     }
+    if (e.type == SDL_EVENT_FINGER_DOWN || e.type == SDL_EVENT_FINGER_MOTION)
+        consumed = state_.owns(e.tfinger.fingerID);
     sync();
+    return consumed;
 }
 void TouchControls::render(SDL_Renderer *renderer) {
     if (!visible_)
