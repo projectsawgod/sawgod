@@ -1,11 +1,11 @@
 name: CI
 
-# Every push to main and every pull request builds and tests all platforms; a v* tag (or a manual run naming one)
-# also makes the draft release.
+# Every push to main and every pull request builds and tests all platforms.
+# v1.2.3 tags (v[0-9]*) draft SawGod releases; the vanilla tag drafts the one-time desktop-only release.
 on:
   push:
     branches: [main]
-    tags: ['v*']
+    tags: ['v[0-9]*', 'vanilla']
   pull_request:
   workflow_dispatch:
     inputs:
@@ -15,7 +15,7 @@ on:
         default: all
         options: [all, macos, windows, linux, android]
       version:
-        description: 'Optional draft release version; select the matching existing tag as ref'
+        description: 'Optional draft release tag (v1.1.0 or vanilla); select the matching existing tag as ref'
         type: string
         default: ''
       label:
@@ -44,6 +44,8 @@ jobs:
     outputs:
       version: ${{ steps.plan.outputs.version }}
       release: ${{ steps.plan.outputs.release }}
+      flavor: ${{ steps.plan.outputs.flavor }}
+      build_version: ${{ steps.plan.outputs.build_version }}
     steps:
       - uses: actions/checkout@v7.0.1
       - name: Validate tag and release request
@@ -68,7 +70,7 @@ jobs:
             build: build/package-linux
     runs-on: ${{ matrix.os }}
     env:
-      SAWGOD_RELEASE_VERSION: ${{ needs.release-plan.outputs.version || inputs.label }}
+      SAWGOD_RELEASE_VERSION: ${{ needs.release-plan.outputs.build_version || (needs.release-plan.outputs.release != 'true' && inputs.label) || '' }}
     steps:
       - uses: actions/checkout@v7.0.1
       - uses: actions/setup-python@v7.1.0
@@ -112,18 +114,18 @@ jobs:
       - name: Package Linux (reuse tested release build)
         if: runner.os == 'Linux'
         run: |
-          python tools/release/fetch_soundfont.py
-          nice tools/package.sh linux
+          if [[ "${{ needs.release-plan.outputs.flavor }}" == sawgod ]]; then
+            python tools/release/fetch_soundfont.py
+          fi
+          nice tools/package.sh linux "${{ needs.release-plan.outputs.flavor }}"
 
       - uses: actions/upload-artifact@v7.0.2
         if: runner.os == 'Linux'
         with:
           name: sawgod-linux-x86_64
           path: |
-            dist/sawgod-linux-x86_64.tar.gz
-            dist/sawgod-linux-x86_64.tar.gz.sha256
-            dist/sawgod-vanilla-linux-x86_64.tar.gz
-            dist/sawgod-vanilla-linux-x86_64.tar.gz.sha256
+            dist/${{ needs.release-plan.outputs.flavor == 'vanilla' && 'sawgod-vanilla' || 'sawgod' }}-linux-x86_64.tar.gz
+            dist/${{ needs.release-plan.outputs.flavor == 'vanilla' && 'sawgod-vanilla' || 'sawgod' }}-linux-x86_64.tar.gz.sha256
           if-no-files-found: error
           retention-days: 14
 
@@ -132,7 +134,7 @@ jobs:
     if: inputs.platforms == '' || inputs.platforms == 'all' || inputs.platforms == 'windows'
     runs-on: ubuntu-24.04
     env:
-      SAWGOD_RELEASE_VERSION: ${{ needs.release-plan.outputs.version || inputs.label }}
+      SAWGOD_RELEASE_VERSION: ${{ needs.release-plan.outputs.build_version || (needs.release-plan.outputs.release != 'true' && inputs.label) || '' }}
     steps:
       - uses: actions/checkout@v7.0.1
       - uses: actions/setup-python@v7.1.0
@@ -153,19 +155,24 @@ jobs:
           path: build/package-windows/_deps
           key: windows-mingw-deps-${{ hashFiles('CMakeLists.txt', 'tests/CMakeLists.txt') }}
 
+      - name: Build both desktop programs
+        run: |
+          nice cmake --preset windows-mingw -B build/package-windows -DSAWGOD_BUILD_TESTS=OFF -DSAWGOD_ENGLISH_FILL= -DSAWGOD_DEV_SOUNDFONT=
+          nice cmake --build build/package-windows --target sawgod sawgod-vanilla --parallel 4
+
       - name: Package Windows (MinGW on Ubuntu)
         run: |
-          python tools/release/fetch_soundfont.py
-          nice tools/package.sh windows
+          if [[ "${{ needs.release-plan.outputs.flavor }}" == sawgod ]]; then
+            python tools/release/fetch_soundfont.py
+          fi
+          nice tools/package.sh windows "${{ needs.release-plan.outputs.flavor }}"
 
       - uses: actions/upload-artifact@v7.0.2
         with:
           name: sawgod-windows-x86_64
           path: |
-            dist/sawgod-windows-x86_64.zip
-            dist/sawgod-windows-x86_64.zip.sha256
-            dist/sawgod-vanilla-windows-x86_64.zip
-            dist/sawgod-vanilla-windows-x86_64.zip.sha256
+            dist/${{ needs.release-plan.outputs.flavor == 'vanilla' && 'sawgod-vanilla' || 'sawgod' }}-windows-x86_64.zip
+            dist/${{ needs.release-plan.outputs.flavor == 'vanilla' && 'sawgod-vanilla' || 'sawgod' }}-windows-x86_64.zip.sha256
           if-no-files-found: error
           retention-days: 14
 
@@ -175,7 +182,7 @@ jobs:
     runs-on: macos-15 # Xcode 16 (Apple clang 16): the C++20 features the code uses; the app still targets macOS 11
     timeout-minutes: 45
     env:
-      SAWGOD_RELEASE_VERSION: ${{ needs.release-plan.outputs.version || inputs.label }}
+      SAWGOD_RELEASE_VERSION: ${{ needs.release-plan.outputs.build_version || (needs.release-plan.outputs.release != 'true' && inputs.label) || '' }}
     steps:
       - uses: actions/checkout@v7.0.1
       - uses: actions/setup-python@v7.1.0
@@ -201,6 +208,7 @@ jobs:
           key: macos-arm64-deps-${{ hashFiles('CMakeLists.txt', 'tests/CMakeLists.txt', 'tools/release/build_fluidsynth.sh', 'tools/release/fetch_soundfont.py') }}
 
       - name: Fetch redistributable soundfont
+        if: needs.release-plan.outputs.flavor == 'sawgod'
         run: python tools/release/fetch_soundfont.py
 
       - name: Configure release with tests
@@ -216,26 +224,24 @@ jobs:
         run: nice ctest --test-dir build/package-macos --output-on-failure --parallel 4
 
       - name: Package and verify ad-hoc signature
-        run: nice tools/package.sh macos
+        run: nice tools/package.sh macos "${{ needs.release-plan.outputs.flavor }}"
 
       - uses: actions/upload-artifact@v7.0.2
         with:
           name: sawgod-macos-arm64
           path: |
-            dist/sawgod-macos-arm64.zip
-            dist/sawgod-macos-arm64.zip.sha256
-            dist/sawgod-vanilla-macos-arm64.zip
-            dist/sawgod-vanilla-macos-arm64.zip.sha256
+            dist/${{ needs.release-plan.outputs.flavor == 'vanilla' && 'sawgod-vanilla' || 'sawgod' }}-macos-arm64.zip
+            dist/${{ needs.release-plan.outputs.flavor == 'vanilla' && 'sawgod-vanilla' || 'sawgod' }}-macos-arm64.zip.sha256
           if-no-files-found: error
           retention-days: 14
 
   android:
     needs: release-plan
-    if: inputs.platforms == '' || inputs.platforms == 'all' || inputs.platforms == 'android'
+    if: needs.release-plan.outputs.flavor != 'vanilla' && (inputs.platforms == '' || inputs.platforms == 'all' || inputs.platforms == 'android')
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     env:
-      SAWGOD_RELEASE_VERSION: ${{ needs.release-plan.outputs.version || inputs.label }}
+      SAWGOD_RELEASE_VERSION: ${{ needs.release-plan.outputs.build_version || (needs.release-plan.outputs.release != 'true' && inputs.label) || '' }}
     steps:
       - uses: actions/checkout@v7.0.1
       - uses: actions/setup-python@v7.1.0
@@ -297,7 +303,7 @@ jobs:
           else
             signing='Android APK: TESTING BUILD, signed with the public debug key; not a production signature.'
           fi
-          SAWGOD_ANDROID_VARIANT=release nice tools/package.sh android
+          SAWGOD_ANDROID_VARIANT=release nice tools/package.sh android sawgod
           printf '%s\n' "$signing" > dist/android-signing.txt
       - uses: actions/upload-artifact@v7.0.2
         with:
@@ -311,7 +317,13 @@ jobs:
 
   draft-release:
     needs: [release-plan, lint, build-test, windows-mingw-cross, macos, android]
-    if: needs.release-plan.outputs.release == 'true'
+    # A vanilla release deliberately skips Android; all required builds must still pass.
+    if: >-
+      always() && needs.release-plan.outputs.release == 'true' &&
+      needs.lint.result == 'success' && needs.build-test.result == 'success' &&
+      needs.windows-mingw-cross.result == 'success' && needs.macos.result == 'success' &&
+      (needs.android.result == 'success' ||
+       (needs.release-plan.outputs.flavor == 'vanilla' && needs.android.result == 'skipped'))
     runs-on: ubuntu-24.04
     permissions:
       contents: write

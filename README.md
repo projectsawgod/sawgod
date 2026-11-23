@@ -33,8 +33,9 @@ includes a README with controls, data locations and platform notes. Android buil
 
 ## The original game: sawgod-vanilla
 
-The desktop releases also include **sawgod-vanilla**, a small SDL3 front end for the original Japanese WSC
-game, with its own menus, sound, three save slots and cartridge behavior. Supply the supported `.wsc` ROM
+**sawgod-vanilla** is a [separate one-time download](https://github.com/projectsawgod/sawgod/releases/tag/vanilla)
+that will not be updated: a small SDL3 front end for the original Japanese WSC game, with its own menus,
+sound, three save slots and cartridge behavior. Supply the supported `.wsc` ROM
 on the command line, place it beside the executable, or select it in the file picker. Raw SRAM saves go
 beside the ROM as `<rom name>.sav`. See the package README for controls and the shipped input mapping file.
 

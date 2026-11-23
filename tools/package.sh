@@ -11,9 +11,9 @@ if [[ ! $SAWGOD_PACKAGE_JOBS =~ ^[1-4]$ ]]; then
 fi
 target=${1:-}
 flavor=${2:-both}
-case "$flavor" in both|vanilla) ;; *) echo "Flavor must be both or vanilla" >&2; exit 2 ;; esac
+case "$flavor" in both|sawgod|vanilla) ;; *) echo "Flavor must be both, sawgod or vanilla" >&2; exit 2 ;; esac
 if [[ "$target" == android ]]; then
-  [[ "$flavor" == both ]] || { echo "The vanilla front end is desktop-only" >&2; exit 2; }
+  [[ "$flavor" != vanilla ]] || { echo "The vanilla front end is desktop-only" >&2; exit 2; }
   cd "$R"
   python3 "$R/tools/android_prepare.py"
   variant=${SAWGOD_ANDROID_VARIANT:-debug}
@@ -35,7 +35,7 @@ case "$target" in
   windows) preset=windows-mingw ;;
   linux) preset=linux-release ;;
   macos) preset=macos-release ;;
-  *) echo 'Usage: tools/package.sh windows|linux|macos|android [both|vanilla]' >&2; exit 2 ;;
+  *) echo 'Usage: tools/package.sh windows|linux|macos|android [both|sawgod|vanilla]' >&2; exit 2 ;;
 esac
 cd "$R"
 jobs=$SAWGOD_PACKAGE_JOBS
@@ -72,20 +72,26 @@ if [[ "$flavor" == vanilla ]]; then
   python3 "$R/tools/name_scan.py" "$R/dist/$vanilla_name" "$R/dist/$vanilla_name.$extension"
   exit 0
 fi
-nice -n 10 cmake --build "$build" --target sawgod sawgod-vanilla --parallel "$jobs"
+targets=(sawgod)
+[[ "$flavor" != both ]] || targets+=(sawgod-vanilla)
+nice -n 10 cmake --build "$build" --target "${targets[@]}" --parallel "$jobs"
 nice -n 10 "$R/tools/release/build_fluidsynth.sh" "$target" "$R/ref/fluidsynth" "$build/fluidsynth"
 if [[ "$target" == macos ]]; then
   python3 "$R/tools/release/package_macos.py" "$build"
 else
   python3 "$R/tools/release/package.py" "$target" "$build"
 fi
-python3 "$R/tools/release/package_vanilla.py" "$target" "$build"
+if [[ "$flavor" == both ]]; then
+  python3 "$R/tools/release/package_vanilla.py" "$target" "$build"
+fi
 case "$target" in
   windows) package_name=sawgod-windows-x86_64; extension=zip ;;
   linux) package_name=sawgod-linux-x86_64; extension=tar.gz ;;
   macos) package_name=sawgod-macos-arm64; extension=zip ;;
 esac
 python3 "$R/tools/name_scan.py" "$R/dist/$package_name" "$R/dist/$package_name.$extension"
-vanilla_name=${package_name/sawgod-/sawgod-vanilla-}
-python3 "$R/tools/name_scan.py" "$R/dist/$vanilla_name" "$R/dist/$vanilla_name.$extension"
+if [[ "$flavor" == both ]]; then
+  vanilla_name=${package_name/sawgod-/sawgod-vanilla-}
+  python3 "$R/tools/name_scan.py" "$R/dist/$vanilla_name" "$R/dist/$vanilla_name.$extension"
+fi
 printf 'Package completed in %s seconds.\n' "$SECONDS"
