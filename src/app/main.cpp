@@ -856,7 +856,8 @@ int main(int argc, char **argv) {
     if (zoom_backdrop.begin(renderer, int(initial_game.w), int(initial_game.h), initial_game.scale))
         SDL_SetRenderTarget(renderer, startup_target);
     if (battle_wipe.begin(renderer, args.shot_w > 0 ? args.shot_w : initial_width,
-                          args.shot_h > 0 ? args.shot_h : initial_height, 0, -1))
+                          args.shot_h > 0 ? args.shot_h : initial_height, 0, -1,
+                          {initial_game.x, initial_game.y, initial_game.w, initial_game.h}))
         SDL_SetRenderTarget(renderer, startup_target);
 
     // bindings: the defaults, then sawgod.toml's [keyboard] / [gamepad] tables (the menu edits them)
@@ -1338,7 +1339,7 @@ int main(int argc, char **argv) {
         const Rect g = GameRect(out_w, out_h);
         const SDL_FRect screen_dst{g.x, g.y, g.w, g.h};
         SDL_FRect backdrop_dst = screen_dst; // black bars around it in fullscreen
-        if (!fullscreen) {                   // cover the whole window
+        if (!fullscreen && !touch_picture) { // Desktop backdrop may cover the window; touch keeps black bars.
             const float s =
                 std::max(float(out_w) / sawgod::kNativeWidth, float(out_h) / sawgod::kNativeHeight);
             const float w = sawgod::kNativeWidth * s, h = sawgod::kNativeHeight * s;
@@ -1360,10 +1361,10 @@ int main(int argc, char **argv) {
             fidelity.graphics_weights(shot_fidelity_time.value_or(SDL_GetTicksNS()))[2];
         const bool wipe_picture =
             wiping && enhanced_weight > 0 && battle_wipe.available(generation, wsc->ram[0xD0DC]);
-        const bool keep_field = wsc && !wiping && !options_canvas_submitted && enhanced_weight == 1 &&
-                                !host_picture.holding() &&
-                                enhanced_scene.kind == sawgod::game::PresentationScene::Kind::Field &&
-                                battle_wipe.begin(renderer, out_w, out_h, generation, enhanced_scene.map);
+        const bool keep_field =
+            wsc && !wiping && !options_canvas_submitted && enhanced_weight == 1 && !host_picture.holding() &&
+            enhanced_scene.kind == sawgod::game::PresentationScene::Kind::Field &&
+            battle_wipe.begin(renderer, out_w, out_h, generation, enhanced_scene.map, screen_dst);
 
         if (!wsc) {
             SDL_SetRenderDrawColor(renderer, 24, 24, 32, 255);
@@ -2655,18 +2656,21 @@ int main(int argc, char **argv) {
                 break;
             }
             input.handle_event(event);
-            if (event.type == SDL_EVENT_WILL_ENTER_BACKGROUND || event.type == SDL_EVENT_DID_ENTER_BACKGROUND ||
-                event.type == SDL_EVENT_WINDOW_FOCUS_LOST || event.type == SDL_EVENT_WINDOW_MINIMIZED) {
+            if (event.type == SDL_EVENT_WILL_ENTER_BACKGROUND ||
+                event.type == SDL_EVENT_DID_ENTER_BACKGROUND || event.type == SDL_EVENT_WINDOW_FOCUS_LOST ||
+                event.type == SDL_EVENT_WINDOW_MINIMIZED) {
                 touch_foreground = false;
                 touch.show(false);
-            } else if (event.type == SDL_EVENT_DID_ENTER_FOREGROUND || event.type == SDL_EVENT_WINDOW_FOCUS_GAINED ||
+            } else if (event.type == SDL_EVENT_DID_ENTER_FOREGROUND ||
+                       event.type == SDL_EVENT_WINDOW_FOCUS_GAINED ||
                        event.type == SDL_EVENT_WINDOW_RESTORED) {
                 touch_foreground = true;
             }
             int touch_w = 1, touch_h = 1;
             SDL_GetCurrentRenderOutputSize(renderer, &touch_w, &touch_h);
             update_touch(touch_w, touch_h);
-            touch.event(event, window, args.touch_controls);
+            if (touch.event(event, window, args.touch_controls))
+                continue;
             switch (event.type) {
             case SDL_EVENT_QUIT:
                 running = false;

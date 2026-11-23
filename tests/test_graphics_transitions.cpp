@@ -112,7 +112,7 @@ TEST_CASE("Enhanced battle wipe shifts the retained picture under the native clo
     REQUIRE(SDL_UpdateTexture(source, nullptr, pixels.data(), 224 * 4));
     app::BattleWipe wipe;
     CHECK_FALSE(wipe.available(1, 1));
-    REQUIRE(wipe.begin(renderer, 224, 144, 1, 1));
+    REQUIRE(wipe.begin(renderer, 224, 144, 1, 1, {0, 0, 224, 144}));
     SDL_RenderTexture(renderer, source, nullptr, nullptr);
     wipe.end(renderer);
     CHECK(wipe.available(1, 1));
@@ -272,4 +272,41 @@ TEST_CASE("[ROM] GB service returns keep coordinate-owned field art after the ri
                 CHECK(tile_pixels(uint16_t(dest)) == ring[size_t(source)]);
             }
     }
+}
+
+TEST_CASE("Enhanced battle wipe clears its retained bars when the picture shrinks") {
+    // Touch controls switch to whole-pixel scaling: the picture shrinks inside the same output size. The
+    // retained target must not copy the old, larger picture back into the new black bars.
+    REQUIRE(SDL_Init(SDL_INIT_VIDEO));
+    auto *window = SDL_CreateWindow("Battle wipe bars", 448, 144, SDL_WINDOW_HIDDEN);
+    REQUIRE(window);
+    auto *renderer = SDL_CreateRenderer(window, "software");
+    REQUIRE(renderer);
+    auto *out = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_XRGB8888, SDL_TEXTUREACCESS_TARGET, 448, 144);
+    REQUIRE(out);
+    app::BattleWipe wipe;
+    REQUIRE(SDL_SetRenderTarget(renderer, out));
+    REQUIRE(wipe.begin(renderer, 448, 144, 1, 1, {0, 0, 448, 144}));
+    SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+    SDL_RenderFillRect(renderer, nullptr); // the old picture covers the whole output
+    wipe.end(renderer);
+    REQUIRE(wipe.begin(renderer, 448, 144, 1, 1, {112, 0, 224, 144}));
+    const SDL_FRect picture{112, 0, 224, 144};
+    SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+    SDL_RenderFillRect(renderer, &picture); // the new, narrower picture
+    wipe.end(renderer);
+    SDL_Surface *s = SDL_RenderReadPixels(renderer, nullptr);
+    REQUIRE(s);
+    Uint8 r = 0, g = 0, b = 0;
+    for (int x : {0, 50, 111, 336, 400, 447}) {
+        REQUIRE(SDL_ReadSurfacePixel(s, x, 72, &r, &g, &b, nullptr));
+        CHECK(int(r) + g + b == 0);
+    }
+    REQUIRE(SDL_ReadSurfacePixel(s, 224, 72, &r, &g, &b, nullptr));
+    CHECK(r == 255);
+    SDL_DestroySurface(s);
+    wipe.release();
+    SDL_DestroyTexture(out);
+    SDL_DestroyRenderer(renderer);
+    SDL_DestroyWindow(window);
 }

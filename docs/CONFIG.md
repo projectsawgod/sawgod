@@ -694,8 +694,8 @@ Auto (default) shows touch only without a real SDL-recognized controller; connec
 immediately without pausing. The overlay's own joystick and unmapped joysticks do not count. On keeps
 touch visible alongside every controller, and Off hides it. Keyboard and all gamepads always work.
 No controller event overrides the saved choice. Desktop normally has no touch or type row.
-Only the hamburger remains visible in Options when touch is enabled; it closes the menu or cancels
-binding capture. Android Back performs the same Options action even under Off, regardless of bindings.
+Options keeps the hamburger, X pad, A and B visible for closing, navigation, accept and back.
+Y, Mode and START are hidden. Binding capture ignores the touch joystick; the hamburger cancels capture. Android Back performs the same Options action even under Off, regardless of bindings.
 Hiding touch releases held virtual buttons. Whole-pixel picture scaling follows overlay visibility.
 Prompts follow the last device pressed; Auto icons use the last real controller's family when available,
 with the usual Xbox fallback when only touch is available.
