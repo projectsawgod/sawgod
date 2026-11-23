@@ -12,9 +12,9 @@
 #include <vector>
 
 #include "engine/button_icons.h"
+#include "engine/config.h"
 #include "engine/touch_controls.h"
 #include <functional>
-#include "engine/config.h"
 
 namespace sawgod::ui {
 
@@ -172,13 +172,9 @@ class Input {
 #else
     static constexpr bool kAndroid = false;
 #endif
-    explicit Input(bool debug_touch = false, SDL_JoystickID virtual_id = 0);
+    explicit Input(SDL_JoystickID virtual_id = 0);
     ~Input();
-    GamepadType selected_type() const { return policy_.type(); }
-    CVar &type_setting() { return *type_setting_; }
-    void select_type(GamepadType type);
-    std::function<void()> type_changed;
-
+    bool real_controller_connected() const;
     // Opens/closes gamepads as they come and go; collects menu actions from key and button presses.
     void handle_event(const SDL_Event &e);
     // Fixed host controls (touch Options and Android Back) share the binding's capture cancellation.
@@ -191,8 +187,8 @@ class Input {
     MenuActions take_menu_actions(double now_s);
 
     int gamepad_count() const;
-    std::string gamepad_name() const;     // first pad's name, or ""
-    SDL_GamepadType gamepad_type() const; // first pad's type, or SDL_GAMEPAD_TYPE_UNKNOWN
+    std::string gamepad_name() const;     // preferred real pad's name, or ""
+    SDL_GamepadType gamepad_type() const; // preferred real pad's type, or SDL_GAMEPAD_TYPE_UNKNOWN
     // Whether the player last pressed something on a gamepad (else the keyboard): the device whose buttons
     // the text's button icons show.
     bool last_used_pad() const { return last_pad_; }
@@ -212,12 +208,9 @@ class Input {
     std::optional<Binding> take_captured(bool *cancelled);
 
   private:
-    GamepadPolicy policy_;
-    Config runtime_config_; // Never loaded from or stored to sawgod.toml.
-    CVar *type_setting_ = nullptr;
     SDL_JoystickID virtual_id_ = 0;
-    bool accepts_pad(SDL_JoystickID id) const;
-    void sync_type();
+    SDL_JoystickID last_real_pad_ = 0;
+    SDL_Gamepad *prompt_pad() const;
     std::vector<SDL_Gamepad *> pads_;
     const InputMap *map_ = nullptr;
     bool last_pad_ = false;

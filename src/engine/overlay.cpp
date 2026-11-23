@@ -315,28 +315,18 @@ void Overlay::build_pages() {
     };
     pages_.push_back(bind_page(false));
     Page controls = bind_page(true);
-    if (hooks_.input) {
-        Row type;
-        type.kind = Row::Kind::Setting;
-        type.var = &hooks_.input->type_setting();
-        type.label = type.var->label;
-        type.help = type.var->help;
-        controls.rows.insert(controls.rows.begin(), type);
-    }
-    if (settings_ && settings_->pad_icons) { // Icon Type, above the bindings
-        Row icons;
-        icons.kind = Row::Kind::Setting;
-        icons.var = settings_->pad_icons;
-        icons.label = icons.var->label;
-        controls.rows.insert(controls.rows.begin() + 1, icons);
-    }
-    if (settings_ && settings_->swap_ab) {
-        Row swap;
-        swap.kind = Row::Kind::Setting;
-        swap.var = settings_->swap_ab;
-        swap.label = swap.var->label;
-        controls.rows.insert(controls.rows.begin() + (hooks_.input ? 1 : 0), swap);
-    }
+    // Saved settings precede the binding table; desktop hides Touch Controls unless debugging it.
+    size_t setting_row = 0;
+    if (settings_)
+        for (CVar *var : {settings_->touch_controls, settings_->swap_ab, settings_->pad_icons}) {
+            if (!var || var->hidden)
+                continue;
+            Row row;
+            row.kind = Row::Kind::Setting;
+            row.var = var;
+            row.label = var->label;
+            controls.rows.insert(controls.rows.begin() + setting_row++, row);
+        }
     pages_.push_back(std::move(controls));
     for (const std::string &cat : config_->categories())
         if (cat != "Video" && cat != "Audio" && cat != "Debug" && cat != "Gamepad" &&
@@ -708,11 +698,6 @@ void Overlay::commit(CVar &v, int value) {
     cancel_pending();
     if (value == v.get())
         return;
-    if (hooks_.input && &v == &hooks_.input->type_setting()) {
-        hooks_.input->select_type(GamepadType(value));
-        in_rows_ = false;
-        return;
-    }
     config_->set(v, value);
     if (&v == settings_->swap_ab) {
         // Return before the confirming button becomes Back under the new mapping. All input routes

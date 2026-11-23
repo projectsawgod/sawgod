@@ -182,7 +182,7 @@ using sawgod::app::ZoomBackdrop;
 
 int main(int argc, char **argv) {
     sawgod::app::LaunchArgs args = sawgod::app::parse_launch_args(argc, argv);
-    bool touch_picture = sawgod::ui::Input::kAndroid || args.touch_controls;
+    bool touch_picture = false;
     // Touch chrome leaves side bars beside a whole-pixel picture.
     auto GameRect = [&](int width, int height) {
         return sawgod::app::GameRect(width, height, touch_picture);
@@ -301,7 +301,7 @@ int main(int argc, char **argv) {
     // Settings: registered defaults include Swap fidelity; the file holds persistent user choices.
     sawgod::Config config;
     sawgod::Settings settings;
-    settings.register_all(config);
+    settings.register_all(config, args.touch_controls);
     const std::string config_path = sawgod::app::config_file(args);
     sawgod::app::load_settings(args, config_path, config, settings);
     auto save_config = [&] {
@@ -796,6 +796,13 @@ int main(int argc, char **argv) {
         sawgod::debug_log::warnf("gpu", "Mode 7 focus unavailable: %s", SDL_GetError());
     int initial_width = 224, initial_height = 144;
     SDL_GetRenderOutputSize(renderer, &initial_width, &initial_height);
+    bool running = true;
+    sawgod::ui::TouchControls touch;
+    if (!settings.touch_controls->hidden && !touch.init())
+        sawgod::debug_log::errorf("input", "Touch gamepad initialization failed: %s", SDL_GetError());
+    sawgod::ui::Input input(touch.id());
+    bool touch_foreground = true;
+    touch_picture = wsc && settings.touch_enabled(input.real_controller_connected());
     const auto initial_game = GameRect(args.shot_w > 0 ? args.shot_w : initial_width,
                                        args.shot_h > 0 ? args.shot_h : initial_height);
     const auto initial_scene =
@@ -852,17 +859,6 @@ int main(int argc, char **argv) {
                           args.shot_h > 0 ? args.shot_h : initial_height, 0, -1))
         SDL_SetRenderTarget(renderer, startup_target);
 
-    bool running = true;
-    sawgod::ui::TouchControls touch;
-    if ((sawgod::ui::Input::kAndroid || args.touch_controls) && !touch.init())
-        sawgod::debug_log::errorf("input", "Touch gamepad initialization failed: %s", SDL_GetError());
-    sawgod::ui::Input input(args.touch_controls, touch.id());
-    touch_picture = input.selected_type() == sawgod::ui::GamepadType::Virtual;
-    input.type_changed = [&] {
-        touch.show(false);
-        touch_picture = input.selected_type() == sawgod::ui::GamepadType::Virtual;
-    };
-    bool touch_foreground = true;
     // bindings: the defaults, then sawgod.toml's [keyboard] / [gamepad] tables (the menu edits them)
     sawgod::ui::InputMap input_map = sawgod::ui::InputMap::defaults();
     {
@@ -1959,12 +1955,13 @@ int main(int argc, char **argv) {
     int wipe_field_map = -1;
     bool wipe_field_camera = false;
     auto update_touch = [&](int width, int height) {
+        touch_picture = wsc && touch_foreground && settings.touch_enabled(input.real_controller_connected());
+        touch.show(touch_picture, overlay.is_open());
         touch.layout(window, renderer, float(width), float(height), GameRect(width, height).w);
-        touch.show(wsc && touch_foreground && input.selected_type() == sawgod::ui::GamepadType::Virtual,
-                   overlay.is_open());
     };
     auto draw_frame = [&](int out_w, int out_h, bool fullscreen) {
         sawgod::CpuScope cpu_scope("draw_frame");
+        update_touch(out_w, out_h);
         const bool wiping = wsc && sawgod::game::presented_battle_entry_wipe(*wsc);
         if (wiping && !options_canvas_submitted && !was_wiping && wipe_field &&
             (!wipe_field_camera || mode7_source.map() == wipe_field_map)) {
@@ -2008,7 +2005,6 @@ int main(int argc, char **argv) {
                                 sawgod::game::mode7_allowed(wipe_field_map, sawgod::FidelityMode::Enhanced,
                                                             true, !settings.enhanced_mode7->on());
         }
-        update_touch(out_w, out_h);
         touch.render(renderer);
     };
     auto write_timing = [&](uint64_t tick_ns, uint64_t upload_ns, uint64_t draw_ns, uint64_t present_ns,

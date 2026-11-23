@@ -4,36 +4,8 @@
 #include <array>
 #include <cstdint>
 #include <map>
-#include <set>
 
 namespace sawgod::ui {
-enum class GamepadType { None, Gamepad, Virtual };
-class GamepadPolicy {
-  public:
-    explicit GamepadPolicy(bool virtual_allowed = false) : virtual_allowed_(virtual_allowed) {
-        type_ = fallback();
-    }
-    GamepadType type() const { return type_; }
-    bool virtual_allowed() const { return virtual_allowed_; }
-    void pick(GamepadType type) {
-        if (type != GamepadType::Virtual || virtual_allowed_)
-            type_ = type;
-    }
-    // Only SDL gamepads count; our overlay's own joystick never changes the policy.
-    void device(uint32_t id, bool added, bool is_gamepad, bool own_virtual) {
-        if (own_virtual || !is_gamepad)
-            return;
-        if (added ? pads_.insert(id).second : pads_.erase(id) != 0)
-            type_ = pads_.empty() ? fallback() : GamepadType::Gamepad;
-    }
-
-  private:
-    GamepadType fallback() const { return virtual_allowed_ ? GamepadType::Virtual : GamepadType::None; }
-    bool virtual_allowed_;
-    GamepadType type_;
-    std::set<uint32_t> pads_;
-};
-
 enum class TouchControl { Options, Mode, Start, Y, X, A, B, Count };
 struct TouchArea {
     float x = 0, y = 0, w = 0, h = 0;
@@ -88,9 +60,7 @@ class TouchControls {
     void release_renderer();
     void layout(SDL_Window *window, SDL_Renderer *renderer, float width, float height, float picture_width);
     void show(bool visible, bool options_only = false);
-    bool shown(TouchControl c) const {
-        return visible_ && (!options_only_ || c == TouchControl::Options);
-    }
+    bool shown(TouchControl c) const { return visible_ && (!options_only_ || c == TouchControl::Options); }
     void event(const SDL_Event &event, SDL_Window *window, bool mouse);
     void render(SDL_Renderer *renderer);
     bool take_options() { return state_.take_options(); }

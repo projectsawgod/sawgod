@@ -2,7 +2,7 @@
 
 namespace sawgod {
 
-void Settings::register_all(Config &c) {
+void Settings::register_all(Config &c, bool debug_touch) {
     window_width = &c.add_int("video.window_width", "Video", "", "", 224 * kDefaultWindowScale, 448, 16384);
     window_height = &c.add_int("video.window_height", "Video", "", "", 144 * kDefaultWindowScale, 288, 16384);
     window_width->hidden = window_height->hidden = true;
@@ -183,6 +183,14 @@ void Settings::register_all(Config &c) {
                                    "Weapons, items and abilities never run out", false);
     unlimited_hearts = &c.add_bool("modifiers.unlimited_revives", "Cheats", "Unlimited Revives",
                                    "Reviving a party member doesn't cost a heart", false);
+    touch_controls =
+        &c.add_enum("input.touch_controls", "Gamepad", "Touch Controls", "Show on-screen touch controls",
+                    {"auto", "on", "off"}, {"Auto", "On", "Off"}, 0);
+#ifndef __ANDROID__
+    touch_controls->hidden = !debug_touch;
+#else
+    (void)debug_touch;
+#endif
     swap_ab = &c.add_bool("input.swap_ab", "Gamepad", "Swap A/B",
                           "Exchange gamepad A and B in game and Options", false);
     swap_ab->choice_order = {0, 1};

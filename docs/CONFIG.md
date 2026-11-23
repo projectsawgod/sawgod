@@ -97,6 +97,7 @@ unbreakable_gear = false
 unlimited_revives = false
 
 [input]
+touch_controls = "auto" # Android or --touch-controls: "auto" (default), "on", "off"
 swap_ab = false         # Swap A/B: Off by default, On exchanges gamepad A and B
 pad_icons = "auto"       # Gamepad page, Icon Type: "auto" (default), "xbox", "ps", "switch"
 
@@ -195,7 +196,8 @@ a keycap); the options menu's help line shows its own fixed accept/back/clear bu
 
 | Setting | Meaning |
 |---|---|
-| `input.swap_ab` | Swap A/B, the first row of the Gamepad page: Off (`false`, default) or On (`true`). Exchanges the configured gamepad A/B actions in gameplay and Options immediately. Confirming a change returns focus to the Gamepad category with Options still open; canceling an unconfirmed choice leaves the setting unchanged. Stored custom slots are preserved, so toggling twice restores them; the binding rows show the effective actions and edits target their underlying slots. A/B precede the X/Y pads on both binding pages. The press that changes the setting or completes capture is ignored until released; the next press uses the new mapping. Keyboard bindings are unchanged. |
+| `input.touch_controls` | Touch Controls: Auto (`"auto"`, default) shows the overlay without a real controller and hides it while one is connected. On (`"on"`) always shows it alongside controllers; Off (`"off"`) hides it. Saved; controller connections never change this choice. Android or desktop `--touch-controls` only. Real pads and keyboard always work; Android Back opens/closes Options even under Off. |
+| `input.swap_ab` | Swap A/B, above the bindings of the Gamepad page: Off (`false`, default) or On (`true`). Exchanges the configured gamepad A/B actions in gameplay and Options immediately. Confirming a change returns focus to the Gamepad category with Options still open; canceling an unconfirmed choice leaves the setting unchanged. Stored custom slots are preserved, so toggling twice restores them; the binding rows show the effective actions and edits target their underlying slots. A/B precede the X/Y pads on both binding pages. The press that changes the setting or completes capture is ignored until released; the next press uses the new mapping. Keyboard bindings are unchanged. |
 | `input.pad_icons` | Icon Type, below Swap A/B on the Gamepad page: which family's icons the pad buttons show, by position. Auto (`"auto"`, default): the connected pad's family by its SDL gamepad type (PlayStation: PS, Switch: Switch, anything else or none: Xbox). Xbox (`"xbox"`, Xbox: A/B/X/Y, LB/RB, LT/RT), PS (`"ps"`, PlayStation: cross/circle/square/triangle, L1/R1, L2/R2, L3/R3), Switch (`"switch"`, Nintendo Switch: B/A/Y/X by position, L/R, ZL/ZR, +/-); named by console. Changing it (A, or a click) refreshes the page immediately. In the WSC and Enhanced styles each type has its controller's colors: Xbox near-black buttons with the face letters in Xbox green/red/blue/yellow, PS light buttons with the face shapes in PlayStation's colors, Switch dark gray buttons with light letters; shoulders and triggers are blocks rounded on their own side's top corner, sticks are discs, their direction arcs orange against the disc (gray in GB); under a dark button the shadow is a lighter gray. GB stays black. Headless `--button-icons key|xbox|ps|switch` selects the same families for hint tokens. |
 
 ## Adding a setting
@@ -686,14 +688,17 @@ Binding pages list the WSC buttons,
 then Options, Encounters On/Off, Toggle Minimap, Mode Down, Mode Up and Fast Forward. Config IDs stay unchanged.
 Graphics/Music Swap help uses the current device’s bound Mode Down/Mode Up controls and selected pad icons.
 
-The Gamepad page's **Gamepad Type** row is runtime state, never written to `sawgod.toml`:
-None uses keyboard, Gamepad uses connected SDL gamepads, and Virtual uses Android's on-screen controls.
-Keyboard input works with every type. Launch and each controller connection/disconnection select Gamepad
-when any SDL-recognized controller remains; otherwise Android selects Virtual and desktop selects None.
-The overlay's own SDL virtual joystick and unmapped joysticks are excluded. A manual choice lasts until
-the next controller connection/disconnection. Desktop's `--touch-controls` debug launch flag enables
-Virtual and the Android fallback, with mouse input for testing.
-In Virtual, only the hamburger remains visible in Options; it closes the menu or cancels binding capture, while Android Back performs the same Options action for every Gamepad Type, regardless of keyboard bindings.
+The Gamepad page shows **Touch Controls: Auto / On / Off** on Android or with the desktop
+`--touch-controls` debug switch (which also enables mouse testing). It is saved as `input.touch_controls`.
+Auto (default) shows touch only without a real SDL-recognized controller; connect/disconnect takes effect
+immediately without pausing. The overlay's own joystick and unmapped joysticks do not count. On keeps
+touch visible alongside every controller, and Off hides it. Keyboard and all gamepads always work.
+No controller event overrides the saved choice. Desktop normally has no touch or type row.
+Only the hamburger remains visible in Options when touch is enabled; it closes the menu or cancels
+binding capture. Android Back performs the same Options action even under Off, regardless of bindings.
+Hiding touch releases held virtual buttons. Whole-pixel picture scaling follows overlay visibility.
+Prompts follow the last device pressed; Auto icons use the last real controller's family when available,
+with the usual Xbox fallback when only touch is available.
 
 The touch Mode button cycles unlocked graphics/music GB -> WSC -> Enhanced -> GB with a fade.
 Locked tracks remain fixed. Mode Down/Up keyboard/gamepad bindings continue to clamp at the ends.
