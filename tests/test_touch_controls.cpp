@@ -131,8 +131,7 @@ TEST_CASE("touch: phone density preserves reference geometry without insets") {
 }
 TEST_CASE("touch: cutout bars fit minimum targets, labels and disjoint hit areas") {
     for (float bottom : {0.f, 63.f}) {
-        const auto l = TouchLayout::make(2400, 1080, 1568, {128, 0, 2272, 1080 - bottom},
-                                        57 * 2.625f / 120);
+        const auto l = TouchLayout::make(2400, 1080, 1568, {128, 0, 2272, 1080 - bottom}, 57 * 2.625f / 120);
         check_disjoint(l);
         for (size_t i = 0; i < l.areas.size(); ++i) {
             const auto a = l.areas[i];
@@ -183,33 +182,78 @@ TEST_CASE("touch: narrow phone uses minimum targets and permits picture overlap"
     }
 }
 
-TEST_CASE("touch: device policy launches, overrides hand picks, ignores its own joystick") {
-    for (bool mobile : {false, true}) {
-        const auto fallback = mobile ? GamepadType::Virtual : GamepadType::None;
-        GamepadPolicy p(mobile);
-        CHECK(p.type() == fallback);
-        p.device(99, true, true, true);
-        p.device(88, true, false, false);
-        CHECK(p.type() == fallback);
-        p.device(1, true, true, false);
-        CHECK(p.type() == GamepadType::Gamepad);
-        p.pick(GamepadType::None);
-        CHECK(p.type() == GamepadType::None);
-        p.device(2, true, true, false);
-        CHECK(p.type() == GamepadType::Gamepad);
-        p.pick(GamepadType::Virtual);
-        CHECK(p.type() == (mobile ? GamepadType::Virtual : GamepadType::Gamepad));
-        p.device(1, false, true, false);
-        CHECK(p.type() == GamepadType::Gamepad);
-        p.device(2, false, true, false);
-        CHECK(p.type() == fallback);
-        p.pick(GamepadType::Gamepad);
-        p.device(99, false, true, true);
-        CHECK(p.type() == GamepadType::Gamepad);
-        p.device(1, true, true, false);
-        p.device(1, false, true, false);
-        CHECK(p.type() == fallback);
+TEST_CASE("touch: saved Auto On Off honors controller hotplug and excludes its own joystick") {
+    REQUIRE(SDL_InitSubSystem(SDL_INIT_GAMEPAD));
+    {
+        TouchControls touch;
+        REQUIRE(touch.init());
+        Config config;
+        Settings settings;
+        settings.register_all(config, true);
+        CHECK(settings.touch_controls->get() == int(TouchMode::Auto));
+        for (auto mode : {TouchMode::Auto, TouchMode::On, TouchMode::Off}) {
+            config.set(*settings.touch_controls, int(mode));
+            Input input(touch.id()); // launch without a real controller
+            CHECK_FALSE(input.real_controller_connected());
+            CHECK(settings.touch_enabled(input.real_controller_connected()) == (mode != TouchMode::Off));
+            SDL_VirtualJoystickDesc desc{};
+            SDL_INIT_INTERFACE(&desc);
+            desc.type = SDL_JOYSTICK_TYPE_GAMEPAD;
+            desc.name = "External test pad";
+            desc.vendor_id = 0x054c;
+            desc.product_id = 0x0ce6; // DualSense: distinct from the touch joystick's Auto fallback
+            desc.nbuttons = SDL_GAMEPAD_BUTTON_COUNT;
+            const auto id = SDL_AttachVirtualJoystick(&desc);
+            REQUIRE(id);
+            SDL_Event e{};
+            while (SDL_PollEvent(&e))
+                input.handle_event(e);
+            CHECK(input.real_controller_connected());
+            CHECK(settings.touch_enabled(true) == (mode == TouchMode::On));
+            CHECK(settings.touch_controls->get() == int(mode));
+            CHECK(input.gamepad_name() == "External test pad");
+            CHECK(input.gamepad_type() == SDL_GAMEPAD_TYPE_PS5);
+            {
+                Input launched(touch.id()); // launch with a real controller already attached
+                CHECK(launched.real_controller_connected());
+                CHECK(settings.touch_enabled(launched.real_controller_connected()) ==
+                      (mode == TouchMode::On));
+            }
+            // Touch presses may select pad prompts, but never the touch joystick's family/name.
+            e.type = SDL_EVENT_GAMEPAD_BUTTON_DOWN;
+            e.gbutton.which = id;
+            e.gbutton.button = SDL_GAMEPAD_BUTTON_SOUTH;
+            input.handle_event(e);
+            e.gbutton.which = touch.id();
+            input.handle_event(e);
+            CHECK(input.last_used_pad());
+            CHECK(input.gamepad_type() == SDL_GAMEPAD_TYPE_PS5);
+            CHECK(input.gamepad_name() == "External test pad");
+            e.type = SDL_EVENT_KEY_DOWN;
+            e.key.scancode = SDL_SCANCODE_X;
+            input.handle_event(e);
+            CHECK_FALSE(input.last_used_pad());
+            REQUIRE(SDL_DetachVirtualJoystick(id));
+            while (SDL_PollEvent(&e))
+                input.handle_event(e);
+            CHECK_FALSE(input.real_controller_connected());
+            CHECK(settings.touch_enabled(false) == (mode != TouchMode::Off));
+            CHECK(input.gamepad_type() == SDL_GAMEPAD_TYPE_UNKNOWN);
+            Config loaded;
+            Settings restored;
+            restored.register_all(loaded, true);
+            loaded.from_toml(config.to_toml());
+            CHECK(restored.touch_controls->get() == int(mode));
+            CHECK(restored.touch_enabled(false) == (mode != TouchMode::Off));
+        }
+        Settings desktop;
+        Config desktop_config;
+        desktop.register_all(desktop_config);
+        CHECK(desktop.touch_controls->hidden == !Input::kAndroid);
+        desktop_config.set(*desktop.touch_controls, int(TouchMode::On));
+        CHECK(desktop.touch_enabled(false) == Input::kAndroid);
     }
+    SDL_QuitSubSystem(SDL_INIT_GAMEPAD);
 }
 TEST_CASE("touch: SDL virtual gamepad follows default bindings, Swap A/B, and hide releases") {
     SDL_SetHint(SDL_HINT_JOYSTICK_ALLOW_BACKGROUND_EVENTS, "1");
@@ -218,12 +262,12 @@ TEST_CASE("touch: SDL virtual gamepad follows default bindings, Swap A/B, and hi
         TouchControls touch;
         REQUIRE(touch.init());
         REQUIRE(SDL_IsGamepad(touch.id()));
-        Input input(true, touch.id());
-        CHECK(input.selected_type() == GamepadType::Virtual);
+        Input input(touch.id());
+        CHECK_FALSE(input.real_controller_connected());
         SDL_Event e{};
         while (SDL_PollEvent(&e))
             input.handle_event(e);
-        CHECK(input.selected_type() == GamepadType::Virtual);
+        CHECK_FALSE(input.real_controller_connected());
         const auto map = InputMap::defaults();
         // Finger input is normalized and does not require a window.
         touch.show(true);
@@ -261,26 +305,44 @@ TEST_CASE("touch: SDL virtual gamepad follows default bindings, Swap A/B, and hi
         CHECK(input.held(map) == 0);
         finger(SDL_EVENT_FINGER_DOWN, 4, 2284, 700);
         CHECK(input.held(map) == 0);
-        input.type_changed = [&] { touch.show(false); };
-        touch.show(true);
+        config.set(*settings.touch_controls, int(TouchMode::On));
+        settings.touch_controls->hidden = false;
+        touch.show(settings.touch_enabled(input.real_controller_connected()));
         finger(SDL_EVENT_FINGER_DOWN, 5, 2284, 700);
         REQUIRE(input.button_held(map, WscButton::A));
-        input.select_type(GamepadType::None);
-        CHECK(input.held(map) == 0);
-        input.select_type(GamepadType::Virtual);
-        touch.show(true);
-        CHECK(input.held(map) == 0); // type changes clear the joystick, not just the input gate
         {
-            TouchControls external; // another SDL gamepad stands in for a physical controller
-            REQUIRE(external.init());
+            // An external gamepad and the touch joystick drive different actions simultaneously.
+            SDL_VirtualJoystickDesc desc{};
+            SDL_INIT_INTERFACE(&desc);
+            desc.type = SDL_JOYSTICK_TYPE_GAMEPAD;
+            desc.name = "Simultaneous external pad";
+            desc.nbuttons = SDL_GAMEPAD_BUTTON_COUNT;
+            const auto id = SDL_AttachVirtualJoystick(&desc);
+            REQUIRE(id);
+            auto *pad = SDL_OpenJoystick(id);
+            REQUIRE(pad);
             while (SDL_PollEvent(&e))
                 input.handle_event(e);
-            CHECK(input.selected_type() == GamepadType::Gamepad);
-            external.shutdown();
+            REQUIRE(SDL_SetJoystickVirtualButton(pad, SDL_GAMEPAD_BUTTON_EAST, true));
+            SDL_UpdateJoysticks();
+            CHECK(input.real_controller_connected());
+            CHECK(settings.touch_enabled(true));
+            CHECK(input.button_held(map, WscButton::A));
+            CHECK(input.button_held(map, WscButton::B));
+            config.set(*settings.touch_controls, int(TouchMode::Off));
+            touch.show(settings.touch_enabled(true));
+            for (int i = 0; i < int(TouchControl::Count); ++i)
+                CHECK_FALSE(touch.shown(TouchControl(i)));
+            CHECK_FALSE(input.button_held(map, WscButton::A));
+            CHECK(input.button_held(map, WscButton::B)); // real input survives hiding touch
+            SDL_CloseJoystick(pad);
+            REQUIRE(SDL_DetachVirtualJoystick(id));
             while (SDL_PollEvent(&e))
                 input.handle_event(e);
-            CHECK(input.selected_type() == GamepadType::Virtual);
         }
+        config.set(*settings.touch_controls, int(TouchMode::On));
+        touch.show(settings.touch_enabled(false));
+        CHECK(input.held(map) == 0); // held fingers do not return after hiding
         SDL_DestroyWindow(window);
     }
     SDL_QuitSubSystem(SDL_INIT_GAMEPAD | SDL_INIT_VIDEO);
@@ -295,7 +357,7 @@ TEST_CASE("touch: open Options keeps only its hamburger active and releases game
     {
         TouchControls touch;
         REQUIRE(touch.init());
-        Input input(true, touch.id());
+        Input input(touch.id());
         auto map = InputMap::defaults();
         Config config;
         Settings settings;
@@ -327,7 +389,8 @@ TEST_CASE("touch: open Options keeps only its hamburger active and releases game
             touch.show(true, menu.is_open());
         };
         touch.show(true);
-        for (auto c : {TouchControl::A, TouchControl::B, TouchControl::Start, TouchControl::X, TouchControl::Y})
+        for (auto c :
+             {TouchControl::A, TouchControl::B, TouchControl::Start, TouchControl::X, TouchControl::Y})
             finger(SDL_EVENT_FINGER_DOWN, c);
         REQUIRE(input.held(map) != 0);
         finger(SDL_EVENT_FINGER_DOWN, TouchControl::Options);
@@ -336,8 +399,8 @@ TEST_CASE("touch: open Options keeps only its hamburger active and releases game
         CHECK(input.held(map) == 0);
         CHECK_FALSE(touch.take_mode());
         // Check actual rendered alpha as well as the shared visibility/hit-test policy.
-        SDL_Texture *target = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA8888,
-                                                 SDL_TEXTUREACCESS_TARGET, 2400, 1080);
+        SDL_Texture *target =
+            SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET, 2400, 1080);
         REQUIRE(target);
         REQUIRE(SDL_SetRenderTarget(renderer, target));
         SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0);
@@ -404,15 +467,18 @@ TEST_CASE("touch: open Options keeps only its hamburger active and releases game
     SDL_DestroyWindow(window);
     SDL_QuitSubSystem(SDL_INIT_GAMEPAD | SDL_INIT_VIDEO);
 }
-TEST_CASE("input: Android Back follows Options for every Gamepad Type and cancels capture") {
-    Input input(true);
+TEST_CASE("input: Android Back follows Options with Touch Controls Off and cancels capture") {
+    Input input;
     auto map = InputMap::defaults();
     // Both visible keyboard slots remain rebindable; system Back survives these edits.
     map.assign(WscButton::Options, 0, {Binding::Kind::Key, SDL_SCANCODE_F10});
     map.assign(WscButton::Options, 1, {Binding::Kind::Key, SDL_SCANCODE_F11});
     input.set_map(&map);
-    for (auto type : {GamepadType::None, GamepadType::Gamepad, GamepadType::Virtual}) {
-        input.select_type(type);
+    Config config;
+    Settings settings;
+    settings.register_all(config, true);
+    for (auto mode : {TouchMode::Auto, TouchMode::On, TouchMode::Off}) {
+        config.set(*settings.touch_controls, int(mode));
         for (bool open : {false, true}) {
             input.set_menu_open(open);
             SDL_Event e{};

@@ -63,12 +63,13 @@ content into cloud backups. A debug build's files can be inspected with `adb she
 
 ## Touch controls
 
-The Gamepad page starts with **Gamepad Type: None / Gamepad / Virtual**. On launch, SDL-recognized
-controllers select Gamepad; with none connected Android selects Virtual. Connecting a controller hides
-the touch controls. Disconnecting the last controller brings them back immediately, without pausing.
-Unmapped joysticks and the overlay's own virtual joystick do not count as controllers. A manual choice
-lasts until the next controller connection/disconnection. Gamepad Type is runtime state and is never
-saved. Keyboard input remains available in every type.
+The Gamepad page starts with the saved **Touch Controls: Auto / On / Off** setting
+(`input.touch_controls` in `sawgod.toml`, default Auto). Auto shows the overlay when no real controller
+is connected; connecting one hides it, and disconnecting the last brings it back immediately without
+pausing. Unmapped joysticks and the overlay's own virtual joystick do not count as controllers.
+On always shows the overlay, including alongside a handheld's built-in pad. Off hides it completely.
+Real controllers and the keyboard always work alongside touch, regardless of this setting; controller
+connections never change a saved choice.
 
 The fixed landscape layout puts two split pads in the left bar (faint Y above X), A above/right of B
 in the right bar, Options (hamburger) and Mode (upward double chevron) at top left, and START at top right.
@@ -84,11 +85,12 @@ buttons through an SDL virtual gamepad. Rebinding, Swap A/B, and button prompts 
 Options opens the same menu as the Options binding; the menu accepts taps directly. Mode cycles unlocked
 tracks **GB -> WSC -> Enhanced -> GB**, with the usual fade. Locked graphics/music stay locked; Mode
 Down/Up bindings still stop at the ends. The overlay hides and releases held buttons on the ROM screen,
-on background/focus loss, or when Gamepad Type changes.
-While Options is open, only the hamburger stays visible and active; it closes the menu or cancels binding capture, and Android Back does the same (or opens Options in game) for every Gamepad Type without quitting.
+on background/focus loss, or whenever the setting hides it.
+While Options is open, only the hamburger stays visible and active; it closes the menu or cancels binding capture, and Android Back does the same (or opens Options in game) even with Touch Controls Off, without quitting.
 
-Desktop builds use Gamepad when a controller is connected and None otherwise. Launch with
-`--touch-controls` to enable the Virtual choice, its no-controller fallback, and mouse testing of the overlay.
+Desktop builds hide the Touch Controls row. Launch with `--touch-controls` to show the same saved
+setting and enable mouse testing of the overlay. Whole-pixel picture scaling follows overlay visibility.
+Button prompts follow the last device pressed; Auto icons prefer a real controller's family over touch.
 
 ## FluidSynth and fibers
 

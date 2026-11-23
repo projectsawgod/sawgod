@@ -10,6 +10,7 @@
 
 namespace sawgod {
 
+enum class TouchMode { Auto = 0, On = 1, Off = 2 };
 // No pacing mode may change the game's speed: logic always runs at the WSC's 75.47 Hz.
 enum class Pacing { Exact = 0, Smooth = 1 };
 enum class ScreenMode { Off = 0, Lcd = 1, Ips = 2 };
@@ -48,11 +49,12 @@ struct Settings {
     CVar *language = nullptr; // gameplay.language: 0 = English (the --english pack), 1 = Japanese
     CVar *ff_vfx = nullptr;   // gameplay.fast_forward_vfx: host tracking/LCD persistence, default on
     CVar *ff_speed = nullptr; // gameplay.fast_forward: the Fast-Forward button's speed (0: 2x, 1: 3x, 2: 4x)
-    CVar *battle_speed = nullptr; // gameplay.battle_speed: battles run at 0: 1x, 1: 2x, 2: 4x
-    CVar *skip_intro = nullptr;   // gameplay.skip_intro: straight to the title menu
-    CVar *swap_ab = nullptr;      // input.swap_ab: exchange the effective gamepad A/B actions
-    CVar *pad_icons = nullptr;    // input.pad_icons: button icon family, 0 Auto, 1 Xbox, 2 PS, 3 Switch
-    CVar *enemy_hp = nullptr;     // gameplay.enemy_hp: HP boxes over the enemies in battle (game/info.h)
+    CVar *battle_speed = nullptr;   // gameplay.battle_speed: battles run at 0: 1x, 1: 2x, 2: 4x
+    CVar *skip_intro = nullptr;     // gameplay.skip_intro: straight to the title menu
+    CVar *touch_controls = nullptr; // input.touch_controls: Auto / On / Off (Android or debug switch)
+    CVar *swap_ab = nullptr;        // input.swap_ab: exchange the effective gamepad A/B actions
+    CVar *pad_icons = nullptr;      // input.pad_icons: button icon family, 0 Auto, 1 Xbox, 2 PS, 3 Switch
+    CVar *enemy_hp = nullptr;       // gameplay.enemy_hp: HP boxes over the enemies in battle (game/info.h)
     CVar *battle_transparency = nullptr; // 0 solid .. 100 transparent; text remains opaque
     // The game's own Config tab, moved here (game/game_config.h)
     CVar *message_speed = nullptr; // speeds 8, 5, 3, 2, 1 (default), 11 (Instant)
@@ -77,7 +79,13 @@ struct Settings {
 #endif
 
     // Registers everything in `config` (call once, before Config::load).
-    void register_all(Config &config);
+    void register_all(Config &config, bool debug_touch = false);
+
+    bool touch_enabled(bool real_controller) const {
+        return touch_controls && !touch_controls->hidden &&
+               (TouchMode(touch_controls->get()) == TouchMode::On ||
+                (TouchMode(touch_controls->get()) == TouchMode::Auto && !real_controller));
+    }
 
     Pacing pacing_mode() const { return Pacing(pacing->get()); }
     // gameplay.y1..y4 choices as the game's values (1-9 less 6, the Config tab)
