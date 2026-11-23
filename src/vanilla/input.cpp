@@ -1,10 +1,41 @@
-#include "decomp/input.h"
+#include "vanilla/input.h"
 #include <algorithm>
 #include <fstream>
 #include <sstream>
 #include <stdexcept>
 
-namespace sawgod::decomp {
+namespace sawgod::vanilla {
+namespace {
+ui::Binding parse_binding(const std::string &device, const std::string &control) {
+    using K = ui::Binding::Kind;
+    if (device == "key") {
+        const auto scancode = SDL_GetScancodeFromName(control.c_str());
+        if (scancode != SDL_SCANCODE_UNKNOWN && scancode != SDL_SCANCODE_ESCAPE &&
+            scancode != SDL_SCANCODE_F11)
+            return {K::Key, scancode};
+    } else if (device == "button") {
+        std::string name = control;
+        if (name == "south")
+            name = "a";
+        else if (name == "east")
+            name = "b";
+        else if (name == "west")
+            name = "x";
+        else if (name == "north")
+            name = "y";
+        const auto b = SDL_GetGamepadButtonFromString(name.c_str());
+        if (b != SDL_GAMEPAD_BUTTON_INVALID)
+            return {K::PadButton, b};
+    } else if (device == "axis" && control.size() > 1) {
+        const char sign = control.back();
+        const auto axis = SDL_GetGamepadAxisFromString(control.substr(0, control.size() - 1).c_str());
+        if (axis != SDL_GAMEPAD_AXIS_INVALID && (sign == '+' || sign == '-'))
+            return {K::PadAxis, axis, sign == '+' ? 1 : -1};
+    }
+    return {};
+}
+} // namespace
+
 Input::~Input() {
     for (auto *pad : pads_)
         SDL_CloseGamepad(pad);
@@ -29,38 +60,21 @@ void Input::load(const std::filesystem::path &path) {
             for (int i = 0; i <= int(ui::WscButton::Start); ++i)
                 if (button == ui::wsc_button_id(ui::WscButton(i)))
                     index = i;
-        ui::Binding binding;
-        using K = ui::Binding::Kind;
-        if (control == "none") {
-            // Explicitly clears this device's bindings for this WSC button.
-        } else if (device == "key") {
-            const auto scancode = SDL_GetScancodeFromName(control.c_str());
-            if (scancode != SDL_SCANCODE_UNKNOWN && scancode != SDL_SCANCODE_ESCAPE &&
-                scancode != SDL_SCANCODE_F11)
-                binding = {K::Key, scancode};
-        } else if (device == "button") {
-            std::string name = control;
-            if (name == "south")
-                name = "a";
-            else if (name == "east")
-                name = "b";
-            else if (name == "west")
-                name = "x";
-            else if (name == "north")
-                name = "y";
-            const auto b = SDL_GetGamepadButtonFromString(name.c_str());
-            if (b != SDL_GAMEPAD_BUTTON_INVALID)
-                binding = {K::PadButton, b};
-        } else if (device == "axis" && control.size() > 1) {
-            const char sign = control.back();
-            const auto axis = SDL_GetGamepadAxisFromString(control.substr(0, control.size() - 1).c_str());
-            if (axis != SDL_GAMEPAD_AXIS_INVALID && (sign == '+' || sign == '-'))
-                binding = {K::PadAxis, axis, sign == '+' ? 1 : -1};
-        }
+        // A line replaces both slots for the keyboard or gamepad; a second pair is optional.
+        ui::BindSlots bindings{};
+        if (control != "none")
+            bindings[0] = parse_binding(device, control);
         if (index < 0 || (device != "key" && device != "button" && device != "axis") ||
-            (binding.empty() && control != "none") || (row >> extra))
+            (bindings[0].empty() && control != "none"))
             throw std::runtime_error("Invalid input mapping at line " + std::to_string(number));
-        (device == "key" ? map_.keys : map_.pad)[size_t(index)] = {binding, {}};
+        std::string second_device, second_control;
+        if (row >> second_device) {
+            if (!(row >> second_control) || control == "none" ||
+                ((device == "key") != (second_device == "key")) ||
+                (bindings[1] = parse_binding(second_device, second_control)).empty() || (row >> extra))
+                throw std::runtime_error("Invalid input mapping at line " + std::to_string(number));
+        }
+        (device == "key" ? map_.keys : map_.pad)[size_t(index)] = bindings;
     }
 }
 void Input::event(const SDL_Event &event) {
@@ -100,4 +114,4 @@ uint16_t Input::held() const {
     }
     return mask;
 }
-} // namespace sawgod::decomp
+} // namespace sawgod::vanilla

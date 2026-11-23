@@ -16,22 +16,22 @@ import repo_files as repo
 def stage(target, build):
     if target not in ('linux', 'windows', 'macos'):
         raise ValueError('Desktop platforms only')
-    name = f'sawgod-decomp-{target}-' + ('arm64' if target == 'macos' else 'x86_64')
+    name = f'sawgod-vanilla-{target}-' + ('arm64' if target == 'macos' else 'x86_64')
     out = ROOT / 'dist' / name
     if out.exists():
         shutil.rmtree(out)
     out.mkdir(parents=True)
     if target == 'macos':
-        app = out / 'sawgod-decomp.app'
+        app = out / 'sawgod-vanilla.app'
         shutil.copytree(build / app.name, app, symlinks=True)
-        binary = app / 'Contents/MacOS/sawgod-decomp'
+        binary = app / 'Contents/MacOS/sawgod-vanilla'
         deps = run('otool', '-L', str(binary)).splitlines()[1:]
         if any(not line.strip().startswith(('/usr/lib/', '/System/Library/')) for line in deps):
-            raise RuntimeError('Unexpected non-system dependency in decomp app')
+            raise RuntimeError('Unexpected non-system dependency in vanilla app')
         subprocess.run(['codesign', '--force', '--sign', '-', str(app)], check=True)
         subprocess.run(['codesign', '--verify', '--deep', '--strict', str(app)], check=True)
     else:
-        binary = out / ('sawgod-decomp.exe' if target == 'windows' else 'sawgod-decomp')
+        binary = out / ('sawgod-vanilla.exe' if target == 'windows' else 'sawgod-vanilla')
         shutil.copy2(build / binary.name, binary)
         strip = 'x86_64-w64-mingw32-strip' if target == 'windows' else 'strip'
         subprocess.run([strip, str(binary)], check=True)
@@ -40,7 +40,7 @@ def stage(target, build):
             allowed = {'libc.so.6', 'libm.so.6', 'libpthread.so.0', 'libdl.so.2', 'librt.so.1'}
             for line in deps.splitlines():
                 if '=>' in line and line.split()[0] not in allowed:
-                    raise RuntimeError('Unexpected decomp dependency: ' + line)
+                    raise RuntimeError('Unexpected vanilla dependency: ' + line)
             if 'not found' in deps:
                 raise RuntimeError(deps)
         else:
@@ -55,13 +55,14 @@ def stage(target, build):
             deps = re.findall(r'DLL Name: (\S+)', deps)
             for dep in deps:
                 if dep.lower() not in system:
-                    raise RuntimeError('Unexpected decomp DLL: ' + dep)
-    notices.stage_decomp(target, out)
+                    raise RuntimeError('Unexpected vanilla DLL: ' + dep)
+    notices.stage_vanilla(target, out)
+    shutil.copy2(ROOT / 'tools/release/sawgod-vanilla-input.txt', out / 'sawgod-vanilla-input.txt')
     if target != 'macos':
         compiler = 'x86_64-w64-mingw32-g++-posix' if target == 'windows' else 'g++'
         (out / 'toolchain.txt').write_text(run(compiler, '--version'), encoding='utf-8', newline='')
-    notices.audit_decomp(target, out)
-    manifest = {'platform': target, 'flavor': 'decomp', 'revision': repo.revisions(ROOT)['public'],
+    notices.audit_vanilla(target, out)
+    manifest = {'platform': target, 'flavor': 'vanilla', 'revision': repo.revisions(ROOT)['public'],
                 'modified_checkout': repo.dirty(ROOT), 'runtime_imports': deps,
                 'files': {str(p.relative_to(out)): hashlib.sha256(p.read_bytes()).hexdigest()
                           for p in sorted(out.rglob('*')) if p.is_file()}}
@@ -69,7 +70,7 @@ def stage(target, build):
     if target == 'linux':
         archive = out.with_suffix('.tar.gz')
         def metadata(info):
-            info.mode = 0o755 if info.isdir() or Path(info.name).name == 'sawgod-decomp' else 0o644
+            info.mode = 0o755 if info.isdir() or Path(info.name).name == 'sawgod-vanilla' else 0o644
             info.uid = info.gid = 0
             info.uname = info.gname = 'root'
             return info

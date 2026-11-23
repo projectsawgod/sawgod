@@ -4,12 +4,19 @@ import re
 import subprocess
 
 
+def release_flavor(version):
+    if version == 'vanilla':
+        return 'vanilla'
+    if re.fullmatch(r'v[0-9]+\.[0-9]+\.[0-9]+(?:-[0-9A-Za-z.-]+)?', version):
+        return 'sawgod'
+    raise SystemExit('Use vanilla or a version such as v1.1.0 or v1.1.0-rc.1')
+
+
 def main():
     tag = os.environ['GITHUB_REF_NAME'] if os.environ['GITHUB_REF_TYPE'] == 'tag' else ''
     version = os.environ.get('REQUESTED_VERSION', '') or tag
+    flavor = release_flavor(version) if version else 'sawgod'
     if version:
-        if not re.fullmatch(r'v[0-9]+\.[0-9]+\.[0-9]+(?:-[0-9A-Za-z.-]+)?', version):
-            raise SystemExit('Use a version such as v1.0.0 or v1.0.0-rc.1')
         if os.environ.get('REQUESTED_PLATFORMS', 'all') not in ('', 'all'):
             raise SystemExit('A draft release requires platforms=all')
         if tag and tag != version:
@@ -19,7 +26,9 @@ def main():
         if commit != os.environ['GITHUB_SHA']:
             raise SystemExit('Run against the existing version tag (--ref); tag and checkout must match')
     with open(os.environ['GITHUB_OUTPUT'], 'a', encoding='utf-8', newline='') as stream:
-        stream.write(f'version={version}\nrelease={str(bool(version)).lower()}\n')
+        build_version = version if flavor == 'sawgod' else ''
+        stream.write(f'version={version}\nrelease={str(bool(version)).lower()}\n'
+                     f'flavor={flavor}\nbuild_version={build_version}\n')
 
 
 if __name__ == '__main__':

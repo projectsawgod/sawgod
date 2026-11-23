@@ -10,8 +10,8 @@ Point `SAWGOD_REF` at your reference folder, containing `soundfonts/GeneralUser-
 
 ```sh
 export SAWGOD_REF=/absolute/path/to/ref
-tools/package.sh windows
-tools/package.sh linux
+tools/package.sh windows sawgod
+tools/package.sh linux sawgod
 ```
 
 Each command configures an isolated Release build, builds SawGod and a minimal **shared** FluidSynth
@@ -59,7 +59,7 @@ target platforms.
 
 Build on an arm64 Mac with the Xcode command-line tools, CMake, Ninja and Python 3.12 plus
 `tools/requirements.txt`. The `macos-release` preset targets arm64 and macOS 11.0 (the first Apple
-Silicon release; SDL3/Metal support it). `tools/package.sh macos` creates
+Silicon release; SDL3/Metal support it). `tools/package.sh macos sawgod` creates
 `dist/sawgod-macos-arm64.zip` and its SHA-256 checksum. `cmake --preset macos-release` builds
 `SawGod.app`; packaging adds the pinned soundfont, replaceable FluidSynth dylib, source archives,
 dependency audit, README and ad-hoc signature. Developer ID signing and notarization are optional
@@ -92,7 +92,7 @@ launch, ROM import/relaunch, WSC/GB/Enhanced (including Mode 7), audio/Enhanced 
 fullscreen and the user data location. Repeat after moving the app to Applications; no Homebrew
 libraries should be needed at runtime.
 
-## One tag, seven packages
+## SawGod versioned releases and the one-time vanilla release
 
 `.github/workflows/ci.yml` builds Linux x86_64, Windows x86_64 (MinGW on Ubuntu),
 macOS arm64 and Android arm64-v8a. The existing Linux/Windows tests and macOS build/test
@@ -100,16 +100,16 @@ jobs gate the draft. Linux/macOS packaging reuses the tested build directories. 
 builds use at most four jobs, under `nice` where available. No job downloads a ROM.
 
 Every push to `main` and every pull request runs the same builds and tests, with no release.
-A pushed `v1.0.0` tag builds everything and creates a **draft**, never a published release.
+A pushed `v1.1.0` tag builds everything and creates a **draft**, never a published release.
 For a manual retry, select the same existing tag and supply the version. The workflow checks
 that the tag resolves to the checkout SHA and rejects a version with a partial platform selection:
 
 ```sh
 # After the release checks pass:
-git tag -a v1.0.0 -m 'SawGod 1.0.0'
-git push origin refs/tags/v1.0.0
+git tag -a v1.1.0 -m 'SawGod 1.1.0'
+git push origin refs/tags/v1.1.0
 # The tag starts CI automatically. Use this instead only for a deliberate retry:
-gh workflow run ci.yml --repo OWNER/REPO --ref v1.0.0 -f platforms=all -f version=v1.0.0
+gh workflow run ci.yml --repo OWNER/REPO --ref v1.1.0 -f platforms=all -f version=v1.1.0
 # A single-platform smoke run creates an Actions artifact, not a GitHub Release:
 gh workflow run ci.yml --repo OWNER/REPO --ref main -f platforms=android
 ```
@@ -119,13 +119,16 @@ repository's default branch for dispatch. Do not dispatch on top of an already r
 Branch/tag pushes performed with `GITHUB_TOKEN` do not start a second workflow.
 
 Artifacts: `sawgod-linux-x86_64`, `sawgod-windows-x86_64`, `sawgod-macos-arm64`,
-`sawgod-android-arm64-v8a`. Each desktop artifact holds both flavors and their `.sha256` files; Android also records signing
-status for the release body. The draft attaches all seven packages, their seven checksum files,
-and `SHA256SUMS.txt` (15 assets). Android's package is
+`sawgod-android-arm64-v8a`. Each desktop artifact holds only the selected flavor and its `.sha256` file;
+Android also records signing
+status for the release body. A `v*` release attaches only the four SawGod packages and `SHA256SUMS.txt`
+(five assets); the individual checksum files are used to audit the artifacts, not attached to the release.
+Android's package is
 `sawgod-android-arm64-v8a-release.apk`; "release" describes optimization, not signing trust.
 Without all four signing secrets it uses a debug key and the body prominently says **TESTING BUILD**.
 Partial signing credentials fail the job. See [ANDROID.md](ANDROID.md) for secrets and pinned SDK versions.
-A retry may replace assets on an existing draft; it refuses to change a published release.
+A retry may replace assets on an existing draft and removes assets outside its package list; it refuses
+to change a published release.
 Test the downloaded packages on their devices before publishing the draft. The tag/version flows through
 `SAWGOD_RELEASE_VERSION` to the in-app version, numeric macOS bundle version and Android
 versionName; ordinary development builds keep their dev label. Android versionCode comes from the
@@ -176,20 +179,34 @@ License auditing establishes the packaged inventory; it is not a substitute for 
 
 ## Original cartridge packages
 
-Each desktop `tools/package.sh` command also builds and packages `sawgod-decomp`, from the same tree:
-`sawgod-decomp-linux-x86_64.tar.gz`, `sawgod-decomp-windows-x86_64.zip`, and
-`sawgod-decomp-macos-arm64.zip`, each with a SHA-256 checksum. They ship beside the enhanced port in the
-same release; there is no Android decomp package. The macOS app is ad-hoc signed.
+With no flavor argument, each desktop `tools/package.sh` command builds and packages both SawGod and `sawgod-vanilla`, from the same tree:
+`sawgod-vanilla-linux-x86_64.tar.gz`, `sawgod-vanilla-windows-x86_64.zip`, and
+`sawgod-vanilla-macos-arm64.zip`, each with a SHA-256 checksum. They ship in a
+separate one-time [release tagged `vanilla`](https://github.com/projectsawgod/sawgod/releases/tag/vanilla),
+which will never be updated. Versioned SawGod releases do not include them; there is no Android vanilla
+package. The macOS app is ad-hoc signed.
 
-These packages contain the executable, short player README, manifest and applicable license notices.
+These packages contain the executable, short player README, commented default input mapping file, manifest
+and applicable license notices.
 They do not include extracted resources, English text, GB maps, a soundfont or FluidSynth. The original
 Japanese menus and sound come directly from the player's supported ROM; raw SRAM goes beside that ROM.
-The decompilation is complete and non-matching, verified routine by routine by differential tests and fuzzing.
+The program runs SawGod's static recompilation (partially decompiled for readability), verified routine by
+routine against the original by differential tests and fuzzing.
 
-For a local decomp-only package without building the enhanced port or FluidSynth, use
-`tools/package.sh linux decomp` (or `windows decomp`, `macos decomp`). The standard command produces both.
-Builds use the same presets; `sawgod-decomp` does not link host UI, ImGui, Enhanced music or the Enhanced
+The `vanilla` tag (or a manual retry with `--ref vanilla -f platforms=all -f version=vanilla`) builds
+both desktop programs on Linux, Windows and macOS, runs the usual desktop checks, and packages only
+vanilla. Android is skipped. The draft is titled **sawgod-vanilla** and attaches the three packages plus
+`SHA256SUMS.txt` (four assets). Its body comes verbatim from `tools/release/vanilla_release_notes.md`.
+The same existing-tag and checkout-SHA checks apply to `vanilla` and `v*`; other tag shapes are rejected.
+The `vanilla` tag is not passed to the numeric application-version settings.
+Ordinary pushes and pull requests still build both desktop programs and Android, upload SawGod artifacts,
+and do not draft releases.
+
+For a local vanilla-only package without building the enhanced port or FluidSynth, use
+`tools/package.sh linux vanilla` (or `windows vanilla`, `macos vanilla`). The default command without a
+flavor produces both; use the explicit `sawgod` flavor for only SawGod.
+Builds use the same presets; `sawgod-vanilla` does not link host UI, ImGui, Enhanced music or the Enhanced
 renderer. CMake checks its dependency graph, and CTest checks the generated link command. With
-`SAWGOD_WSC_ROM` set to the supported WSC ROM, CTest `decomp_recording_replay` compares work RAM,
+`SAWGOD_WSC_ROM` set to the supported WSC ROM, CTest `vanilla_recording_replay` compares work RAM,
 raw SRAM and picture hashes for existing recordings against `sawgod-headless --native all`, including
 continuing from a save. The shipped binary's `--frames` mode uses the same setup as its SDL front end.

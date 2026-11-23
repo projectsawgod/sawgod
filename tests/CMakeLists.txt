@@ -7,6 +7,13 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(doctest)
 
+add_executable(sawgod-vanilla-input-test test_vanilla_input.cpp
+    ${CMAKE_SOURCE_DIR}/src/vanilla/input.cpp ${CMAKE_SOURCE_DIR}/src/engine/input_defaults.cpp)
+target_include_directories(sawgod-vanilla-input-test PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(sawgod-vanilla-input-test PRIVATE SDL3::SDL3 doctest::doctest_with_main sawgod_warnings)
+target_compile_definitions(sawgod-vanilla-input-test PRIVATE
+    SAWGOD_VANILLA_INPUT_TEMPLATE="${CMAKE_SOURCE_DIR}/tools/release/sawgod-vanilla-input.txt")
+
 add_executable(sawgod_tests test_decomp.cpp test_sound_driver.cpp test_fast_forward_vfx.cpp test_fidelity.cpp test_field_preview.cpp ${CMAKE_SOURCE_DIR}/src/tools/field_preview.cpp test_version.cpp test_battle_ui.cpp test_inventory_ui.cpp test_cheats.cpp test_v30mz.cpp test_assets.cpp test_config.cpp test_hooks.cpp test_map_lz.cpp test_maps.cpp test_mod_pack.cpp test_native_frames.cpp test_persist.cpp test_resources.cpp test_save_file.cpp test_save_slots.cpp test_tables.cpp test_text.cpp)
 target_link_libraries(sawgod_tests PRIVATE sawgod_first_run sawgod_enhanced_music sawgod_engine sawgod_ui sawgod_game sawgod_emu doctest::doctest_with_main sawgod_warnings miniz)
 target_sources(sawgod_tests PRIVATE test_audio_queue.cpp ${CMAKE_SOURCE_DIR}/src/app/audio_queue.cpp ${CMAKE_SOURCE_DIR}/src/app/audio_output.cpp)
@@ -33,6 +40,7 @@ if(CMAKE_CROSSCOMPILING AND WIN32)
     find_program(SAWGOD_WINE_EXECUTABLE wine)
     if(SAWGOD_WINE_EXECUTABLE)
         set_target_properties(sawgod_tests PROPERTIES CROSSCOMPILING_EMULATOR "${SAWGOD_WINE_EXECUTABLE}")
+        set_target_properties(sawgod-vanilla-input-test PROPERTIES CROSSCOMPILING_EMULATOR "${SAWGOD_WINE_EXECUTABLE}")
     endif()
 endif()
 
@@ -45,6 +53,7 @@ endif()
 
 include(${doctest_SOURCE_DIR}/scripts/cmake/doctest.cmake)
 doctest_discover_tests(sawgod_tests)
+add_test(NAME vanilla_input COMMAND sawgod-vanilla-input-test)
 add_subdirectory(${CMAKE_SOURCE_DIR}/wsc-re-kit ${CMAKE_BINARY_DIR}/wsc-re-kit)
 # Optional SAWGOD_WSC_ROM fixture; bounded single-process replay of the chapter checkpoints.
 add_test(NAME hoststate_save_sweep COMMAND ${SAWGOD_WINE_EXECUTABLE} $<TARGET_FILE:sawgod_tests>
@@ -100,9 +109,9 @@ target_sources(sawgod_tests PRIVATE test_frame_audit.cpp)
 target_sources(sawgod_tests PRIVATE test_enhanced_facts.cpp)
 
 # Original-cartridge setup, exercised through the shipped binary's replay path.
-add_test(NAME decomp_recording_replay COMMAND ${Python3_EXECUTABLE}
-    ${CMAKE_SOURCE_DIR}/tests/decomp_replay.py $<TARGET_FILE:sawgod-decomp>
+add_test(NAME vanilla_recording_replay COMMAND ${Python3_EXECUTABLE}
+    ${CMAKE_SOURCE_DIR}/tests/vanilla_replay.py $<TARGET_FILE:sawgod-vanilla>
     $<TARGET_FILE:sawgod-headless>)
-set_tests_properties(decomp_recording_replay PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 300 LABELS "rom;decomp")
-add_test(NAME decomp_link COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/decomp_link.py
-    ${CMAKE_BINARY_DIR} $<TARGET_FILE:sawgod-decomp>)
+set_tests_properties(vanilla_recording_replay PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 300 LABELS "rom;vanilla")
+add_test(NAME vanilla_link COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/vanilla_link.py
+    ${CMAKE_BINARY_DIR} $<TARGET_FILE:sawgod-vanilla>)

@@ -18,8 +18,8 @@ def main():
         return 77
     if not Path(rom).is_file():
         raise RuntimeError('SAWGOD_WSC_ROM does not name a file')
-    decomp, reference = sys.argv[1:]
-    with tempfile.TemporaryDirectory(prefix='sawgod-decomp-') as temp:
+    vanilla, reference = sys.argv[1:]
+    with tempfile.TemporaryDirectory(prefix='sawgod-vanilla-') as temp:
         work = Path(temp)
         # Title/intro, character creation, and field/save-menu coverage. No host directives.
         for name, frames in [('newgame', 15000), ('story', 16700), ('continue', 3000)]:
@@ -29,7 +29,7 @@ def main():
                               encoding='utf-8', newline='')
             outputs = []
             for label, binary, flags in [('reference', reference, ['--native', 'all']),
-                                          ('decomp', decomp, [])]:
+                                          ('vanilla', vanilla, [])]:
                 out = work / f'{name}-{label}'
                 out.mkdir()
                 cmd = [binary, rom, '--frames', str(frames), '--inputs', str(inputs),

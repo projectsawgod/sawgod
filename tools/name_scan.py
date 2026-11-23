@@ -45,8 +45,8 @@ def upstream_path(label):
     """Resolve known package wrappers; the file/member path itself stays exact."""
     path = label
     for prefix in ('sawgod-linux-x86_64/', 'sawgod-windows-x86_64/',
-                   'sawgod-macos-arm64/', 'sawgod-decomp-linux-x86_64/',
-                   'sawgod-decomp-windows-x86_64/', 'sawgod-decomp-macos-arm64/'):
+                   'sawgod-macos-arm64/', 'sawgod-vanilla-linux-x86_64/',
+                   'sawgod-vanilla-windows-x86_64/', 'sawgod-vanilla-macos-arm64/'):
         if path.startswith(prefix):
             path = path[len(prefix):]
             break
