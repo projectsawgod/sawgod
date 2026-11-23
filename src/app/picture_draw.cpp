@@ -4,14 +4,16 @@
 
 namespace sawgod::app {
 
-Rect GameRect(int out_w, int out_h) {
-    const float s = std::max(0.25f, std::min(float(out_w) / kNativeWidth, float(out_h) / kNativeHeight));
+Rect GameRect(int out_w, int out_h, bool whole_scale) {
+    float s = std::max(0.25f, std::min(float(out_w) / kNativeWidth, float(out_h) / kNativeHeight));
+    if (whole_scale && s >= 1)
+        s = std::floor(s);
     const float w = std::round(kNativeWidth * s), h = std::round(kNativeHeight * s);
     return {std::floor((out_w - w) / 2), std::floor((out_h - h) / 2), w, h, s};
 }
 
-Rect MenuRect(int out_w, int out_h) {
-    const Rect g = GameRect(out_w, out_h);
+Rect MenuRect(int out_w, int out_h, bool whole_scale) {
+    const Rect g = GameRect(out_w, out_h, whole_scale);
     const float s = g.scale / 2;
     return {std::round(g.x + 16 * g.scale), std::round(g.y + 16 * g.scale),
             std::round(ui::Overlay::kWidth * s), std::round(ui::Overlay::kHeight * s), s};

@@ -1,6 +1,6 @@
-# Android (1.0)
+# Android
 
-Gamepad handhelds only; no touch overlay. Package ID `org.sawgod.app`, arm64-v8a, landscape and immersive.
+Phones use on-screen touch controls; handhelds can use their built-in gamepad. Package ID `org.sawgod.app`, arm64-v8a, landscape and immersive.
 Minimum Android 8.0 (API 26): a practical floor for Vulkan-era handhelds, Java NIO file installation and SDL3.
 Compile/target SDK 36, build tools 37.0.0, NDK r29 (29.0.14206865), CMake 4.1.2, Java 21.
 Vulkan is optional in the manifest. Enhanced uses SDL3 GPU on Vulkan; creation/probe failure falls back to the
@@ -48,7 +48,7 @@ requires uninstalling the old app, which removes its internal data. The debug ke
 ## Storage and first run
 
 On first launch press A to choose the ROM through Android's system document picker (SAF). The setup
-screen can still accept pointer input; gameplay has no touch controls. Any provider/MIME type is allowed:
+screen accepts taps; touch controls appear once the game starts. Any provider/MIME type is allowed:
 raw `.wsc`, `.zip` and `.7z` are recognized by their bytes. The exact supported SHA-1 is required.
 The URI is opened with SDL IO, verified, and the ROM is copied atomically into internal `files/rom/rom.wsc`.
 Archives are built there with the same extraction code as desktop. No storage permissions or persistent
@@ -60,6 +60,35 @@ APK assets before native startup. A content manifest refreshes those bundled fil
 it never overwrites ROM data, archives, saves, config or mods. Uninstall/clear-data removes everything.
 Licenses and dependency source archives remain in APK assets. Backups are disabled to avoid copying ROM
 content into cloud backups. A debug build's files can be inspected with `adb shell run-as org.sawgod.app`.
+
+## Touch controls
+
+The Gamepad page starts with **Gamepad Type: None / Gamepad / Virtual**. On launch, SDL-recognized
+controllers select Gamepad; with none connected Android selects Virtual. Connecting a controller hides
+the touch controls. Disconnecting the last controller brings them back immediately, without pausing.
+Unmapped joysticks and the overlay's own virtual joystick do not count as controllers. A manual choice
+lasts until the next controller connection/disconnection. Gamepad Type is runtime state and is never
+saved. Keyboard input remains available in every type.
+
+The fixed landscape layout puts two split pads in the left bar (faint Y above X), A above/right of B
+in the right bar, Options (hamburger) and Mode (upward double chevron) at top left, and START at top right.
+Each side scales its controls and labels to fit between the safe display edge and a small picture gap,
+retaining reference vertical positions and minimum targets of 48 dp for Options/Mode/Start and about 9 mm
+for pads/A/B; only bars too narrow for those minimums allow picture overlap. Multiple fingers can hold
+directions and buttons
+together. Pads have center and diagonal dead zones, and sliding changes direction without lifting.
+Button hit areas extend 20% beyond their drawn radius, with smaller top-row margins when needed. There is no layout editor or haptics.
+
+X drives the default d-pad bindings, Y drives the right stick, and A/B/START drive their default gamepad
+buttons through an SDL virtual gamepad. Rebinding, Swap A/B, and button prompts use the existing input path.
+Options opens the same menu as the Options binding; the menu accepts taps directly. Mode cycles unlocked
+tracks **GB -> WSC -> Enhanced -> GB**, with the usual fade. Locked graphics/music stay locked; Mode
+Down/Up bindings still stop at the ends. The overlay hides and releases held buttons on the ROM screen,
+on background/focus loss, or when Gamepad Type changes.
+While Options is open, only the hamburger stays visible and active; it closes the menu or cancels binding capture, and Android Back does the same (or opens Options in game) for every Gamepad Type without quitting.
+
+Desktop builds use Gamepad when a controller is connected and None otherwise. Launch with
+`--touch-controls` to enable the Virtual choice, its no-controller fallback, and mouse testing of the overlay.
 
 ## FluidSynth and fibers
 

@@ -182,6 +182,14 @@ using sawgod::app::ZoomBackdrop;
 
 int main(int argc, char **argv) {
     sawgod::app::LaunchArgs args = sawgod::app::parse_launch_args(argc, argv);
+    bool touch_picture = sawgod::ui::Input::kAndroid || args.touch_controls;
+    // Touch chrome leaves side bars beside a whole-pixel picture.
+    auto GameRect = [&](int width, int height) {
+        return sawgod::app::GameRect(width, height, touch_picture);
+    };
+    auto MenuRect = [&](int width, int height) {
+        return sawgod::app::MenuRect(width, height, touch_picture);
+    };
     if (!args.shot_render_reset_error.empty()) {
         std::fprintf(stderr, "sawgod: %s\n", args.shot_render_reset_error.c_str());
         return 2;
@@ -845,7 +853,16 @@ int main(int argc, char **argv) {
         SDL_SetRenderTarget(renderer, startup_target);
 
     bool running = true;
-    sawgod::ui::Input input;
+    sawgod::ui::TouchControls touch;
+    if ((sawgod::ui::Input::kAndroid || args.touch_controls) && !touch.init())
+        sawgod::debug_log::errorf("input", "Touch gamepad initialization failed: %s", SDL_GetError());
+    sawgod::ui::Input input(args.touch_controls, touch.id());
+    touch_picture = input.selected_type() == sawgod::ui::GamepadType::Virtual;
+    input.type_changed = [&] {
+        touch.show(false);
+        touch_picture = input.selected_type() == sawgod::ui::GamepadType::Virtual;
+    };
+    bool touch_foreground = true;
     // bindings: the defaults, then sawgod.toml's [keyboard] / [gamepad] tables (the menu edits them)
     sawgod::ui::InputMap input_map = sawgod::ui::InputMap::defaults();
     {
@@ -1002,6 +1019,7 @@ int main(int argc, char **argv) {
             audit_field_step = audit_world_step = "None";
         if (party_options_requested) {
             party_options_requested = false;
+            touch.show(false);
             overlay.set_open(true);
             host_options_open = true;
             motion_history.reset();
@@ -1940,6 +1958,11 @@ int main(int argc, char **argv) {
     bool was_wiping = false;
     int wipe_field_map = -1;
     bool wipe_field_camera = false;
+    auto update_touch = [&](int width, int height) {
+        touch.layout(window, renderer, float(width), float(height), GameRect(width, height).w);
+        touch.show(wsc && touch_foreground && input.selected_type() == sawgod::ui::GamepadType::Virtual,
+                   overlay.is_open());
+    };
     auto draw_frame = [&](int out_w, int out_h, bool fullscreen) {
         sawgod::CpuScope cpu_scope("draw_frame");
         const bool wiping = wsc && sawgod::game::presented_battle_entry_wipe(*wsc);
@@ -1985,6 +2008,8 @@ int main(int argc, char **argv) {
                                 sawgod::game::mode7_allowed(wipe_field_map, sawgod::FidelityMode::Enhanced,
                                                             true, !settings.enhanced_mode7->on());
         }
+        update_touch(out_w, out_h);
+        touch.render(renderer);
     };
     auto write_timing = [&](uint64_t tick_ns, uint64_t upload_ns, uint64_t draw_ns, uint64_t present_ns,
                             int ran, int speed, bool accelerated, bool clock_reset, int width, int height) {
@@ -2097,6 +2122,7 @@ int main(int argc, char **argv) {
         options_canvas_submitted = false;
     };
     auto destroy_textures = [&](bool recovering = false) {
+        touch.release_renderer();
         battle_wipe.release();
         world_card_overlay.shutdown();
         title_logo_overlay.shutdown();
@@ -2279,6 +2305,7 @@ int main(int argc, char **argv) {
                         hd_menus.shutdown();
                         presentation.shutdown();
                         SDL_DestroyWindow(window);
+                        touch.shutdown();
                         SDL_Quit();
                         return 1;
                     }
@@ -2555,6 +2582,7 @@ int main(int argc, char **argv) {
         hd_menus.shutdown();
         presentation.shutdown();
         SDL_DestroyWindow(window);
+        touch.shutdown();
         SDL_Quit();
         return code;
     }
@@ -2562,7 +2590,7 @@ int main(int argc, char **argv) {
     // The splash (app/splash.h), then the game from power-on; an A that skipped it waits to be let go.
     if (wsc && !args.frames) {
         sawgod::app::SplashScreen screen;
-        screen.picture = [](int w, int h) {
+        screen.picture = [&](int w, int h) {
             const Rect g = GameRect(w, h);
             return SDL_FRect{g.x, g.y, g.w, g.h};
         };
@@ -2631,6 +2659,18 @@ int main(int argc, char **argv) {
                 break;
             }
             input.handle_event(event);
+            if (event.type == SDL_EVENT_WILL_ENTER_BACKGROUND || event.type == SDL_EVENT_DID_ENTER_BACKGROUND ||
+                event.type == SDL_EVENT_WINDOW_FOCUS_LOST || event.type == SDL_EVENT_WINDOW_MINIMIZED) {
+                touch_foreground = false;
+                touch.show(false);
+            } else if (event.type == SDL_EVENT_DID_ENTER_FOREGROUND || event.type == SDL_EVENT_WINDOW_FOCUS_GAINED ||
+                       event.type == SDL_EVENT_WINDOW_RESTORED) {
+                touch_foreground = true;
+            }
+            int touch_w = 1, touch_h = 1;
+            SDL_GetCurrentRenderOutputSize(renderer, &touch_w, &touch_h);
+            update_touch(touch_w, touch_h);
+            touch.event(event, window, args.touch_controls);
             switch (event.type) {
             case SDL_EVENT_QUIT:
                 running = false;
@@ -2688,6 +2728,8 @@ int main(int argc, char **argv) {
             break; // recovery can leave no renderer; do not tick or submit another frame
 
         const uint64_t now = SDL_GetTicksNS();
+        if (touch.take_options())
+            input.press_options();
         sawgod::ui::MenuActions actions = input.take_menu_actions(double(now) / 1e9);
         for (auto field :
              {&sawgod::ui::MenuActions::up, &sawgod::ui::MenuActions::down, &sawgod::ui::MenuActions::left,
@@ -2720,6 +2762,10 @@ int main(int argc, char **argv) {
         }
         minimap_was_held = minimap_held;
         fidelity.settings(settings.gfx(), settings.music(), now);
+        if (!overlay.is_open() && touch.take_mode()) {
+            fidelity.cycle(now);
+            motion_history.reset();
+        }
         title_screen = title_logo_overlay.ready();
         const bool down = input.button_held(input_map, sawgod::ui::WscButton::FidelityDown);
         const bool up = input.button_held(input_map, sawgod::ui::WscButton::FidelityUp);
@@ -2737,6 +2783,7 @@ int main(int argc, char **argv) {
         if (wsc && gfx_swap.has_data())
             gfx_swap.set_enabled(*wsc, true);
         if (actions.toggle) {
+            touch.show(false);
             motion_history.reset();
             if (!wsc || !overlay.ready())
                 running = false; // no menu without a ROM: Esc quits, as before
@@ -2899,6 +2946,7 @@ int main(int argc, char **argv) {
     hd_menus.shutdown();
     presentation.shutdown();
     SDL_DestroyWindow(window);
+    touch.shutdown();
     SDL_Quit();
     return 0;
 }

@@ -14,7 +14,7 @@ target_link_libraries(sawgod-vanilla-input-test PRIVATE SDL3::SDL3 doctest::doct
 target_compile_definitions(sawgod-vanilla-input-test PRIVATE
     SAWGOD_VANILLA_INPUT_TEMPLATE="${CMAKE_SOURCE_DIR}/tools/release/sawgod-vanilla-input.txt")
 
-add_executable(sawgod_tests test_decomp.cpp test_sound_driver.cpp test_fast_forward_vfx.cpp test_fidelity.cpp test_field_preview.cpp ${CMAKE_SOURCE_DIR}/src/tools/field_preview.cpp test_version.cpp test_battle_ui.cpp test_inventory_ui.cpp test_cheats.cpp test_v30mz.cpp test_assets.cpp test_config.cpp test_hooks.cpp test_map_lz.cpp test_maps.cpp test_mod_pack.cpp test_native_frames.cpp test_persist.cpp test_resources.cpp test_save_file.cpp test_save_slots.cpp test_tables.cpp test_text.cpp)
+add_executable(sawgod_tests test_touch_controls.cpp test_decomp.cpp test_sound_driver.cpp test_fast_forward_vfx.cpp test_fidelity.cpp test_field_preview.cpp ${CMAKE_SOURCE_DIR}/src/tools/field_preview.cpp test_version.cpp test_battle_ui.cpp test_inventory_ui.cpp test_cheats.cpp test_v30mz.cpp test_assets.cpp test_config.cpp test_hooks.cpp test_map_lz.cpp test_maps.cpp test_mod_pack.cpp test_native_frames.cpp test_persist.cpp test_resources.cpp test_save_file.cpp test_save_slots.cpp test_tables.cpp test_text.cpp)
 target_link_libraries(sawgod_tests PRIVATE sawgod_first_run sawgod_enhanced_music sawgod_engine sawgod_ui sawgod_game sawgod_emu doctest::doctest_with_main sawgod_warnings miniz)
 target_sources(sawgod_tests PRIVATE test_audio_queue.cpp ${CMAKE_SOURCE_DIR}/src/app/audio_queue.cpp ${CMAKE_SOURCE_DIR}/src/app/audio_output.cpp)
 target_sources(sawgod_tests PRIVATE test_audio_review.cpp ${CMAKE_SOURCE_DIR}/src/app/audio_review.cpp)

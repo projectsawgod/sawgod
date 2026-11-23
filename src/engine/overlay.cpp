@@ -315,23 +315,14 @@ void Overlay::build_pages() {
     };
     pages_.push_back(bind_page(false));
     Page controls = bind_page(true);
-    Row pad;
-    pad.kind = Row::Kind::Info;
-    pad.label = "Gamepad";
-    pad.help = kHelpNoPad;
-    pad.value = [this] {
-        return hooks_.input && hooks_.input->gamepad_count() > 0 ? std::string("Connected")
-                                                                 : std::string("None");
-    };
-    pad.dyn_help = [this] {
-        std::string n = hooks_.input ? hooks_.input->gamepad_name() : "";
-        if (n.empty())
-            return std::string(kHelpNoPad);
-        if (n.size() > kHelpWidth)
-            n.resize(kHelpWidth);
-        return n;
-    };
-    controls.rows.insert(controls.rows.begin(), pad);
+    if (hooks_.input) {
+        Row type;
+        type.kind = Row::Kind::Setting;
+        type.var = &hooks_.input->type_setting();
+        type.label = type.var->label;
+        type.help = type.var->help;
+        controls.rows.insert(controls.rows.begin(), type);
+    }
     if (settings_ && settings_->pad_icons) { // Icon Type, above the bindings
         Row icons;
         icons.kind = Row::Kind::Setting;
@@ -344,7 +335,7 @@ void Overlay::build_pages() {
         swap.kind = Row::Kind::Setting;
         swap.var = settings_->swap_ab;
         swap.label = swap.var->label;
-        controls.rows.insert(controls.rows.begin(), swap);
+        controls.rows.insert(controls.rows.begin() + (hooks_.input ? 1 : 0), swap);
     }
     pages_.push_back(std::move(controls));
     for (const std::string &cat : config_->categories())
@@ -717,6 +708,11 @@ void Overlay::commit(CVar &v, int value) {
     cancel_pending();
     if (value == v.get())
         return;
+    if (hooks_.input && &v == &hooks_.input->type_setting()) {
+        hooks_.input->select_type(GamepadType(value));
+        in_rows_ = false;
+        return;
+    }
     config_->set(v, value);
     if (&v == settings_->swap_ab) {
         // Return before the confirming button becomes Back under the new mapping. All input routes

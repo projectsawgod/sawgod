@@ -18,6 +18,8 @@ LaunchArgs parse_launch_args(int argc, char **argv) {
     for (int i = 1; i < argc; ++i) {
         if (std::strcmp(argv[i], "--scale") == 0 && i + 1 < argc) {
             args.scale = std::atoi(argv[++i]);
+        } else if (std::strcmp(argv[i], "--touch-controls") == 0) {
+            args.touch_controls = true;
         } else if (std::strcmp(argv[i], "--frames") == 0 && i + 1 < argc) {
             args.frames = std::atoi(argv[++i]);
         } else if (std::strcmp(argv[i], "--audio-review") == 0 && i + 1 < argc) {

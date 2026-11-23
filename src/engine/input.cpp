@@ -658,6 +658,43 @@ std::string pad_button_name(SDL_GamepadType type, SDL_GamepadButton button) {
     }
 }
 
+Input::Input(bool debug_touch, SDL_JoystickID virtual_id)
+    : policy_(kAndroid || debug_touch), virtual_id_(virtual_id) {
+    std::vector<std::string> choices{"None", "Gamepad"};
+    if (policy_.virtual_allowed())
+        choices.push_back("Virtual");
+    int count = 0;
+    SDL_JoystickID *ids = SDL_GetGamepads(&count);
+    for (int i = 0; i < count; ++i) {
+        policy_.device(ids[i], true, SDL_IsGamepad(ids[i]), ids[i] == virtual_id_);
+        if (SDL_Gamepad *pad = SDL_OpenGamepad(ids[i]))
+            pads_.push_back(pad);
+    }
+    SDL_free(ids);
+    type_setting_ = &runtime_config_.add_enum("runtime.gamepad_type", "Gamepad", "Gamepad Type",
+                                              "Follows controller connections; not saved", choices, choices,
+                                              int(policy_.type()));
+}
+void Input::sync_type() {
+    if (type_setting_->get() == int(policy_.type()))
+        return;
+    runtime_config_.set(*type_setting_, int(policy_.type()));
+    if (type_changed)
+        type_changed();
+}
+void Input::select_type(GamepadType type) {
+    policy_.pick(type);
+    sync_type();
+    suppress_gamepad_until_release();
+}
+bool Input::accepts_pad(SDL_JoystickID id) const {
+    return selected_type() ==
+           ((virtual_id_ && id == virtual_id_) ? GamepadType::Virtual : GamepadType::Gamepad);
+}
+int Input::gamepad_count() const {
+    return int(
+        std::count_if(pads_.begin(), pads_.end(), [&](auto *p) { return accepts_pad(SDL_GetGamepadID(p)); }));
+}
 Input::~Input() {
     for (SDL_Gamepad *p : pads_)
         SDL_CloseGamepad(p);
@@ -666,7 +703,7 @@ Input::~Input() {
 bool Input::pad_pressed(const Binding &b) const {
     const int threshold = 32767 * kStickDeadzone / 100;
     for (SDL_Gamepad *pad : pads_) {
-        if (pad_suppressed(SDL_GetGamepadID(pad), b))
+        if (!accepts_pad(SDL_GetGamepadID(pad)) || pad_suppressed(SDL_GetGamepadID(pad), b))
             continue;
         switch (b.kind) {
         case Binding::Kind::PadButton:
@@ -734,7 +771,26 @@ void Input::suppress_gamepad_until_release() {
     dir_latched_ = true;
 }
 
+void Input::press_options() {
+    if (capture_ != Capture::Off)
+        end_capture(std::nullopt, true);
+    else
+        pending_.toggle = true;
+}
+
 void Input::handle_event(const SDL_Event &e) {
+    // System Back stays available with every Gamepad Type and with both keyboard slots rebound.
+    // Keep it outside the two-slot binding pages so capturing it cannot strand a phone user.
+    if (e.type == SDL_EVENT_KEY_DOWN && e.key.scancode == SDL_SCANCODE_AC_BACK) {
+        last_pad_ = false;
+        if (!e.key.repeat)
+            press_options();
+        return;
+    }
+    if (((e.type == SDL_EVENT_GAMEPAD_BUTTON_DOWN || e.type == SDL_EVENT_GAMEPAD_BUTTON_UP) &&
+         !accepts_pad(e.gbutton.which)) ||
+        (e.type == SDL_EVENT_GAMEPAD_AXIS_MOTION && !accepts_pad(e.gaxis.which)))
+        return;
     if (e.type == SDL_EVENT_GAMEPAD_BUTTON_UP)
         std::erase_if(suppressed_, [&](const auto &s) {
             return s.pad == e.gbutton.which && s.control.kind == Binding::Kind::PadButton &&
@@ -771,6 +827,10 @@ void Input::handle_event(const SDL_Event &e) {
         }
         break;
     case SDL_EVENT_GAMEPAD_ADDED:
+        policy_.device(e.gdevice.which, true, SDL_IsGamepad(e.gdevice.which), e.gdevice.which == virtual_id_);
+        sync_type();
+        if (std::any_of(pads_.begin(), pads_.end(), [&](auto *p) { return SDL_GetGamepadID(p) == e.gdevice.which; }))
+            break;
         if (SDL_Gamepad *p = SDL_OpenGamepad(e.gdevice.which))
             pads_.push_back(p);
         else
@@ -778,6 +838,8 @@ void Input::handle_event(const SDL_Event &e) {
                                       SDL_GetError());
         break;
     case SDL_EVENT_GAMEPAD_REMOVED:
+        policy_.device(e.gdevice.which, false, true, e.gdevice.which == virtual_id_);
+        sync_type();
         std::erase_if(suppressed_, [&](const auto &s) { return s.pad == e.gdevice.which; });
         for (auto it = pads_.begin(); it != pads_.end(); ++it)
             if (SDL_GetGamepadID(*it) == e.gdevice.which) {
@@ -796,13 +858,13 @@ void Input::handle_event(const SDL_Event &e) {
             if (e.key.repeat)
                 break;
             if (is_options(Binding{Binding::Kind::Key, int(e.key.scancode), 0}))
-                end_capture(std::nullopt, true);
+                press_options();
             else if (capture_ == Capture::Keys)
                 end_capture(Binding{Binding::Kind::Key, int(e.key.scancode), 0}, false);
             break;
         case SDL_EVENT_GAMEPAD_BUTTON_DOWN:
             if (is_options(Binding{Binding::Kind::PadButton, int(e.gbutton.button), 0}))
-                end_capture(std::nullopt, true);
+                press_options();
             else if (capture_ == Capture::Pad && e.gbutton.button != SDL_GAMEPAD_BUTTON_GUIDE)
                 end_capture(Binding{Binding::Kind::PadButton, int(e.gbutton.button), 0}, false);
             break;
@@ -835,7 +897,7 @@ void Input::handle_event(const SDL_Event &e) {
             return;
         }
         if (is_options(b)) {
-            pending_.toggle = true;
+            press_options();
             return;
         }
     }
@@ -846,7 +908,7 @@ void Input::handle_event(const SDL_Event &e) {
                          (e.type == SDL_EVENT_GAMEPAD_BUTTON_DOWN &&
                           is_options(Binding{Binding::Kind::PadButton, int(e.gbutton.button), 0}));
     if (options && !menu_open_) {
-        pending_.toggle = true;
+        press_options();
         return;
     }
     const MenuActions was = pending_;
@@ -862,7 +924,7 @@ void Input::handle_event(const SDL_Event &e) {
                                                          e.gbutton.button == SDL_GAMEPAD_BUTTON_DPAD_LEFT ||
                                                          e.gbutton.button == SDL_GAMEPAD_BUTTON_DPAD_RIGHT));
         if (options && !menu_key)
-            pending_.toggle = true;
+            press_options();
     };
     struct AtExit {
         const decltype(toggle_unless_menu_key) &f;
@@ -994,6 +1056,7 @@ MenuActions Input::take_menu_actions(double now_s) {
     const int threshold = 32767 * kStickDeadzone / 100;
     int dir = -1;
     for (SDL_Gamepad *pad : pads_) {
+        if (!accepts_pad(SDL_GetGamepadID(pad))) continue;
         const int x = SDL_GetGamepadAxis(pad, SDL_GAMEPAD_AXIS_LEFTX);
         const int y = SDL_GetGamepadAxis(pad, SDL_GAMEPAD_AXIS_LEFTY);
         if (SDL_GetGamepadButton(pad, SDL_GAMEPAD_BUTTON_DPAD_UP) ||
@@ -1033,14 +1096,18 @@ MenuActions Input::take_menu_actions(double now_s) {
 }
 
 SDL_GamepadType Input::gamepad_type() const {
-    return pads_.empty() ? SDL_GAMEPAD_TYPE_UNKNOWN : SDL_GetGamepadType(pads_.front());
+    for (auto *pad : pads_)
+        if (accepts_pad(SDL_GetGamepadID(pad))) return SDL_GetGamepadType(pad);
+    return SDL_GAMEPAD_TYPE_UNKNOWN;
 }
 
 std::string Input::gamepad_name() const {
-    if (pads_.empty())
-        return {};
-    const char *name = SDL_GetGamepadName(pads_.front());
-    return name ? name : "Gamepad";
+    for (auto *pad : pads_)
+        if (accepts_pad(SDL_GetGamepadID(pad))) {
+            const char *name = SDL_GetGamepadName(pad);
+            return name ? name : "Gamepad";
+        }
+    return {};
 }
 
 } // namespace sawgod::ui

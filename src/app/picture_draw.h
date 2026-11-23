@@ -21,7 +21,7 @@ struct Rect {
     float x, y, w, h;
     float scale; // output pixels per game pixel (MenuRect: per menu unit)
 };
-Rect GameRect(int out_w, int out_h);
+Rect GameRect(int out_w, int out_h, bool whole_scale = false);
 
 // Enhanced scene passes stop growing here; UI and the final presentation keep the output size.
 inline constexpr int kEnhancedSceneScale = 5;
@@ -34,7 +34,7 @@ inline std::array<int, 2> enhanced_scene_size(int width, int height) {
 
 // The menu: the game picture less 2 tiles (16 game pixels) on every side, so it is the same size relative
 // to the game at every window size and in fullscreen; one menu unit is half a game pixel.
-Rect MenuRect(int out_w, int out_h);
+Rect MenuRect(int out_w, int out_h, bool whole_scale = false);
 
 // Draws a pixel-art texture (nearest-neighbour sampling) into dst with crisp pixels at any scale: directly
 // at a whole scale, else "sharp bilinear" -- enlarged by nearest-neighbour to the next whole scale in a

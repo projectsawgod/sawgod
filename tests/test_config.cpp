@@ -531,6 +531,7 @@ TEST_CASE("Options gamepad actions follow effective buttons and consume overlapp
     auto map = InputMap::defaults();
     map.load(config);
     Input input;
+    input.select_type(GamepadType::Gamepad);
     input.set_map(&map);
     input.set_menu_open(true);
     const auto press = [&](SDL_GamepadButton b) {
