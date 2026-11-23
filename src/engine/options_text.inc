@@ -230,3 +230,6 @@
     {"ui_options_exchange_gamepad_ab", "ゲームとせっていの　AとBをいれかえる", "Exchange gamepad A and B in game and Options", "Options: Swap A/B help"},
     {"ui_options_keep_menu_buttons", "けってい・もどる・せっていの　ボタンがひつよう", "Keep buttons for Accept, Cancel and Options", "Options: menu binding safeguard"},
     {"ui_options_menu_buttons", "{A}けってい　{B}もどる　{Options}せってい", "Menu: {A} accept, {B} back; {Options}: Options", "Options: gamepad menu controls"},
+    {"ui_options_gamepad_type", "ゲームパッドのしゅるい", "Gamepad Type", "Options: Gamepad Type"},
+    {"ui_options_virtual", "タッチ", "Virtual", "Options: Virtual"},
+    {"ui_options_follows_controller_connections_not_saved", "せつぞくにあわせてきりかえ　ほぞんしない", "Follows controller connections; not saved", "Options: runtime gamepad type help"},

@@ -59,6 +59,7 @@ struct LaunchArgs {
     };
     std::vector<MapShot> map_shots;
     int shot_map = -1, shot_x = 0, shot_y = 0, shot_benchmark = 0, shot_effect_frame = -1;
+    bool touch_controls = false; // Desktop debug access to Android touch controls.
     bool identity_shader = false; // --identity-shader: diagnostic shader, session-only
     int shot_gb_weight = -1;      // --shot-gb-weight 0..256: fixed live-picture crossfade for readback
     int shot_display_hz = 0;      // simulated presentation clock, only for accelerated captures

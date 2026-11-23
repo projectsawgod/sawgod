@@ -9,7 +9,7 @@ import java.nio.file.Files;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 
-/** SDL owns rendering, gamepad input and the system document picker. No touch overlay. */
+/** SDL owns rendering, touch/gamepad input and the system document picker. */
 public class SawGodActivity extends SDLActivity {
     @Override protected String[] getLibraries() {
         return new String[] { "SDL3", "fluidsynth", "sawgod" };

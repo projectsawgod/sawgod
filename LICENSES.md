@@ -28,6 +28,8 @@ These are built into, linked with or shipped beside SawGod. Full license texts a
 | **GCC runtime libraries** | statically linked compiler support / C++ standard library | GPL-3.0 with GCC Runtime Library Exception 3.1; `licenses/GCC-runtime.txt`, `licenses/GPL-3.txt` |
 | **MinGW-w64 runtime** | Windows compiler support, including static winpthreads | MinGW permissive notices and upstream exceptions; `licenses/MinGW-w64.txt`, `licenses/GPL-2.txt` |
 | **Android NDK r29 LLVM runtime** | Android: shared libc++ and compiled compiler support | Apache-2.0 with LLVM Exceptions and preserved upstream notices; `licenses/Android-NDK-toolchain-NOTICE.txt` |
+| **Kenney Mobile Controls 1.0** (https://kenney.nl/assets/mobile-controls) | touch overlay: six Style C / Icons sprites, copied unchanged | CC0; `licenses/Kenney-Mobile-Controls.txt` |
+| **DejaVu Sans Bold** | baked touch labels; no font shipped | Bitstream Vera / DejaVu; `licenses/DejaVu.txt` |
 | **doctest** | unit tests only | MIT |
 
 Silver by **Poppy Works / Wolfgang Wozniak** is used under

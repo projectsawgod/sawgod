@@ -30,6 +30,13 @@ class Fidelity {
             music_swap_ = stepped(music_swap_, direction);
         target(resolved(graphics_mode_, graphics_swap_), resolved(music_mode_, music_swap_), now);
     }
+    void cycle(uint64_t now) {
+        if (graphics_mode_ == FidelityMode::Swap)
+            graphics_swap_ = FidelityMode((int(graphics_swap_) + 1) % 3);
+        if (music_mode_ == FidelityMode::Swap)
+            music_swap_ = FidelityMode((int(music_swap_) + 1) % 3);
+        target(resolved(graphics_mode_, graphics_swap_), resolved(music_mode_, music_swap_), now);
+    }
     // Teach the picture step when unlocked; otherwise teach the unlocked music track.
     std::optional<FidelityMode> step_mode() const {
         if (graphics_mode_ == FidelityMode::Swap)

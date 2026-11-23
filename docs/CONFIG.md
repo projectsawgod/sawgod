@@ -685,3 +685,15 @@ System lists Language, Reset to Default Settings, Reset Game and Quit Game. Rese
 Binding pages list the WSC buttons,
 then Options, Encounters On/Off, Toggle Minimap, Mode Down, Mode Up and Fast Forward. Config IDs stay unchanged.
 Graphics/Music Swap help uses the current device’s bound Mode Down/Mode Up controls and selected pad icons.
+
+The Gamepad page's **Gamepad Type** row is runtime state, never written to `sawgod.toml`:
+None uses keyboard, Gamepad uses connected SDL gamepads, and Virtual uses Android's on-screen controls.
+Keyboard input works with every type. Launch and each controller connection/disconnection select Gamepad
+when any SDL-recognized controller remains; otherwise Android selects Virtual and desktop selects None.
+The overlay's own SDL virtual joystick and unmapped joysticks are excluded. A manual choice lasts until
+the next controller connection/disconnection. Desktop's `--touch-controls` debug launch flag enables
+Virtual and the Android fallback, with mouse input for testing.
+In Virtual, only the hamburger remains visible in Options; it closes the menu or cancels binding capture, while Android Back performs the same Options action for every Gamepad Type, regardless of keyboard bindings.
+
+The touch Mode button cycles unlocked graphics/music GB -> WSC -> Enhanced -> GB with a fade.
+Locked tracks remain fixed. Mode Down/Up keyboard/gamepad bindings continue to clamp at the ends.

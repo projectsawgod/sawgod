@@ -407,11 +407,17 @@ add_library(sawgod_ui STATIC
     src/engine/overlay.cpp
     src/engine/overlay.h
     src/engine/input.cpp
+    src/engine/touch_controls.cpp
     src/engine/input_defaults.cpp
     src/engine/input.h
     src/engine/data_dir.cpp
     src/engine/data_dir.h
 )
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${CMAKE_SOURCE_DIR}/assets/ui/touch/atlas.png)
+file(READ ${CMAKE_SOURCE_DIR}/assets/ui/touch/atlas.png touch_hex HEX)
+string(REGEX REPLACE "([0-9a-f][0-9a-f])" "0x\\1," touch_bytes "${touch_hex}")
+file(CONFIGURE OUTPUT ${CMAKE_BINARY_DIR}/generated/touch_art.inc CONTENT "${touch_bytes}\n" @ONLY)
+target_include_directories(sawgod_ui PRIVATE ${CMAKE_BINARY_DIR}/generated)
 target_include_directories(sawgod_ui PUBLIC ${CMAKE_SOURCE_DIR}/src)
 # Offline shader outputs are embedded: no compiler/runtime DLL or deployment path required.
 # A toolchain bootstrap can build ordinary GPU presentation before generating the identity shader.
