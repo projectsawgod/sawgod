@@ -47,7 +47,7 @@ class ReleaseTests(unittest.TestCase):
             return [c.args[0] for c in run.call_args_list]
 
     def test_draft_contains_only_selected_packages_and_combined_checksums(self):
-        for version, packages, title in [('v1.1.0', draft_release.PACKAGES, 'SawGod v1.1.0'),
+        for version, packages, title in [('v1.1.0', draft_release.PACKAGES, 'SawGod 1.1.0'),
                                          ('vanilla', draft_release.VANILLA_PACKAGES, 'sawgod-vanilla')]:
             with self.subTest(version=version):
                 calls = self.release([], version=version)

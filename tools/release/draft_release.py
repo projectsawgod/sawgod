@@ -19,7 +19,7 @@ def main(folder):
     version = os.environ['RELEASE_VERSION']
     vanilla = release_flavor(version) == 'vanilla'
     packages = VANILLA_PACKAGES if vanilla else PACKAGES
-    title = 'sawgod-vanilla' if vanilla else f'SawGod {version}'
+    title = 'sawgod-vanilla' if vanilla else f'SawGod {version.removeprefix("v")}'
     checksums = []
     for name in packages:
         package = folder / name
@@ -36,7 +36,7 @@ def main(folder):
         if signing not in ('Android APK: release-key signed.',
                            'Android APK: TESTING BUILD, signed with the public debug key; not a production signature.'):
             raise SystemExit('Missing or unrecognized Android signing status')
-        body.write_text('SawGod ' + version + '\n\n'
+        body.write_text(title + '\n\n'
                         'Fan port of Makai Toushi SaGa for WonderSwan Color. Supply your own legally obtained ROM. '
                         'No ROM or extracted game data is included.\n\n'
                         + signing + '\n\nmacOS: Apple Silicon, ad-hoc signed and not notarized. '
