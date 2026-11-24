@@ -4,6 +4,7 @@
 #include "engine/input.h"
 #include "engine/overlay.h"
 #include "engine/touch_controls.h"
+#include "ui/virtual_pad.h"
 #include <algorithm>
 #include <cmath>
 #include <doctest/doctest.h>
@@ -148,6 +149,7 @@ TEST_CASE("touch: all sizes follow height with physical floors and safe disjoint
 }
 
 TEST_CASE("touch: saved Auto On Off honors controller hotplug and excludes its own joystick") {
+    sawgod::test::ignore_host_gamepads();
     REQUIRE(SDL_InitSubSystem(SDL_INIT_GAMEPAD));
     {
         TouchControls touch;
@@ -222,6 +224,7 @@ TEST_CASE("touch: saved Auto On Off honors controller hotplug and excludes its o
 }
 TEST_CASE("touch: SDL virtual gamepad follows default bindings, Swap A/B, and hide releases") {
     SDL_SetHint(SDL_HINT_JOYSTICK_ALLOW_BACKGROUND_EVENTS, "1");
+    sawgod::test::ignore_host_gamepads();
     REQUIRE(SDL_InitSubSystem(SDL_INIT_GAMEPAD));
     {
         TouchControls touch;
@@ -314,6 +317,7 @@ TEST_CASE("touch: SDL virtual gamepad follows default bindings, Swap A/B, and hi
 }
 TEST_CASE("touch: Options exposes gamepad navigation and ignores touch bindings") {
     SDL_SetHint(SDL_HINT_JOYSTICK_ALLOW_BACKGROUND_EVENTS, "1");
+    sawgod::test::ignore_host_gamepads();
     REQUIRE(SDL_InitSubSystem(SDL_INIT_GAMEPAD | SDL_INIT_VIDEO));
     SDL_Window *window = SDL_CreateWindow("touch menu test", 2400, 1080, SDL_WINDOW_HIDDEN);
     REQUIRE(window);

@@ -6,6 +6,13 @@
 
 namespace sawgod::test {
 
+// Keep the host's physical controllers out of the test: with an allow list naming no real device, SDL's
+// physical drivers ignore every pad, while virtual joysticks are never filtered. Call before the gamepad
+// subsystem starts.
+inline void ignore_host_gamepads() {
+    SDL_SetHint(SDL_HINT_GAMECONTROLLER_IGNORE_DEVICES_EXCEPT, "0x0000/0x0000");
+}
+
 inline bool gamepad_listed(SDL_JoystickID id) {
     int count = 0;
     SDL_JoystickID *ids = SDL_GetGamepads(&count);
