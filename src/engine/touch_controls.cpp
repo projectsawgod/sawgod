@@ -17,68 +17,43 @@ TouchLayout TouchLayout::make(float width, float height, float picture_width, SD
     TouchLayout l;
     l.scale = height / 1080.0f;
     const float s = l.scale;
-    // Each side uses one reference scale, with physical floors for individual targets.
+    // One height scale for all art, with physical floors in render-output pixels.
     // Top-row controls use 48 dp; gameplay targets use 57 dp (about 9 mm).
-    const float minimum = minimum_scale > 0 ? minimum_scale : s * 57 / 120;
-    const float top_minimum = minimum * 48 / 57;
+    const float minimum = minimum_scale > 0 ? minimum_scale : 57.f / 120;
     const float bar = std::max(0.0f, (width - picture_width) / 2);
     const float gap = 16 * s;
-    const float left_width = std::max(0.f, bar - gap - safe.x);
     const float right_edge = safe.x + safe.w;
-    const float right_width = std::max(0.f, right_edge - (width - bar + gap));
-    auto pad_size = [&](float scale) { return std::max(320 * scale, 120 * minimum); };
-    auto button_size = [&](float scale) { return std::max(172 * scale, 120 * minimum); };
-    auto top_size = [&](float scale) { return std::max(120 * scale, 120 * top_minimum); };
-    auto button_dx = [&](float scale) {
-        return std::max(172 * scale, button_size(scale) * 1.2f * 172 / std::hypot(172.f, 170.f));
-    };
-    auto fit = [&](float available, auto required) {
-        if (required(s) <= available)
-            return s;
-        if (required(0) > available)
-            return 0.f; // Top-row and face-button minimums may cross the picture edge.
-        float lo = 0, hi = s;
-        for (int i = 0; i < 24; ++i) {
-            const float mid = (lo + hi) / 2;
-            (required(mid) <= available ? lo : hi) = mid;
-        }
-        return lo;
-    };
-    const float left_scale = fit(left_width, [&](float scale) {
-        return std::max(pad_size(scale) * 1.2f, top_size(scale) + std::max(160 * scale, top_size(scale)));
-    });
-    const float right_scale = fit(right_width, [&](float scale) {
-        return std::max(button_size(scale) * 1.2f + button_dx(scale), top_size(scale) * 2.2f);
-    });
+    const float pad = std::max(320 * s, 120 * minimum);
+    const float button = std::max(172 * s, 120 * minimum);
+    const float top = std::max(120 * s, 120 * minimum * 48 / 57);
+    const float spacing = std::max(160 * s, top * 1.2f);
+    const float dx = std::max(172 * s, button * 1.2f * 172 / std::hypot(172.f, 170.f));
     auto put = [&](TouchControl c, float x, float y, float w, float h, float radius = 0) {
         const float r = radius > 0 ? radius : h * .6f;
         const float bottom = std::max(safe.y + r, safe.y + safe.h - r);
         l.areas[size_t(c)] = {x, std::clamp(y, safe.y + r, bottom), w, h, radius};
     };
-    // Prefer the reference centers, then translate the whole cluster into its usable bar.
+    // Prefer the side bars, then move inward to keep full hit targets inside safe edges.
     auto center = [](float preferred, float low, float high) {
         return std::clamp(preferred, low, std::max(low, high));
     };
-    const float top = top_size(left_scale);
-    const float spacing = std::max(160 * left_scale, top);
-    // Sacrifice only the extra hit margin when two minimum top targets need the bar.
-    const float top_radius =
-        std::max(top / 2, std::min({top * .6f, spacing / 2, (left_width - spacing) / 2}));
+    const float top_radius = top * .6f;
     const float options_x =
-        center(safe.x + 110 * left_scale, safe.x + top_radius, bar - gap - spacing - top_radius);
+        center(safe.x + 110 * s, safe.x + top_radius,
+               std::min(bar - gap - spacing - top_radius, right_edge - spacing - top_radius));
     const float top_y = safe.y + 130 * s;
     put(TouchControl::Options, options_x, top_y, top, top, top_radius);
     put(TouchControl::Mode, options_x + spacing, top_y, top, top, top_radius);
-    const float start = top_size(right_scale);
+    const float start = top;
     put(TouchControl::Start,
-        center(right_edge - 180 * right_scale, width - bar + gap + start * 1.1f, right_edge - start * 1.1f),
-        top_y, 2 * start, start);
+        center(right_edge - 180 * s, width - bar + gap + start * 1.1f, right_edge - start * 1.1f), top_y,
+        2 * start, start);
     // The right edge wins when the minimum cluster is wider than its bar.
     auto &start_area = l.areas[size_t(TouchControl::Start)];
     start_area.x = std::min(start_area.x, right_edge - start * 1.1f);
     // Pads retain their height-based reference size even when the bar is narrow.
     // Translate inward only far enough to keep the full hit target inside the safe edge.
-    const float pad = pad_size(s), pad_radius = pad * .6f;
+    const float pad_radius = pad * .6f;
     const float left = center(bar / 2, safe.x + pad_radius, bar - gap - pad_radius);
     float y_pad = safe.y + 415 * s;
     for (auto c : {TouchControl::Options, TouchControl::Mode}) {
@@ -89,9 +64,8 @@ TouchLayout TouchLayout::make(float width, float height, float picture_width, SD
     }
     put(TouchControl::Y, left, y_pad, pad, pad);
     put(TouchControl::X, left, std::max(safe.y + 800 * s, y_pad + 2 * pad_radius), pad, pad);
-    const float button = button_size(right_scale), dx = button_dx(right_scale);
-    const float right = std::min(right_edge - button * .6f, std::max(width - bar / 2 + 92 * right_scale,
-                                                                     width - bar + gap + dx + button * .6f));
+    const float right = std::min(right_edge - button * .6f,
+                                 std::max(width - bar / 2 + 92 * s, width - bar + gap + dx + button * .6f));
     put(TouchControl::A, right, safe.y + 700 * s, button, button);
     put(TouchControl::B, right - dx, safe.y + 700 * s + std::max(170 * s, dx * 170 / 172), button, button);
     return l;
@@ -180,11 +154,8 @@ void TouchControls::layout(SDL_Window *window, SDL_Renderer *renderer, float wid
         safe = {0, 0, ww, wh};
     SDL_FRect area{float(safe.x) * width / float(ww), float(safe.y) * height / float(wh),
                    float(safe.w) * width / float(ww), float(safe.h) * height / float(wh)};
-    float minimum = 0;
-#ifdef __ANDROID__
-    // 9 mm at Android's logical 160 dpi, converted to render-output pixels.
-    minimum = 57 * SDL_GetWindowDisplayScale(window) * width / float(ww) / 120;
-#elif !defined(NDEBUG)
+    float minimum = 57 * SDL_GetWindowDisplayScale(window) * width / float(ww) / 120;
+#if !defined(__ANDROID__) && !defined(NDEBUG)
     // Desktop reproduction of phone cutouts/density, in render-output pixels.
     if (const char *insets = std::getenv("SAWGOD_TOUCH_SAFE_INSETS")) {
         float left, top, right, bottom;

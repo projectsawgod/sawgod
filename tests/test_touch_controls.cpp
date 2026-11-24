@@ -10,7 +10,7 @@
 using namespace sawgod;
 using namespace sawgod::ui;
 namespace {
-TouchLayout reference() { return TouchLayout::make(2400, 1080, 1568, {0, 0, 2400, 1080}); }
+TouchLayout reference() { return TouchLayout::make(2400, 1080, 1680, {0, 0, 2400, 1080}); }
 void check_disjoint(const TouchLayout &layout) {
     // Distance between capsule center segments, including the 20% hit margin.
     for (size_t i = 0; i < layout.areas.size(); ++i)
@@ -74,20 +74,20 @@ TEST_CASE("touch: fingers own pads while sliding and independent buttons share r
 TEST_CASE("touch: hit margins, host edges and fixed reference coordinates") {
     TouchState t;
     t.layout = reference();
-    const auto picture = app::GameRect(2400, 1080, true);
-    CHECK(picture.w == 1568);
-    CHECK(picture.h == 1008);
-    CHECK(picture.x == 416);
-    CHECK(picture.y == 36);
-    const auto menu = app::MenuRect(2400, 1080, true);
-    CHECK(menu.scale == 3.5f);
+    const auto picture = app::GameRect(2400, 1080);
+    CHECK(picture.w == 1680);
+    CHECK(picture.h == 1080);
+    CHECK(picture.x == 360);
+    CHECK(picture.y == 0);
+    const auto menu = app::MenuRect(2400, 1080);
+    CHECK(menu.scale == 3.75f);
     CHECK(menu.x == picture.x + 16 * picture.scale);
     const auto &areas = t.layout.areas;
     const auto a = areas[size_t(TouchControl::A)];
-    CHECK(a.x == 2284);
+    CHECK(a.x == doctest::Approx(2296.8f));
     CHECK(a.y == 700);
     CHECK(areas[size_t(TouchControl::B)].y == 870);
-    CHECK(areas[size_t(TouchControl::X)].x == 208);
+    CHECK(areas[size_t(TouchControl::X)].x == 192);
     CHECK(areas[size_t(TouchControl::Y)].y == 415);
     CHECK(a.contains(a.x + 100, a.y)); // art radius 86, hit radius 103.2
     CHECK_FALSE(a.contains(a.x + 104, a.y));
@@ -110,86 +110,41 @@ TEST_CASE("touch: hit margins, host edges and fixed reference coordinates") {
     t.move(3, a.x, a.y); // a touch that starts outside never captures a control
     CHECK_FALSE(t.held(TouchControl::A));
 }
-TEST_CASE("touch: phone density preserves reference geometry without insets") {
-    const auto l = TouchLayout::make(2400, 1080, 1568, {0, 0, 2400, 1080}, 57 * 2.625f / 120);
-    const auto ref = reference();
-    for (size_t i = 0; i < l.areas.size(); ++i) {
-        const auto a = l.areas[i], b = ref.areas[i];
-        CHECK(a.x == b.x);
-        CHECK(a.y == b.y);
-        const bool top = i <= size_t(TouchControl::Start);
-        CHECK(a.h == doctest::Approx(top ? 126 : b.h));
-        const float extent = (a.w - a.h) / 2 + (a.hit_radius > 0 ? a.hit_radius : a.h * .6f);
-        if (i == size_t(TouchControl::Start) || i >= size_t(TouchControl::A)) {
-            CHECK(a.x - extent >= 1984 + 16);
-            CHECK(a.x + extent <= 2400);
-        } else {
-            CHECK(a.x - extent >= 0);
-            CHECK(a.x + extent <= 416 - 16);
-        }
-    }
-    check_disjoint(l);
-}
-TEST_CASE("touch: cutouts keep reference pads and safe disjoint hit areas") {
-    for (float bottom : {0.f, 63.f}) {
-        const auto l = TouchLayout::make(2400, 1080, 1568, {128, 0, 2272, 1080 - bottom}, 57 * 2.625f / 120);
+TEST_CASE("touch: all sizes follow height with physical floors and safe disjoint targets") {
+    struct Case {
+        float w, h, density, left, bottom;
+    };
+    for (const auto c : {Case{1112, 720, 1, 0, 0}, Case{1920, 1080, 2.25f, 0, 0},
+                         Case{2400, 1080, 2.625f, 128, 0}, Case{2400, 1080, 2.625f, 128, 63},
+                         Case{2400, 1080, 2.625f, 0, 0}, Case{1920, 1080, 2.25f, 40, 40}}) {
+        const float s = c.h / 1080;
+        const auto picture = app::GameRect(int(c.w), int(c.h));
+        const auto l = TouchLayout::make(c.w, c.h, picture.w, {c.left, 0, c.w - c.left, c.h - c.bottom},
+                                         57 * c.density / 120);
         check_disjoint(l);
         for (size_t i = 0; i < l.areas.size(); ++i) {
             const auto a = l.areas[i];
-            const float radius = a.hit_radius > 0 ? a.hit_radius : a.h * .6f;
-            const float extent = (a.w - a.h) / 2 + radius;
-            const bool right = i == size_t(TouchControl::Start) || i >= size_t(TouchControl::A);
-            CHECK(a.x - extent >= doctest::Approx(right ? 2000 : 128));
+            const bool top = i <= size_t(TouchControl::Start);
             const bool pad = i == size_t(TouchControl::X) || i == size_t(TouchControl::Y);
-            if (!pad)
-                CHECK(a.x + extent <= doctest::Approx(right ? 2400 : 400));
-            CHECK(a.y - radius >= 0);
-            CHECK(a.y + radius <= 1080 - bottom);
-            CHECK(a.h >= (i <= size_t(TouchControl::Start) ? 48 : 57) * 2.625f);
+            const float expected = std::max((top ? 120 : pad ? 320 : 172) * s, (top ? 48 : 57) * c.density);
+            CHECK(a.h == doctest::Approx(expected));
+            CHECK(a.w == doctest::Approx(i == size_t(TouchControl::Start) ? 2 * expected : expected));
+            const float r = a.hit_radius > 0 ? a.hit_radius : a.h * .6f;
+            const float extent = (a.w - a.h) / 2 + r;
+            CHECK(a.x - extent >= doctest::Approx(c.left));
+            CHECK(a.x + extent <= doctest::Approx(c.w));
+            CHECK(a.y - r >= doctest::Approx(0));
+            CHECK(a.y + r <= doctest::Approx(c.h - c.bottom));
         }
-        const auto pad = l.areas[size_t(TouchControl::X)];
-        CHECK(pad.w == 320);
-        CHECK(pad.x == 320);
-        CHECK(pad.y == 800);
-        CHECK(l.areas[size_t(TouchControl::Y)].y == 415);
-        // Rendered X/Y label boxes scale with their pad, including their offsets.
-        const float scale = pad.h / 320;
-        CHECK(pad.x - 150 * scale >= 128);
-        CHECK(pad.x - 70 * scale <= 400);
-        const auto options = l.areas[size_t(TouchControl::Options)];
-        const auto mode = l.areas[size_t(TouchControl::Mode)];
-        CHECK(options.h == doctest::Approx(126));
-        CHECK(options.hit_radius == doctest::Approx(63));
-        CHECK(mode.x - options.x == doctest::Approx(126));
-        CHECK(l.areas[size_t(TouchControl::A)].w == 172); // other side stays at reference size
+        CHECK(l.areas[size_t(TouchControl::Y)].y == doctest::Approx(415 * s));
+        CHECK(l.areas[size_t(TouchControl::X)].y == doctest::Approx(800 * s));
+        CHECK(l.areas[size_t(TouchControl::A)].y == doctest::Approx(700 * s));
+        CHECK(l.areas[size_t(TouchControl::B)].y == doctest::Approx(870 * s));
+        if (c.left > 0 || c.w / c.h < 2)
+            CHECK(l.areas[size_t(TouchControl::X)].x + 192 * s > picture.x);
     }
-}
-TEST_CASE("touch: Thor keeps reference pads with picture overlap and a physical floor") {
-    for (SDL_FRect safe : {SDL_FRect{0, 0, 1920, 1080}, SDL_FRect{40, 0, 1840, 1040}}) {
-        const auto l = TouchLayout::make(1920, 1080, 1568, safe, 57 * 2.625f / 120);
-        const auto x = l.areas[size_t(TouchControl::X)];
-        CHECK(x.w == 320);
-        CHECK(x.x == doctest::Approx(safe.x + 192));
-        CHECK(x.x + x.w * .6f > 176);
-        CHECK(l.areas[size_t(TouchControl::Y)].w == 320);
-        CHECK(l.areas[size_t(TouchControl::Y)].y == 415);
-        CHECK(x.y == 800);
-        const auto mode = l.areas[size_t(TouchControl::Mode)];
-        CHECK(mode.x + mode.w / 2 > 176);
-        CHECK(x.x - x.w * .6f >= doctest::Approx(safe.x));
-        CHECK(l.areas[size_t(TouchControl::Options)].h == doctest::Approx(48 * 2.625f));
-        CHECK(l.areas[size_t(TouchControl::A)].h == doctest::Approx(57 * 2.625f));
-        for (auto a : l.areas) {
-            CHECK(a.x - a.w * .5f >= doctest::Approx(safe.x));
-            CHECK(a.x + a.w * .5f <= doctest::Approx(safe.x + safe.w));
-            CHECK(a.y - a.h * .5f >= doctest::Approx(safe.y));
-            CHECK(a.y + a.h * .5f <= doctest::Approx(safe.y + safe.h));
-        }
-        check_disjoint(l);
-    }
-    // Reference size follows height, and density can only increase it.
-    CHECK(TouchLayout::make(960, 540, 784, {0, 0, 960, 540}).areas[size_t(TouchControl::X)].w == 160);
-    CHECK(TouchLayout::make(1920, 1080, 1568, {0, 0, 1920, 1080}, 3).areas[size_t(TouchControl::X)].w == 360);
+    CHECK(TouchLayout::make(960, 540, 840, {0, 0, 960, 540}).areas[size_t(TouchControl::X)].w == 160);
+    CHECK(TouchLayout::make(1920, 1080, 1680, {0, 0, 1920, 1080}, 3).areas[size_t(TouchControl::X)].w == 360);
 }
 
 TEST_CASE("touch: saved Auto On Off honors controller hotplug and excludes its own joystick") {
@@ -609,7 +564,7 @@ TEST_CASE("fidelity: touch cycle wraps, fades Enhanced to GB, and respects indep
     }
 }
 
-TEST_CASE("touch: retained field clears margins after whole-scale and picture moves") {
+TEST_CASE("touch: retained field clears margins after picture resizes and moves") {
     REQUIRE(SDL_InitSubSystem(SDL_INIT_VIDEO));
     auto *window = SDL_CreateWindow("retained margins", 1920, 1080, SDL_WINDOW_HIDDEN);
     REQUIRE(window);
@@ -629,10 +584,10 @@ TEST_CASE("touch: retained field clears margins after whole-scale and picture mo
     REQUIRE(SDL_SetRenderTarget(renderer, target));
     app::BattleWipe wipe;
     const auto full = app::GameRect(1920, 1080);
-    const auto whole = app::GameRect(1920, 1080, true);
+    const auto smaller = app::GameRect(1680, 1008);
     const SDL_FRect rects[] = {{full.x, full.y, full.w, full.h},
-                               {whole.x, whole.y, whole.w, whole.h},
-                               {whole.x + 20, whole.y + 12, whole.w - 224, whole.h - 144}};
+                               {smaller.x, smaller.y, smaller.w, smaller.h},
+                               {smaller.x + 20, smaller.y + 12, smaller.w - 224, smaller.h - 144}};
     for (const auto rect : rects) {
         REQUIRE(wipe.begin(renderer, 1920, 1080, 1, 1, rect));
         REQUIRE(SDL_RenderTexture(renderer, source, nullptr, &rect));
@@ -653,7 +608,7 @@ TEST_CASE("touch: retained field clears margins after whole-scale and picture mo
         SDL_DestroySurface(rgb);
         SDL_DestroySurface(surface);
     }
-    // Wipes must sample the retained whole-scale/moved rectangle, rather than assume full-height.
+    // Wipes must sample the retained resized/moved rectangle, rather than assume full-height.
     emu::Wsc w(std::vector<uint8_t>(0x400000), 0);
     w.cpu.s.halted = true;
     w.cpu.s.flags = 0;

@@ -115,3 +115,10 @@ add_test(NAME vanilla_recording_replay COMMAND ${Python3_EXECUTABLE}
 set_tests_properties(vanilla_recording_replay PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 300 LABELS "rom;vanilla")
 add_test(NAME vanilla_link COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/vanilla_link.py
     ${CMAKE_BINARY_DIR} $<TARGET_FILE:sawgod-vanilla>)
+
+# The harness exercises POSIX directory fsync, matching Android storage.
+if(UNIX AND NOT CMAKE_CROSSCOMPILING)
+    add_test(NAME android_bundled_assets COMMAND ${Python3_EXECUTABLE}
+        ${CMAKE_CURRENT_SOURCE_DIR}/test_android_assets.py)
+    set_tests_properties(android_bundled_assets PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 60)
+endif()

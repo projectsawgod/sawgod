@@ -56,8 +56,11 @@ URI grants are requested; moving/removing the original document after import doe
 
 SDL_GetPrefPath on Android is the app's internal files directory. It holds the ROM, wsc.sgz, gb.sgz,
 saves, sawgod.toml and mods. Authored GB map inputs, English and the soundfont are installed there from
-APK assets before native startup. A content manifest refreshes those bundled files on app upgrades;
-it never overwrites ROM data, archives, saves, config or mods. Uninstall/clear-data removes everything.
+APK assets before native startup. The installed manifest is retained: upgrades copy only changed or
+missing files and remove only previously listed bundled assets. Older digest stamps migrate by hashing
+existing files instead of recopying them. Changed files are flushed and atomically renamed; affected directories are synced
+before the manifest is atomically replaced. An unchanged launch writes nothing. The installer
+never overwrites ROM data, archives, saves, config or mods. Uninstall/clear-data removes everything.
 Licenses and dependency source archives remain in APK assets. Backups are disabled to avoid copying ROM
 content into cloud backups. A debug build's files can be inspected with `adb shell run-as org.sawgod.app`.
 
@@ -73,13 +76,14 @@ connections never change a saved choice.
 
 The fixed landscape layout puts two split pads in the left bar (faint Y above X), A above/right of B
 in the right bar, Options (hamburger) and Mode (upward double chevron) at top left, and START at top right.
-Pads stay at their reference size (320 px at 1080 high, scaled with height), with a 9 mm floor.
-They center in the side bar where possible, move inward to clear safe edges, and overlap the picture
-when the bar is narrow. Other controls still fit their side bars, with minimum targets of 48 dp for
-Options/Mode/Start and about 9 mm for A/B. Multiple fingers can hold
-directions and buttons
-together. Pads have center and diagonal dead zones, and sliding changes direction without lifting.
-Button hit areas extend 20% beyond their drawn radius, with smaller top-row margins when needed. There is no layout editor or haptics.
+Every control uses its reference size scaled by window height: pads 320 px, A/B 172 px,
+Options/Mode 120 px, and START 240x120 px at 1080 high. Physical floors are 57 dp (about 9 mm)
+for pads/A/B and 48 dp for the top row. Controls never shrink to fit side bars; they move inward
+as needed to keep their hit areas inside the safe area and may overlap the picture. Touch on/off
+uses the same normal fit-to-window picture and Options geometry, without whole-pixel snapping.
+Multiple fingers can hold directions and buttons together. Pads have center and diagonal dead zones,
+and sliding changes direction without lifting. Button hit areas extend 20% beyond their drawn radius.
+There is no layout editor or haptics.
 
 X drives the default d-pad bindings, Y drives the right stick, and A/B/START drive their default gamepad
 buttons through an SDL virtual gamepad. Rebinding, Swap A/B, and button prompts use the existing input path.

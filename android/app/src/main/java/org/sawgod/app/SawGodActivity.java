@@ -4,9 +4,9 @@ import android.os.Bundle;
 import android.view.View;
 import org.libsdl.app.SDLActivity;
 import java.io.*;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.security.MessageDigest;
+import android.system.ErrnoException;
+import android.system.Os;
+import android.system.OsConstants;
 import java.security.NoSuchAlgorithmException;
 
 /** SDL owns rendering, touch/gamepad input and the system document picker. */
@@ -48,25 +48,20 @@ public class SawGodActivity extends SDLActivity {
             while ((count = in.read(buffer)) != -1) out.write(buffer, 0, count);
             manifest = out.toByteArray();
         }
-        byte[] digest = MessageDigest.getInstance("SHA-256").digest(manifest);
-        File stamp = new File(getFilesDir(), ".bundled-assets");
-        boolean current = stamp.isFile() && java.util.Arrays.equals(digest, Files.readAllBytes(stamp.toPath()));
-        String[] rows = new String(manifest, StandardCharsets.UTF_8).split("\n");
-        for (String row : rows) {
-            String path = row.substring(66);
-            File dest = new File(getFilesDir(), path);
-            if (current && dest.isFile()) continue;
-            File parent = dest.getParentFile();
-            if (!parent.isDirectory() && !parent.mkdirs()) throw new IOException("Cannot create " + parent);
-            File temp = new File(parent, dest.getName() + ".new");
-            try (InputStream in = getAssets().open(path); FileOutputStream out = new FileOutputStream(temp)) {
-                byte[] buffer = new byte[65536];
-                int count;
-                while ((count = in.read(buffer)) != -1) out.write(buffer, 0, count);
-                out.getFD().sync();
+        BundledAssets.install(getFilesDir(), manifest, new BundledAssets.Source() {
+            @Override public InputStream open(String path) throws IOException {
+                return getAssets().open(path);
             }
-            if (!temp.renameTo(dest)) throw new IOException("Cannot install " + path);
-        }
-        Files.write(stamp.toPath(), digest);
+        }, new BundledAssets.DirectorySync() {
+            @Override public void sync(File directory) throws IOException {
+                try {
+                    FileDescriptor fd = Os.open(directory.getPath(), OsConstants.O_RDONLY, 0);
+                    try { Os.fsync(fd); }
+                    finally { Os.close(fd); }
+                } catch (ErrnoException error) {
+                    throw new IOException("Cannot sync bundled asset directory", error);
+                }
+            }
+        });
     }
 }

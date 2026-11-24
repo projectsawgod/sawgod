@@ -696,7 +696,11 @@ touch visible alongside every controller, and Off hides it. Keyboard and all gam
 No controller event overrides the saved choice. Desktop normally has no touch or type row.
 Options keeps the hamburger, X pad, A and B visible for closing, navigation, accept and back.
 Y, Mode and START are hidden. Binding capture ignores the touch joystick; the hamburger cancels capture. Android Back performs the same Options action even under Off, regardless of bindings.
-Hiding touch releases held virtual buttons. Whole-pixel picture scaling follows overlay visibility.
+Hiding touch releases held virtual buttons. The picture and Options keep their normal fit-to-window
+size with touch on or off. All control sizes scale with window height (at 1080 high: pads 320 px,
+A/B 172 px, top circles 120 px, START 240x120 px), with floors of 57 dp for pads/A/B and 48 dp
+for the top row. Controls stay inside the safe area and overlap the picture when bars are narrow;
+they never shrink to fit the bars.
 Prompts follow the last device pressed; Auto icons use the last real controller's family when available,
 with the usual Xbox fallback when only touch is available.
 
