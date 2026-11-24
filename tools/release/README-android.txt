@@ -1,4 +1,4 @@
-SawGod for Android arm64, Android 8.0 or later (gamepad required)
+SawGod for Android arm64, Android 8.0 or later (touch or gamepad)
 
 SawGod is a fan port of Makai Toushi SaGa for WonderSwan Color. You need your
 own legally obtained Japanese WonderSwan Color ROM. No game data is included.
@@ -9,8 +9,11 @@ then install and open SawGod. Only allow trusted downloads; you can turn that
 permission off afterward. A debug-key package is a testing build; changing
 signing keys requires uninstalling, which deletes internal data.
 
-Connect a gamepad; there are no gameplay touch controls. On first run press
-the bottom face button to choose your legally obtained ROM in the system file
+Phones get on-screen touch controls; a connected gamepad or a handheld's
+built-in controls also work. Options > Gamepad > Touch Controls: Auto shows
+them while no controller is connected, On always, Off never (Android Back
+still opens Options). On first run tap the screen or press the bottom face
+button to choose your legally obtained ROM in the system file
 picker (.wsc, .zip or .7z). SawGod verifies, copies and extracts it locally.
 Cancel or retry if needed; later launches reuse the imported copy.
 
