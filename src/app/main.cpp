@@ -182,14 +182,6 @@ using sawgod::app::ZoomBackdrop;
 
 int main(int argc, char **argv) {
     sawgod::app::LaunchArgs args = sawgod::app::parse_launch_args(argc, argv);
-    bool touch_picture = false;
-    // Touch chrome leaves side bars beside a whole-pixel picture.
-    auto GameRect = [&](int width, int height) {
-        return sawgod::app::GameRect(width, height, touch_picture);
-    };
-    auto MenuRect = [&](int width, int height) {
-        return sawgod::app::MenuRect(width, height, touch_picture);
-    };
     if (!args.shot_render_reset_error.empty()) {
         std::fprintf(stderr, "sawgod: %s\n", args.shot_render_reset_error.c_str());
         return 2;
@@ -802,7 +794,6 @@ int main(int argc, char **argv) {
         sawgod::debug_log::errorf("input", "Touch gamepad initialization failed: %s", SDL_GetError());
     sawgod::ui::Input input(touch.id());
     bool touch_foreground = true;
-    touch_picture = wsc && settings.touch_enabled(input.real_controller_connected());
     const auto initial_game = GameRect(args.shot_w > 0 ? args.shot_w : initial_width,
                                        args.shot_h > 0 ? args.shot_h : initial_height);
     const auto initial_scene =
@@ -1339,7 +1330,8 @@ int main(int argc, char **argv) {
         const Rect g = GameRect(out_w, out_h);
         const SDL_FRect screen_dst{g.x, g.y, g.w, g.h};
         SDL_FRect backdrop_dst = screen_dst; // black bars around it in fullscreen
-        if (!fullscreen && !touch_picture) { // Desktop backdrop may cover the window; touch keeps black bars.
+        if (!fullscreen && std::strcmp(SDL_GetCurrentVideoDriver(), "android") != 0) {
+            // Android is always immersive, even with the desktop fullscreen setting off.
             const float s =
                 std::max(float(out_w) / sawgod::kNativeWidth, float(out_h) / sawgod::kNativeHeight);
             const float w = sawgod::kNativeWidth * s, h = sawgod::kNativeHeight * s;
@@ -1956,8 +1948,8 @@ int main(int argc, char **argv) {
     int wipe_field_map = -1;
     bool wipe_field_camera = false;
     auto update_touch = [&](int width, int height) {
-        touch_picture = wsc && touch_foreground && settings.touch_enabled(input.real_controller_connected());
-        touch.show(touch_picture, overlay.is_open());
+        touch.show(wsc && touch_foreground && settings.touch_enabled(input.real_controller_connected()),
+                   overlay.is_open());
         touch.layout(window, renderer, float(width), float(height), GameRect(width, height).w);
     };
     auto draw_frame = [&](int out_w, int out_h, bool fullscreen) {
