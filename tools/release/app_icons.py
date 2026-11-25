@@ -10,7 +10,7 @@ import argparse
 from pathlib import Path
 
 import numpy as np
-from PIL import Image
+from PIL import Image, ImageDraw
 
 ROOT = Path(__file__).resolve().parents[2]
 MASTER = ROOT / 'assets/ui/sawgod_sg_mark.png'
@@ -40,6 +40,21 @@ def fitted(mark, size, box, background=None):
     return canvas
 
 
+def white_tile(mark, size, tile, box):
+    """The mark (fitted to box) on a white rounded square of `tile` px, centered on a size x size canvas.
+    Corner radius as macOS's icon grid."""
+    scale = 4  # draw the rounded square large, then downsample for smooth edges
+    mask = Image.new('L', (tile * scale, tile * scale), 0)
+    ImageDraw.Draw(mask).rounded_rectangle((0, 0, tile * scale - 1, tile * scale - 1),
+                                           radius=round(tile * scale * 0.225), fill=255)
+    mask = mask.resize((tile, tile), Image.Resampling.LANCZOS)
+    canvas = Image.new('RGBA', (size, size), (0, 0, 0, 0))
+    white = Image.new('RGBA', (tile, tile), (255, 255, 255, 255))
+    canvas.paste(white, ((size - tile) // 2, (size - tile) // 2), mask)
+    canvas.alpha_composite(fitted(mark, size, box))
+    return canvas
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument('--master', type=Path, help='rebuild the master from this mark-on-white image first')
@@ -47,8 +62,8 @@ def main():
     if args.master:
         master_from_white(args.master)
     mark = Image.open(MASTER).convert('RGBA')
-    fitted(mark, 256, 240).save(WINDOW_ICON, optimize=True)
-    fitted(mark, 256, 240).save(WINDOWS_ICO, sizes=[(s, s) for s in (16, 24, 32, 48, 64, 128, 256)])
+    white_tile(mark, 256, 248, 196).save(WINDOW_ICON, optimize=True)
+    white_tile(mark, 256, 248, 196).save(WINDOWS_ICO, sizes=[(s, s) for s in (16, 24, 32, 48, 64, 128, 256)])
     # Adaptive icon: 108 dp canvas, launchers may mask to a 66 dp circle; the mark's corners stay inside it.
     fitted(mark, 432, 220).save(ANDROID_RES / 'drawable/icon_foreground.png', optimize=True)
     white = (255, 255, 255, 255)
