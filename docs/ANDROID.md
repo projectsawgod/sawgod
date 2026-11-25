@@ -164,6 +164,16 @@ Bionic lacks ucontext functions. The game therefore uses a small cooperative ABI
 arm64/x86_64, keeping the same stackful fiber/yield/cancel semantics and unwinding destructors on cancel.
 It saves callee-saved registers, stack pointer and floating-point control state, on the same thread.
 
+## Frame Pacing
+
+Options → Video → Frame Pacing offers Smooth / Exact / Lo-Spec. Smooth is the default
+everywhere; choose Lo-Spec (`video.pacing = "lospec"`) on slower phones.
+Lo-Spec presents at 30 FPS (every 2nd/3rd/4th refresh on 60/90/120 Hz panels; otherwise timed),
+including Options, using Smooth's latest-two-native-step interpolation. Enhanced scenes cap at
+672×432 and Enhanced music uses 16 voices per synth (32 otherwise; from the next song). Host UI, text,
+minimap and touch controls stay at output resolution. Input service, every 75.471698 Hz native tick, RNG,
+battle speed and audio buffers remain unchanged.
+
 ## Device smoke check
 
 ```sh

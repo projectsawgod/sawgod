@@ -1,5 +1,6 @@
 #include "engine/overlay.h"
 #include "engine/options_text.h"
+#include "engine/presentation_diagnostics.h"
 
 #include <algorithm>
 #include <cmath>
@@ -163,6 +164,7 @@ void Overlay::draw_text(ImDrawList *dl, float x, float y, std::string_view text,
 }
 
 void Overlay::release_renderer() {
+    invalidate_canvas();
     skin_.release();
     if (ctx_ && renderer_) {
         ImGui::SetCurrentContext(ctx_);
@@ -210,6 +212,7 @@ bool Overlay::init(SDL_Renderer *renderer, Config &config, Settings &settings, H
 }
 
 bool Overlay::build_skin(const std::vector<uint8_t> &rom, const std::vector<uint8_t> &gb_hand) {
+    invalidate_canvas();
     return skin_.build(renderer_, rom, gb_hand);
 }
 
@@ -1096,8 +1099,66 @@ void Overlay::draw_value(ImDrawList *dl, Row &r, int row_index, float y, bool fo
     }
 }
 
-void Overlay::render(SDL_Renderer *renderer, float scale) {
+void Overlay::render(SDL_Renderer *renderer, float scale, bool retain_canvas) {
     ImGui::SetCurrentContext(ctx_);
+    auto &snapshot = canvas_scratch_;
+    snapshot.clear();
+    const auto append = [&](const void *data, size_t bytes) {
+        const auto *first = static_cast<const unsigned char *>(data);
+        if (bytes)
+            snapshot.insert(snapshot.end(), first, first + bytes);
+    };
+    bool callbacks = false, texture_updates = false;
+    if (retain_canvas) {
+        append(&scale, sizeof(scale));
+        auto *target = SDL_GetRenderTarget(renderer);
+        append(&target, sizeof(target));
+        if (auto *data = ImGui::GetDrawData()) {
+            if (data->Textures)
+                for (auto *texture : *data->Textures)
+                    if (texture->Status != ImTextureStatus_OK) {
+                        // GetTexID requires WantCreate uploads to have completed first.
+                        ImGui_ImplSDLRenderer3_UpdateTexture(texture);
+                        texture_updates = true;
+                    }
+            append(&data->DisplayPos, sizeof(data->DisplayPos));
+            append(&data->DisplaySize, sizeof(data->DisplaySize));
+            append(&data->FramebufferScale, sizeof(data->FramebufferScale));
+            for (auto *list : data->CmdLists) {
+                const int counts[]{list->VtxBuffer.Size, list->IdxBuffer.Size, list->CmdBuffer.Size};
+                append(counts, sizeof(counts));
+                append(list->VtxBuffer.Data, list->VtxBuffer.size_in_bytes());
+                append(list->IdxBuffer.Data, list->IdxBuffer.size_in_bytes());
+                for (const auto &cmd : list->CmdBuffer) {
+                    append(&cmd.ClipRect, sizeof(cmd.ClipRect));
+                    const auto texture = cmd.GetTexID();
+                    append(&texture, sizeof(texture));
+                    append(&cmd.VtxOffset, sizeof(cmd.VtxOffset));
+                    append(&cmd.IdxOffset, sizeof(cmd.IdxOffset));
+                    append(&cmd.ElemCount, sizeof(cmd.ElemCount));
+                    const auto callback = cmd.UserCallback;
+                    append(&callback, sizeof(callback));
+                    const auto &platform = ImGui::GetPlatformIO();
+                    // These callbacks only select the immutable atlas sampler/render state.
+                    // Unknown callbacks may draw or mutate a texture, so never retain those canvases.
+                    callbacks |= callback && callback != platform.DrawCallback_ResetRenderState &&
+                                 callback != platform.DrawCallback_SetSamplerLinear &&
+                                 callback != platform.DrawCallback_SetSamplerNearest;
+                }
+            }
+        }
+        if (!callbacks && !texture_updates && !presentation_diagnostics::fresh() &&
+            snapshot == canvas_snapshot_) {
+            SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0);
+            SDL_SetRenderScale(renderer, 1, 1);
+            return;
+        }
+    }
+    if (callbacks || !retain_canvas)
+        invalidate_canvas();
+    else
+        canvas_snapshot_.swap(snapshot);
+    ++canvas_renders;
     SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0);
     SDL_RenderClear(renderer);
     SDL_SetRenderScale(renderer, scale, scale);

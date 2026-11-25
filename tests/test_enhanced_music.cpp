@@ -799,3 +799,41 @@ TEST_CASE("enhanced music: direct output delivers every packet while the main th
     CHECK(worker.take().empty());
     CHECK(worker.dropped() == 0);
 }
+
+TEST_CASE("Lo-Spec presentation gaps preserve soundfont packets and mixed PCM") {
+    const auto rom = music_rom();
+    if (rom.empty())
+        return;
+    app::EnhancedRenderer smooth(music_sf()), lospec(music_sf());
+    REQUIRE(smooth.available());
+    REQUIRE(lospec.available());
+    emu::Wsc w(rom, 0);
+    app::EnhancedObserver observer;
+    observer.attach(game::Session::of(w));
+    music_init(w);
+    music_request(w, 142);
+    std::vector<app::EnhancedFrame> packets;
+    for (int i = 0; i < 120 + app::EnhancedAudio::kLookahead; ++i) {
+        app::paused_tick(w);
+        auto frame = observer.frame(w);
+        frame.sequence = uint64_t(i);
+        frame.samples = w.apu.take();
+        frame.effects = w.apu.take_effects();
+        frame.gain = 1;
+        packets.push_back(std::move(frame));
+    }
+    // Grouping native audio packets into 2/3-step presentation intervals must never omit or reorder one.
+    int mixed = 0;
+    for (int present = 0; mixed < 120; ++present)
+        for (int step = 0; step < (present % 2 ? 3 : 2) && mixed < 120; ++step, ++mixed) {
+            auto a = packets[size_t(mixed)], b = a;
+            const auto future = std::span<const app::EnhancedFrame>(packets).subspan(size_t(mixed + 1), 8);
+            smooth.mix(a, future);
+            lospec.mix(b, future);
+            CHECK(a.sequence == uint64_t(mixed));
+            CHECK(a.sequence == b.sequence);
+            CHECK(a.samples == b.samples);
+            CHECK(a.effects == b.effects);
+        }
+    CHECK(mixed == 120);
+}

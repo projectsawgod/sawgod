@@ -12,7 +12,8 @@ namespace sawgod {
 
 enum class TouchMode { Auto = 0, On = 1, Off = 2 };
 // No pacing mode may change the game's speed: logic always runs at the WSC's 75.47 Hz.
-enum class Pacing { Exact = 0, Smooth = 1 };
+enum class Pacing { Exact = 0, Smooth = 1, LoSpec = 2 };
+constexpr bool interpolated_pacing(Pacing pacing) { return pacing != Pacing::Exact; }
 enum class ScreenMode { Off = 0, Lcd = 1, Ips = 2 };
 // Presentation fidelity, ordered from GB to Enhanced; Swap uses the session step buttons.
 enum class FidelityMode { Gb = 0, Wsc = 1, Enhanced = 2, Swap = 3 };

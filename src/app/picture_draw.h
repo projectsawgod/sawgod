@@ -25,10 +25,11 @@ Rect GameRect(int out_w, int out_h);
 
 // Enhanced scene passes stop growing here; UI and the final presentation keep the output size.
 inline constexpr int kEnhancedSceneScale = 5;
-inline std::array<int, 2> enhanced_scene_size(int width, int height) {
-    if (width <= 224 * kEnhancedSceneScale && height <= 144 * kEnhancedSceneScale)
+inline std::array<int, 2> enhanced_scene_size(int width, int height, bool lospec = false) {
+    const int cap = lospec ? 3 : kEnhancedSceneScale;
+    if (width <= 224 * cap && height <= 144 * cap)
         return {width, height};
-    const int scale = std::clamp(std::min(width / 224, height / 144), 1, kEnhancedSceneScale);
+    const int scale = std::clamp(std::min(width / 224, height / 144), 1, cap);
     return {224 * scale, 144 * scale};
 }
 

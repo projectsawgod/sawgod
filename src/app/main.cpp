@@ -397,6 +397,7 @@ int main(int argc, char **argv) {
         wsc->capture_layers(capture_presentation, false); // nothing in the app reads the GB picture's layers
     sawgod::game::HostPicture host_picture;
     sawgod::app::WorldCardOverlay world_card_overlay;
+    world_card_overlay.preload();
     sawgod::app::TitleLogoOverlay title_logo_overlay;
     if (wsc && !args.native.empty())
         host_picture.install(*wsc, {&ui.battle, &ui.inventory, &ui.item_dialog, &ui.party, &ui.creation,
@@ -823,7 +824,8 @@ int main(int argc, char **argv) {
     const auto initial_game = GameRect(args.shot_w > 0 ? args.shot_w : initial_width,
                                        args.shot_h > 0 ? args.shot_h : initial_height);
     const auto initial_scene =
-        sawgod::app::enhanced_scene_size(int(std::lround(initial_game.w)), int(std::lround(initial_game.h)));
+        sawgod::app::enhanced_scene_size(int(std::lround(initial_game.w)), int(std::lround(initial_game.h)),
+                                         settings.pacing_mode() == sawgod::Pacing::LoSpec);
     int mode7_width = initial_scene[0], mode7_height = initial_scene[1];
     // Enhanced's GPU state (shader and pipeline builds) in three steps, run during the splash's still frames
     // (startup timing: about two thirds of a cold start's GPU work). Whatever is left when the splash ends or
@@ -880,13 +882,18 @@ int main(int argc, char **argv) {
     SDL_Texture *backdrop = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_XRGB8888, SDL_TEXTUREACCESS_STREAMING,
                                               sawgod::kNativeWidth, sawgod::kNativeHeight);
     SDL_SetTextureScaleMode(backdrop, SDL_SCALEMODE_LINEAR);
+    std::vector<uint32_t> backdrop_source, backdrop_uploaded;
     auto make_backdrop = [&]() -> std::vector<uint32_t> {
         if (!wsc)
             return {};
         const auto rgb = game_rgb();
-        const auto &background = rgb;
-        const auto blurred = BlurredBackdrop(background, sawgod::kNativeWidth, sawgod::kNativeHeight, 2);
-        SDL_UpdateTexture(backdrop, nullptr, blurred.data(), sawgod::kNativeWidth * 4);
+        if (backdrop_source != rgb || backdrop_uploaded.empty() ||
+            sawgod::presentation_diagnostics::fresh()) {
+            const auto blurred = BlurredBackdrop(rgb, sawgod::kNativeWidth, sawgod::kNativeHeight, 2);
+            sawgod::upload_pixels(backdrop, blurred.data(), sawgod::kNativeWidth, sawgod::kNativeHeight,
+                                  backdrop_uploaded);
+            backdrop_source = rgb;
+        }
         return rgb;
     };
     LcdGrid lcd_grid; // Screen Mode IPS
@@ -1433,7 +1440,8 @@ int main(int argc, char **argv) {
                 auto *effect = enhanced_graphics.render(args.shot_benchmark > 0);
                 if (effect) {
                     const bool whole = std::abs(g.scale - std::round(g.scale)) < 0.001f;
-                    const auto scene_size = sawgod::app::enhanced_scene_size(int(g.w), int(g.h));
+                    const auto scene_size = sawgod::app::enhanced_scene_size(
+                        int(g.w), int(g.h), settings.pacing_mode() == sawgod::Pacing::LoSpec);
                     auto *ordinary = whole ? texture : game_scaler.big;
                     if ((scene_size[0] < int(g.w) || scene_size[1] < int(g.h)) &&
                         scene_scaler.prepare(renderer, scene_size[0], scene_size[1])) {
@@ -1675,6 +1683,7 @@ int main(int argc, char **argv) {
             SDL_SetTextureScaleMode(canvas, SDL_SCALEMODE_NEAREST);
             // (drawing into a transparent target leaves premultiplied color: composite it as such)
             SDL_SetTextureBlendMode(canvas, SDL_BLENDMODE_BLEND_PREMULTIPLIED);
+            overlay.invalidate_canvas();
             canvas_w = w;
             canvas_h = h;
         }
@@ -1687,7 +1696,7 @@ int main(int argc, char **argv) {
             sawgod::debug_log::errorf("options", "Options canvas target failed: %s", SDL_GetError());
             return;
         }
-        overlay.render(renderer, m.scale);
+        overlay.render(renderer, m.scale, true);
         SDL_SetRenderTarget(renderer, old);
         options_canvas_submitted = true;
     };
@@ -1922,8 +1931,9 @@ int main(int argc, char **argv) {
                 if (args.shot_h > 0)
                     out_h = args.shot_h;
                 const auto destination = GameRect(out_w, out_h);
-                const auto scene_size = sawgod::app::enhanced_scene_size(int(std::lround(destination.w)),
-                                                                         int(std::lround(destination.h)));
+                const auto scene_size = sawgod::app::enhanced_scene_size(
+                    int(std::lround(destination.w)), int(std::lround(destination.h)),
+                    settings.pacing_mode() == sawgod::Pacing::LoSpec);
                 const int width = scene_size[0], height = scene_size[1];
                 if (width != mode7_width || height != mode7_height) {
                     mode7_graphics.shutdown(); // release sampler bindings before replacing plane targets
@@ -2079,7 +2089,7 @@ int main(int argc, char **argv) {
         sample.field_picture =
             wsc && sawgod::game::recognized_field(*wsc) && !sawgod::game::presented_battle_entry_wipe(*wsc);
         sample.pixel_scale = mode7_camera.pixel_scale;
-        sample.scroll = settings.pacing_mode() == sawgod::Pacing::Smooth &&
+        sample.scroll = sawgod::interpolated_pacing(settings.pacing_mode()) &&
                                 fidelity.graphics() == sawgod::FidelityMode::Enhanced && mode7_amount > 0
                             ? display_motion.camera
                             : presented_scroll;
@@ -2188,6 +2198,8 @@ int main(int argc, char **argv) {
         SDL_DestroyTexture(texture);
         SDL_DestroyTexture(shot_target);
         texture = backdrop = canvas = shot_target = nullptr;
+        backdrop_source.clear();
+        backdrop_uploaded.clear();
         canvas_w = canvas_h = 0;
         uploaded_rgb.clear();
         native_pending = false;
@@ -2251,6 +2263,8 @@ int main(int argc, char **argv) {
         return true;
     };
 
+    if (!args.shot.empty())
+        world_card_overlay.wait_for_decode(); // deterministic offline capture, outside the live frame loop
     // --shot-overlay: a picture of the menu (or with --shot-page none, of the game), then exit.
     if (!args.shot.empty()) {
         finish_enhanced_setup();
@@ -2447,7 +2461,7 @@ int main(int argc, char **argv) {
                                  frame_ns) /
                               double(frame_ns)
                         : 1;
-                present_motion(phase, settings.pacing_mode() == sawgod::Pacing::Smooth);
+                present_motion(phase, sawgod::interpolated_pacing(settings.pacing_mode()));
                 upload_game();
                 const auto shot_upload_ns = SDL_GetTicksNS() - shot_upload_start;
                 if (args.shot_badges) {
@@ -2694,6 +2708,7 @@ int main(int argc, char **argv) {
     }
     int frame_count = 0;
     uint64_t last_present = SDL_GetTicksNS();
+    sawgod::app::LoSpecCadence lospec_cadence;
     sawgod::app::PresentClock present_clock; // Enhanced Smooth's steady refresh clock
     while (running) {
         uint64_t t_tick = 0, t_upload = 0, t_draw = 0, t_present = 0;
@@ -2849,6 +2864,10 @@ int main(int argc, char **argv) {
 
         int ran = 0;
         const sawgod::Pacing pacing = settings.pacing_mode();
+        const bool lospec = pacing == sawgod::Pacing::LoSpec;
+        if (!lospec)
+            lospec_cadence.reset();
+        sawgod::app::set_enhanced_music_voices(lospec ? 16 : 32); // from the next song's synth
         if (wsc) {
             // Both speed controls run extra game frames. Battle Speed clocks sound once per scheduled
             // frame; held Fast-Forward keeps its existing audio grains (app/ff_audio.h).
@@ -2894,8 +2913,9 @@ int main(int argc, char **argv) {
                 ++ran;
             }
             t_tick = SDL_GetTicksNS() - tick_start;
-            if (ran == 0 && !(pacing == sawgod::Pacing::Smooth &&
-                              fidelity.graphics() == sawgod::FidelityMode::Enhanced)) {
+            if (!lospec && ran == 0 &&
+                !(pacing == sawgod::Pacing::Smooth &&
+                  fidelity.graphics() == sawgod::FidelityMode::Enhanced)) {
                 // Nothing due: wait for the next tick rather than present the same picture again, so a
                 // VRR or >= 75 Hz display shows every frame as it's made.
                 SDL_DelayPrecise(std::min<uint64_t>(next_frame - now, frame_ns));
@@ -2905,13 +2925,29 @@ int main(int argc, char **argv) {
                 }
                 continue;
             }
+            if (lospec) {
+                int vsync = 0;
+                SDL_GetRenderVSync(renderer, &vsync);
+                const auto *mode = SDL_GetCurrentDisplayMode(SDL_GetDisplayForWindow(window));
+                if (!lospec_cadence.due(now, vsync && mode ? mode->refresh_rate : 0)) {
+                    if (overlay.is_open()) {
+                        menu_carry = actions;
+                        menu_carry.toggle = false;
+                    }
+                    const auto wait_now = SDL_GetTicksNS();
+                    const auto native_wait = wait_now < next_frame ? next_frame - wait_now : 0;
+                    // Wake for whichever work comes first; do not spin at 1 kHz on a phone.
+                    SDL_DelayPrecise(std::min(native_wait, lospec_cadence.remaining(wait_now)));
+                    continue;
+                }
+            }
             const uint64_t upload_start = SDL_GetTicksNS();
             // The place of this refresh between the last two game frames, on the pass's clock (read before
             // its game frames; for Enhanced Smooth the steady refresh clock): a clock read here would run
             // later whenever this pass ran one more game frame, and the picture would move unevenly.
             const double phase =
                 double(int64_t(clock_now) + int64_t(frame_ns) - int64_t(next_frame)) / double(frame_ns);
-            present_motion(phase, pacing == sawgod::Pacing::Smooth &&
+            present_motion(phase, sawgod::interpolated_pacing(pacing) &&
                                       fidelity.graphics() == sawgod::FidelityMode::Enhanced && speed == 1 &&
                                       !clock_reset);
             upload_game();

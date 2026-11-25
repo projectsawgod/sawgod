@@ -70,7 +70,7 @@ window_width = 1120  # last windowed size (5x the 224x144 screen at first); not 
 window_height = 720
 fullscreen = false
 borderless = false
-pacing = "smooth"    # "smooth" | "exact"
+pacing = "smooth"    # "smooth" | "exact" | "lospec"
 screen_mode = "ips"  # "off" | "lcd" | "ips" (default "ips")
 renderer = "gpu"     # "gpu" | "legacy", startup-only; GPU failure falls back automatically
 identity_shader = false # startup-only GPU pipeline diagnostic; no visual effect
@@ -128,7 +128,7 @@ show_fps = false
 | `video.borderless` | Window without title bar or border. |
 | `video.renderer` | `"gpu"` (default): SDL's GPU renderer through the existing drawing API, falling back to the legacy renderer when device, shader or startup capability checks fail. `"legacy"`: the original SDL backend selection, excluding GPU. Hidden from the menu; restart after changing. `--renderer gpu\|legacy` overrides it for one run. Which GPU: on Linux the GPU renderer asks SDL for the low-power device (the system's default, the one driving the display on a hybrid laptop), following the Linux convention that the player opts into another GPU; `DRI_PRIME`, `MESA_VK_DEVICE_SELECT` or `__NV_PRIME_RENDER_OFFLOAD` (`prime-run`) in the environment keep SDL's high-performance choice, and `SDL_RENDER_GPU_LOW_POWER` overrides both. Rendering on the discrete GPU and copying to the display GPU (PRIME) stalled a present every 0.41 s. Windows and macOS keep SDL's high-performance default (Windows' own convention; its per-app Graphics setting overrides it). Headless (`offscreen`) runs always take the low-power device. The chosen device is logged at start (`Presentation renderer: gpu (vulkan, <device>)`). |
 | `video.identity_shader` | Off by default. Diagnostic pass-through fragment shader over the game's XRGB texture draws, cleared before IPS masks, options and badges. Hidden from the menu; restart after changing. `--identity-shader` enables it for one run. Failure falls back to legacy; the startup log reports the actual backend and shader state. |
-| `video.pacing` | `smooth` (default): Enhanced submits every display refresh with vsync, interpolating completed field camera/actor positions one game step behind. WSC/GB treat Smooth as Exact. `exact`: submit the newest picture when a 75.47 Hz game step is due; 60 Hz skips some pictures, higher fixed refresh rates repeat them unevenly. Neither mode changes game speed. |
+| `video.pacing` | `smooth` (default): Enhanced submits every display refresh with vsync, interpolating completed field camera/actor positions one game step behind. WSC/GB treat Smooth as Exact. `exact`: submit the newest picture when a 75.47 Hz game step is due; 60 Hz skips some pictures, higher fixed refresh rates repeat them unevenly. `lospec`: 30 FPS presentation, including Options, with Smooth interpolation, a 3x (672×432) Enhanced scene cap and 16-voice Enhanced music. Host UI, text, minimap and touch controls retain output resolution. All modes keep every native tick and input service unchanged; only Lo-Spec changes audio (16 music voices). Saved values are retained. |
 | `video.screen_mode` | Independent of `video.graphics`: every graphics level uses it as set, except the Enhanced title screen, which shows no screen effect once its logo takes over from the WSC logo, 1.5 seconds after the kanji fade in. `off`: plain square pixels; `lcd`: the stock WSC screen (reflective FSTN, no visible grid): lifted blacks, low contrast, pale desaturated color, a cool green-gray cast and smear in motion (src/engine/screen.h; tuned by eye against photos of unmodded units); `ips`: an IPS-modded WSC, each pixel as red, green and blue subpixel stripes over a dark bottom line (pixels under 3 output pixels get a grid). The IPS lines are one output pixel wide on the game pixels' exact edges (partial coverage at non-whole scales, so no moire), and their strength gives the same look at every size (the 6x look: the 1-pixel lines at 2/3 strength, scaled with the pixel size; the stripes at 0.4, so white keeps about 91%). At Enhanced, IPS uses half strength on every mask (lines and stripes, flat picture, UI, projected ground/actors and zoomed fields): each mask value m becomes 1 - 0.5 × (1 - m). WSC and GB keep full strength; Swap interpolates the strength continuously with the Enhanced weight. At Enhanced, `lcd` is a wash over the GPU picture: the stock screen's black and white per channel, without the desaturation, midtone lift or smear of the WSC/GB version. |
 | `audio.*_volume`, `audio.mute` | Master, music and sound-effect (SFX) volume, and one mute. Music vs effects is by hardware channel: the sound driver plays effects on slots that take a channel over from the music (src/app/sound_mix.h), and each channel gets the volume of whichever is driving it. |
 | (save slots) | Always 9 slots and the AUTO slot (not settings). Every new map the party reaches is saved into AUTO, the first entry of the save and load lists (docs/SAVES.md). |
@@ -414,7 +414,7 @@ GB retains its numbers alone, without bars or edges.
 distance, independent of `enhanced.mode7`. At 100% the field uses its ordinary framing. The opening's demo (the
 tower climb before a game starts) keeps its ordinary framing at every level.
 `enhanced.mode7` is **Mode 7 World Map** (On/Off), controlling only the world map tilt. Video has Graphics, Fullscreen,
-Borderless, Frame Pacing (Smooth / Exact), Screen Mode, then an Enhanced header and Mode 7 World Map,
+Borderless, Frame Pacing (Smooth / Exact / Lo-Spec), Screen Mode, then an Enhanced header and Mode 7 World Map,
 Field Zoom, Tilt-Shift, HD Battles, Bloom FX, Lighting FX and Water FX. Its 13 rows fit one screen.
 Enhanced rows dim and cannot be selected in GB/WSC; they remain available in Enhanced/Swap.
 Bloom FX On is 40% strength; Lighting FX and Water FX On are 100%.
@@ -589,7 +589,7 @@ frame IDs, inferred repeats/drops, native scroll deltas, held/paused pictures, s
 queue/worker costs, ground atlas revisions and CPU timing for each render pass. Graphics IDs are
 0 = GB, 1 = WSC, 2 = Enhanced. `dropped` counts produced frames omitted between shown frames, including
 intentional Fast-Forward (see `speed`); `repeated` counts repeated submitted pictures, including holds.
-`pacing` is 0 = Exact, 1 = Smooth; `screen` is 0 = Off, 1 = LCD, 2 = IPS.
+`pacing` is 0 = Exact, 1 = Smooth, 2 = Lo-Spec; `screen` is 0 = Off, 1 = LCD, 2 = IPS.
 `mode7_drawn` confirms a successful camera draw, beyond the requested `mode7` fade amount;
 `scene` is 0 = Unknown, 1 = Field, 2 = Battle. `battle` and `full_ui` identify the current UI owners.
 `interpolation` is the completed-state fraction, `from_frame`/`to_frame` identify its endpoints,
@@ -645,7 +645,14 @@ restores the prior OAM-only camera actors for a before/after fixture; it is not 
 
 ### Smooth motion
 
-Smooth is the default. Select it under Options → Video → Frame Pacing or set `video.pacing = "smooth"`.
+Lo-Spec uses the same latest-two-step interpolation at 30 presented frames per second. On 60/90/120 Hz
+panels, its cadence spans 2/3/4 refreshes; other refresh rates and non-vsynced rendering use a 33.3 ms
+wall-clock cadence. Input is pumped between presentations, and native ticks and audio continue on the
+75.471698 Hz clock. Enhanced scene rasterization caps at 3x (672×432), while host overlays retain output
+resolution. Enhanced music uses 16 voices per synth instead of 32 (from the next song); audio buffers
+do not change.
+
+Smooth is the default on every platform. Existing saved values are kept. Select Smooth under Options → Video → Frame Pacing or set `video.pacing = "smooth"`.
 
 The native clock remains 3,072,000 / (159 × 256) = 75.471698 Hz. Smooth removes the game-tick wait
 from Enhanced presentation: vsync controls submissions; without vsync, each render samples elapsed
