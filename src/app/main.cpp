@@ -368,6 +368,7 @@ int main(int argc, char **argv) {
         return result;
     }
     sawgod::startup::mark("SDL and game setup complete");
+    sawgod::app::set_enhanced_music_low_spec(settings.pacing_mode() == sawgod::Pacing::LoSpec);
     sawgod::app::EnhancedAudio enhanced_audio(soundfont);
     // First run builds <data>/wsc.sgz and gb.sgz; folders/.sgz in mods/ override their files in load order.
     std::string base_text; // text/ja.csv with the mods' text/ja.csv over it (empty: none, the ROM's text)
@@ -501,6 +502,13 @@ int main(int argc, char **argv) {
     // The picture to show: the WSC's, the GB's, or the two blended mid-fade.
     // Changes only when the CPU picture/provenance producers run, never for display interpolation.
     uint64_t picture_revision = 0;
+    // Keep the unmodified description: per-refresh masks (badges, UI) may edit enhanced_scene.
+    std::optional<sawgod::game::PresentationScene> described_scene;
+    std::array<uint64_t, 4> described_key{};
+    std::optional<std::array<uint64_t, 5>> collected_world_key;
+    bool collected_world_updated = false;
+    uint64_t described_count = 0, reused_descriptions = 0;
+    const bool redescribe_scene = std::getenv("SAWGOD_SCENE_REDESCRIBE") != nullptr;
     auto game_rgb = [&] {
         ++picture_revision;
         if (args.shot.empty())
@@ -549,9 +557,24 @@ int main(int argc, char **argv) {
                     host_picture.native_full_screen(*wsc) || (host_picture.full_ui() && !service_over_field);
                 const bool windows_over_scene = ui.dialogue.active() || service_over_field;
                 const uint64_t describe_start = SDL_GetTicksNS();
-                enhanced_scene = scene_observer.describe(*wsc, ui.battle.active(), full_ui,
-                                                         !args.shot_native_ui &&
-                                                             (windows_over_scene || ui.battle.active()));
+                const std::array<uint64_t, 4> key{
+                    sawgod::game::Session::of(*wsc).generation(), wsc->frame_count,
+                    uint64_t(wsc->scanline * 256 + wsc->line_cycle),
+                    uint64_t(ui.battle.active()) | uint64_t(full_ui) << 1 |
+                        uint64_t(!args.shot_native_ui && (windows_over_scene || ui.battle.active())) << 2};
+                // Preview fixtures can replace RAM without advancing the native clock. Partial host
+                // decisions also have a distinct raster position; neither may reuse an older picture.
+                const bool new_description = !described_scene || key != described_key || !args.shot.empty() ||
+                                             redescribe_scene || sawgod::presentation_diagnostics::fresh();
+                if (new_description) {
+                    described_scene = scene_observer.describe(*wsc, ui.battle.active(), full_ui,
+                                                              !args.shot_native_ui &&
+                                                                  (windows_over_scene || ui.battle.active()));
+                    described_key = key;
+                    ++described_count;
+                } else
+                    ++reused_descriptions;
+                enhanced_scene = *described_scene;
                 // The service screens rebuild the native picture, so the field is no longer recognized
                 // under them: keep the field as it was when the menu opened, so the camera holds still.
                 if (service_over_field &&
@@ -656,15 +679,22 @@ int main(int argc, char **argv) {
                 // as script sprites. Nothing on the field moves under the modal menu:
                 // keep the world as it was when the menu opened.
                 const bool service_held = ui.service.active() && mode7_source.map() == enhanced_scene.map;
-                bool world_updated = false;
-                if ((zoom_field || world_field) && !enhanced_scene.field_cleared && !service_held)
-                    world_updated =
-                        mode7_source.update(*wsc, enhanced_scene, scene_observer.light_tags(),
-                                            scene_observer.landmark_tags(), !args.shot_native_npcs);
-                // The Inn's stay fades the palettes under its screen: the held field fades with it.
-                // Not an update: its sprites stay those of the tick the menu opened (world_sprites below).
-                else if ((zoom_field || world_field) && !enhanced_scene.field_cleared && service_held)
-                    mode7_source.refresh_palettes(*wsc);
+                const std::array<uint64_t, 5> world_key{key[0], key[1], key[2], key[3],
+                                                        uint64_t(zoom_field) | uint64_t(world_field) << 1 |
+                                                            uint64_t(service_held) << 2};
+                if (!collected_world_key || *collected_world_key != world_key || !args.shot.empty() ||
+                    redescribe_scene || sawgod::presentation_diagnostics::fresh()) {
+                    collected_world_key = world_key;
+                    collected_world_updated = false;
+                    if ((zoom_field || world_field) && !enhanced_scene.field_cleared && !service_held)
+                        collected_world_updated =
+                            mode7_source.update(*wsc, enhanced_scene, scene_observer.light_tags(),
+                                                scene_observer.landmark_tags(), !args.shot_native_npcs);
+                    // The Inn's stay fades the held field's palettes without moving its actors.
+                    else if ((zoom_field || world_field) && !enhanced_scene.field_cleared && service_held)
+                        mode7_source.refresh_palettes(*wsc);
+                }
+                const bool world_updated = collected_world_updated;
                 log_m7_update += SDL_GetTicksNS() - mode7_cpu_start;
                 // The world's sprites stand in for the field's only on a tick it read them: otherwise a
                 // sprite no record owns stays native pixels (held or cleared worlds do not draw it).
@@ -2850,8 +2880,12 @@ int main(int argc, char **argv) {
             break; // recovery can leave no renderer; do not tick or submit another frame
 
         const uint64_t now =
-            live_check ? live_origin + uint64_t(frame_count) * 1'000'000'000 / unsigned(args.shot_display_hz)
-                       : SDL_GetTicksNS();
+            live_check
+                ? live_origin +
+                      (settings.pacing_mode() == sawgod::Pacing::LoSpec
+                           ? uint64_t(frame_count) * sawgod::app::LoSpecCadence::period(args.shot_display_hz)
+                           : uint64_t(frame_count) * 1'000'000'000 / unsigned(args.shot_display_hz))
+                : SDL_GetTicksNS();
         if (live_check) {
             simulated_present_time = now;
             shot_fidelity_time = now;
@@ -2933,7 +2967,7 @@ int main(int argc, char **argv) {
         const bool lospec = pacing == sawgod::Pacing::LoSpec;
         if (!lospec)
             lospec_cadence.reset();
-        sawgod::app::set_enhanced_music_voices(lospec ? 16 : 32); // from the next song's synth
+        sawgod::app::set_enhanced_music_low_spec(lospec); // from the next song's synth
         if (wsc) {
             // Both speed controls run extra game frames. Battle Speed clocks sound once per scheduled
             // frame; held Fast-Forward keeps its existing audio grains (app/ff_audio.h).
@@ -2995,7 +3029,8 @@ int main(int argc, char **argv) {
                 int vsync = 0;
                 SDL_GetRenderVSync(renderer, &vsync);
                 const auto *mode = SDL_GetCurrentDisplayMode(SDL_GetDisplayForWindow(window));
-                if (!lospec_cadence.due(now, vsync && mode ? mode->refresh_rate : 0)) {
+                if (!lospec_cadence.due(now, live_check ? args.shot_display_hz
+                                                        : (vsync && mode ? mode->refresh_rate : 0))) {
                     if (overlay.is_open()) {
                         menu_carry = actions;
                         menu_carry.toggle = false;
@@ -3096,6 +3131,9 @@ int main(int argc, char **argv) {
         }
     }
 
+    if (live_check)
+        std::fprintf(stderr, "scene descriptions: %llu, reused: %llu\n", (unsigned long long)described_count,
+                     (unsigned long long)reused_descriptions);
     if (live_check)
         std::fprintf(stderr, "live snapshot bulk retains: %llu\n", (unsigned long long)bulk_retains);
     save_config();

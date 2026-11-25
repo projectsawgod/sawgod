@@ -385,7 +385,10 @@ TEST_CASE("audio switch: separated chip outputs preserve the original GB WSC mix
     CHECK(effect_samples > 0);
 }
 
-TEST_CASE("Lo-Spec keeps recorded-input machine state and every native audio packet identical to Smooth") {
+TEST_CASE("Lo-Spec keeps recorded-input machine state and native audio identical when drawing is omitted") {
+    bool skip_drawing = false;
+    SUBCASE("draw every native frame") {}
+    SUBCASE("omit intermediate native drawings") { skip_drawing = true; }
     const auto rom = audio_rom("SAWGOD_WSC_ROM");
     if (rom.empty()) {
         MESSAGE("Set SAWGOD_WSC_ROM for the Lo-Spec native clock comparison");
@@ -408,6 +411,7 @@ TEST_CASE("Lo-Spec keeps recorded-input machine state and every native audio pac
             smooth->set_keys(keys);
             lospec->set_keys(keys);
             app::run_game_frame(*smooth);
+            lospec->render_lcd = !skip_drawing || tick + 1 == 400 || tick % 3 != 0;
             app::run_game_frame(*lospec);
             const auto samples = smooth->apu.take(), reduced = lospec->apu.take();
             REQUIRE(samples == reduced);
@@ -486,5 +490,5 @@ TEST_CASE("Lo-Spec keeps recorded-input machine state and every native audio pac
     CHECK(a.apu.samples == b.apu.samples);
     CHECK(std::equal(std::begin(a.apu.counter), std::end(a.apu.counter), std::begin(b.apu.counter)));
     CHECK(std::equal(std::begin(a.apu.index), std::end(a.apu.index), std::begin(b.apu.index)));
-    CHECK(presentations == 159);
+    CHECK(presentations == 318);
 }

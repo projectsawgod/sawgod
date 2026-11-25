@@ -128,7 +128,7 @@ show_fps = false
 | `video.borderless` | Window without title bar or border. |
 | `video.renderer` | `"gpu"` (default): SDL's GPU renderer through the existing drawing API, falling back to the legacy renderer when device, shader or startup capability checks fail. `"legacy"`: the original SDL backend selection, excluding GPU. Hidden from the menu; restart after changing. `--renderer gpu\|legacy` overrides it for one run. Which GPU: on Linux the GPU renderer asks SDL for the low-power device (the system's default, the one driving the display on a hybrid laptop), following the Linux convention that the player opts into another GPU; `DRI_PRIME`, `MESA_VK_DEVICE_SELECT` or `__NV_PRIME_RENDER_OFFLOAD` (`prime-run`) in the environment keep SDL's high-performance choice, and `SDL_RENDER_GPU_LOW_POWER` overrides both. Rendering on the discrete GPU and copying to the display GPU (PRIME) stalled a present every 0.41 s. Windows and macOS keep SDL's high-performance default (Windows' own convention; its per-app Graphics setting overrides it). Headless (`offscreen`) runs always take the low-power device. The chosen device is logged at start (`Presentation renderer: gpu (vulkan, <device>)`). |
 | `video.identity_shader` | Off by default. Diagnostic pass-through fragment shader over the game's XRGB texture draws, cleared before IPS masks, options and badges. Hidden from the menu; restart after changing. `--identity-shader` enables it for one run. Failure falls back to legacy; the startup log reports the actual backend and shader state. |
-| `video.pacing` | `smooth` (default): Enhanced submits every display refresh with vsync, interpolating completed field camera/actor positions one game step behind. WSC/GB treat Smooth as Exact. `exact`: submit the newest picture when a 75.47 Hz game step is due; 60 Hz skips some pictures, higher fixed refresh rates repeat them unevenly. `lospec`: 30 FPS presentation, including Options, with Smooth interpolation, a 3x (672×432) Enhanced scene cap and 16-voice Enhanced music. Host UI, text, minimap and touch controls retain output resolution. All modes keep every native tick and input service unchanged; only Lo-Spec changes audio (16 music voices). Saved values are retained. |
+| `video.pacing` | `smooth` (default): Enhanced submits every display refresh with vsync, interpolating completed field camera/actor positions one game step behind. WSC/GB treat Smooth as Exact. `exact`: submit the newest picture when a 75.47 Hz game step is due; 60 Hz skips some pictures, higher fixed refresh rates repeat them unevenly. `lospec`: half-refresh presentation up to 60 FPS, including Options, with Smooth interpolation, a 3x (672×432) Enhanced scene cap and lighter Enhanced music. At 60/90/120 Hz it presents at 30/45/60 FPS; faster panels use the smallest whole refresh divisor that stays at or below 60 (144 Hz: 48 FPS). Unknown refresh or disabled vsync uses timed 30 FPS. Host UI, text, minimap and touch controls retain output resolution. All modes keep every native tick and input service unchanged; only Lo-Spec lowers synthesis quality (reverb off, nearest-sample interpolation, measured per-song voice limits). Saved values are retained. |
 | `video.screen_mode` | Independent of `video.graphics`: every graphics level uses it as set, except the Enhanced title screen, which shows no screen effect once its logo takes over from the WSC logo, 1.5 seconds after the kanji fade in. `off`: plain square pixels; `lcd`: the stock WSC screen (reflective FSTN, no visible grid): lifted blacks, low contrast, pale desaturated color, a cool green-gray cast and smear in motion (src/engine/screen.h; tuned by eye against photos of unmodded units); `ips`: an IPS-modded WSC, each pixel as red, green and blue subpixel stripes over a dark bottom line (pixels under 3 output pixels get a grid). The IPS lines are one output pixel wide on the game pixels' exact edges (partial coverage at non-whole scales, so no moire), and their strength gives the same look at every size (the 6x look: the 1-pixel lines at 2/3 strength, scaled with the pixel size; the stripes at 0.4, so white keeps about 91%). At Enhanced, IPS uses half strength on every mask (lines and stripes, flat picture, UI, projected ground/actors and zoomed fields): each mask value m becomes 1 - 0.5 × (1 - m). WSC and GB keep full strength; Swap interpolates the strength continuously with the Enhanced weight. At Enhanced, `lcd` is a wash over the GPU picture: the stock screen's black and white per channel, without the desaturation, midtone lift or smear of the WSC/GB version. |
 | `audio.*_volume`, `audio.mute` | Master, music and sound-effect (SFX) volume, and one mute. Music vs effects is by hardware channel: the sound driver plays effects on slots that take a channel over from the music (src/app/sound_mix.h), and each channel gets the volume of whichever is driving it. |
 | (save slots) | Always 9 slots and the AUTO slot (not settings). Every new map the party reaches is saved into AUTO, the first entry of the save and load lists (docs/SAVES.md). |
@@ -652,12 +652,20 @@ restores the prior OAM-only camera actors for a before/after fixture; it is not 
 
 ### Smooth motion
 
-Lo-Spec uses the same latest-two-step interpolation at 30 presented frames per second. On 60/90/120 Hz
-panels, its cadence spans 2/3/4 refreshes; other refresh rates and non-vsynced rendering use a 33.3 ms
-wall-clock cadence. Input is pumped between presentations, and native ticks and audio continue on the
-75.471698 Hz clock. Enhanced scene rasterization caps at 3x (672×432), while host overlays retain output
-resolution. Enhanced music uses 16 voices per synth instead of 32 (from the next song); audio buffers
-do not change.
+Lo-Spec uses the same native motion history and latest-two-step interpolation. With vsync it
+presents every second refresh through 120 Hz: 30/45/60 FPS on 60/90/120 Hz panels. Above 120 Hz it
+uses the smallest whole divisor that keeps presentation at or below 60 FPS (144 Hz: every third
+refresh, 48 FPS; 240 Hz: every fourth refresh, 60 FPS). Unknown refresh and non-vsynced rendering
+use a timed 33.3 ms cadence. Input is pumped between presentations, and native ticks and audio
+continue on the 75.471698 Hz clock. Enhanced scene rasterization caps at 3x (672×432), while host
+overlays retain output resolution.
+
+Lo-Spec Enhanced music disables reverb and uses nearest-sample interpolation at 24 kHz. Measured
+per-song voice limits range from 8 to 22 instead of 32, preserving score notes; the quality change
+applies to the next song. Only the currently playing music/voice/cue synths render; no idle replacement
+reserve is prepared in Lo-Spec. Audio buffers and authored score envelopes do not change.
+Scene descriptions and world inputs are reused until the completed native frame or its presentation
+context changes; refresh-time camera projection and effects continue to follow presentation time.
 
 Smooth is the default on every platform. Existing saved values are kept. Select Smooth under Options → Video → Performance or set `video.pacing = "smooth"`.
 
