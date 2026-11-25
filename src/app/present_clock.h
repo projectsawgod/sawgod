@@ -7,8 +7,9 @@
 // clock each time, so it follows real drift (and catches up after a genuinely missed refresh) while
 // ignoring return jitter. A stall of several refreshes (a window move, loading) re-anchors it.
 #pragma once
+#include <algorithm>
+#include <cmath>
 #include <cstdint>
-#include <initializer_list>
 
 namespace sawgod::app {
 class PresentClock {
@@ -36,11 +37,14 @@ class PresentClock {
 // Presentation only: service native ticks, audio and input before consulting this gate.
 class LoSpecCadence {
   public:
+    static double divisor_for(double refresh_hz) { return std::max(2.0, std::ceil(refresh_hz / 60 - 1e-6)); }
     static uint64_t period(double refresh_hz = 0) {
-        // Whole refresh divisors on the common phone panels; other panels use wall time.
-        for (int divisor : {2, 3, 4})
-            if (refresh_hz > divisor * 30 - 0.5 && refresh_hz < divisor * 30 + 0.5)
-                return uint64_t(1e9 * divisor / refresh_hz);
+        // Half refresh, capped at 60 pictures/s: every 2nd refresh through 120 Hz, then the smallest
+        // whole divisor at or below 60 (144 Hz: /3 = 48; 165 Hz: /3 = 55; 240 Hz: /4 = 60).
+        if (std::isfinite(refresh_hz) && refresh_hz > 1) {
+            const auto divisor = divisor_for(refresh_hz);
+            return uint64_t(1e9 * divisor / refresh_hz);
+        }
         return 1'000'000'000ull / 30;
     }
     bool due(uint64_t now, double refresh_hz = 0) {
