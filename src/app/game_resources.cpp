@@ -1,4 +1,5 @@
 #include "app/game_resources.h"
+#include "engine/startup_timing.h"
 
 #include <cstdio>
 #include <filesystem>
@@ -26,6 +27,7 @@ namespace sawgod::app {
 void load_game_resources(emu::Wsc &wsc, const LaunchArgs &args, game::SceneObserver &scene_observer,
                          game::GfxSwap &gfx_swap, std::string &base_text, std::string &english_text,
                          std::vector<uint8_t> &gb_hand_png) {
+    sawgod::startup::Stage timing("data tables, maps, fonts/art/UI atlases");
     sawgod::game::DataTables &tables = sawgod::game::Session::of(wsc).tables();
     // The resource archives (app/first_run.h; built above): the game's data comes from wsc.sgz, the GB
     // layer from gb.sgz; mods (below) lay their files over both, file by file.
@@ -59,11 +61,14 @@ void load_game_resources(emu::Wsc &wsc, const LaunchArgs &args, game::SceneObser
         for (const std::string &w : warnings)
             sawgod::debug_log::warnf("tables", "%s: %s", path.c_str(), w.c_str());
     };
-    for (const std::string &name : sawgod::game::table_names()) {
-        const auto data = resource("tables/" + name + ".csv",
-                                   [&] { return bytes_of(sawgod::game::export_csv(name, wsc)); });
-        if (!data.empty())
-            load(name, res + "/tables/" + name + ".csv", data);
+    {
+        sawgod::startup::Stage stage("data tables CSV");
+        for (const std::string &name : sawgod::game::table_names()) {
+            const auto data = resource("tables/" + name + ".csv",
+                                       [&] { return bytes_of(sawgod::game::export_csv(name, wsc)); });
+            if (!data.empty())
+                load(name, res + "/tables/" + name + ".csv", data);
+        }
     }
     const auto ja = resource("text/ja.csv", [&] { return bytes_of(sawgod::game::export_text(wsc)); });
     base_text.assign(ja.begin(), ja.end());
@@ -93,14 +98,27 @@ void load_game_resources(emu::Wsc &wsc, const LaunchArgs &args, game::SceneObser
     for (int id = 0; id < sawgod::game::kMapCount; ++id) {
         if (!sawgod::game::map_has_data(id, wsc, nullptr))
             continue;
-        const sawgod::game::MapData original = sawgod::game::extract_map(id, wsc);
         const auto names = sawgod::game::map_file_names(id);
-        const std::string made[4] = {
-            sawgod::game::map_cells_csv(original), sawgod::game::map_attributes_csv(original),
-            sawgod::game::map_metatiles_csv(original), sawgod::game::map_types_csv(original)};
-        for (int f = 0; f < 4; ++f)
-            map_files[names[size_t(f)]] = {resource(names[size_t(f)], [&] { return bytes_of(made[f]); }),
-                                           res + "/" + names[size_t(f)]};
+        std::optional<sawgod::game::MapData> original;
+        for (int f = 0; f < 4; ++f) {
+            map_files[names[size_t(f)]] = {
+                resource(names[size_t(f)],
+                         [&] {
+                             if (!original)
+                                 original = sawgod::game::extract_map(id, wsc);
+                             switch (f) {
+                             case 0:
+                                 return bytes_of(sawgod::game::map_cells_csv(*original));
+                             case 1:
+                                 return bytes_of(sawgod::game::map_attributes_csv(*original));
+                             case 2:
+                                 return bytes_of(sawgod::game::map_metatiles_csv(*original));
+                             default:
+                                 return bytes_of(sawgod::game::map_types_csv(*original));
+                             }
+                         }),
+                res + "/" + names[size_t(f)]};
+        }
     }
     // Scene materials are seeded from the loaded graphics and shared by tileset.
     auto &light_tags = scene_observer.light_tags();
@@ -180,51 +198,61 @@ void load_game_resources(emu::Wsc &wsc, const LaunchArgs &args, game::SceneObser
     for (const std::string &e : errors)
         sawgod::debug_log::warnf("mod", "mod %s", e.c_str());
     // The GB layer (gb.sgz): field maps, sprites, font, monsters, title.
-    const auto gb_read = [&](const std::string &file) {
-        const auto it = gb_files.find(file);
-        return it == gb_files.end() ? std::vector<uint8_t>() : it->second;
-    };
-    const std::string gb_res = sawgod::app::gb_archive_path(sawgod::data_dir());
-    for (int id = 0; id < sawgod::game::kMapCount && !gb_files.empty() && sawgod::ui::kGfxSwapBuild; ++id) {
-        std::string error;
-        gfx_swap.load_field_map(id, gb_read, &error);
-        if (!error.empty())
-            sawgod::debug_log::errorf("gb", "GB field map %03d: %s", id, error.c_str());
-    }
-    if (!gb_files.empty() && sawgod::ui::kGfxSwapBuild) {
-        const auto png = gb_read("gb/sprites.png");
-        const auto csv = gb_read("gb/sprite_types.csv");
-        std::string error;
-        if (!png.empty() && !csv.empty() &&
-            !gfx_swap.add_sprites(png, std::string(csv.begin(), csv.end()), &error))
-            sawgod::debug_log::errorf("gb", "%s: gb/sprites: %s", gb_res.c_str(), error.c_str());
-        gfx_swap.import_field_sprites(wsc);
-        const auto corpse = gb_read("gb/corpse.png");
-        if (!corpse.empty() && !gfx_swap.add_corpse(corpse, &error))
-            sawgod::debug_log::errorf("gb", "GB corpse: %s", error.c_str());
-        const auto hand = gb_hand_png = gb_read("gb/hand.png");
-        if (!hand.empty() && !gfx_swap.add_hand(hand, &error))
-            sawgod::debug_log::errorf("gb", "GB hand: %s", error.c_str());
-        const auto objects = gb_read("gb/objects.png"), sets = gb_read("gb/object_sets.csv");
-        if (!objects.empty() && !sets.empty() &&
-            !gfx_swap.add_objects(objects, std::string(sets.begin(), sets.end()), &error))
-            sawgod::debug_log::errorf("gb", "GB objects: %s", error.c_str());
-        const auto font = gb_read("gb/font.png");
-        if (!font.empty() && !gfx_swap.add_font(font, &error))
-            sawgod::debug_log::errorf("gb", "%s: gb/font.png: %s", gb_res.c_str(), error.c_str());
-        const auto monsters = gb_read("gb/monsters.png");
-        const auto pics = gb_read("gb/monster_pics.csv"), types = gb_read("gb/monster_types.csv");
-        if (!monsters.empty() && !pics.empty() && !types.empty() &&
-            !gfx_swap.add_monsters(monsters, std::string(pics.begin(), pics.end()),
-                                   std::string(types.begin(), types.end()), &error))
-            sawgod::debug_log::errorf("gb", "%s: gb/monsters: %s", gb_res.c_str(), error.c_str());
-        if (!gfx_swap.load_battle_effects(gb_read, &error))
-            sawgod::debug_log::errorf("gb", "GB battle effects: %s", error.c_str());
-        const auto title = gb_read("gb/title.png");
-        if (!title.empty() && !gfx_swap.add_title(title, &error))
-            sawgod::debug_log::errorf("gb", "%s: gb/title.png: %s", gb_res.c_str(), error.c_str());
+    {
+        sawgod::startup::Stage stage("GB fonts/art/UI atlases");
+        const auto gb_read = [&](const std::string &file) {
+            const auto it = gb_files.find(file);
+            return it == gb_files.end() ? std::vector<uint8_t>() : it->second;
+        };
+        const std::string gb_res = sawgod::app::gb_archive_path(sawgod::data_dir());
+        if (!gb_files.empty() && sawgod::ui::kGfxSwapBuild) {
+            sawgod::startup::Stage stage("GB field maps decode/cache");
+            std::vector<std::string> errors;
+            const auto cache = sawgod::data_dir().empty() ? "" : sawgod::data_dir() + "gb-field-maps.cache";
+            const bool hit = gfx_swap.load_field_maps_cached(gb_files, cache, &errors);
+            sawgod::startup::mark(hit ? "GB field maps cache hit" : "GB field maps cache miss");
+            for (const auto &error : errors)
+                sawgod::debug_log::error("gb", error);
+        }
+        if (!gb_files.empty() && sawgod::ui::kGfxSwapBuild) {
+            const auto png = gb_read("gb/sprites.png");
+            const auto csv = gb_read("gb/sprite_types.csv");
+            std::string error;
+            if (!png.empty() && !csv.empty() &&
+                !gfx_swap.add_sprites(png, std::string(csv.begin(), csv.end()), &error))
+                sawgod::debug_log::errorf("gb", "%s: gb/sprites: %s", gb_res.c_str(), error.c_str());
+            gfx_swap.import_field_sprites(wsc);
+            const auto corpse = gb_read("gb/corpse.png");
+            if (!corpse.empty() && !gfx_swap.add_corpse(corpse, &error))
+                sawgod::debug_log::errorf("gb", "GB corpse: %s", error.c_str());
+            const auto hand = gb_hand_png = gb_read("gb/hand.png");
+            if (!hand.empty() && !gfx_swap.add_hand(hand, &error))
+                sawgod::debug_log::errorf("gb", "GB hand: %s", error.c_str());
+            const auto objects = gb_read("gb/objects.png"), sets = gb_read("gb/object_sets.csv");
+            if (!objects.empty() && !sets.empty() &&
+                !gfx_swap.add_objects(objects, std::string(sets.begin(), sets.end()), &error))
+                sawgod::debug_log::errorf("gb", "GB objects: %s", error.c_str());
+            const auto font = gb_read("gb/font.png");
+            if (!font.empty() && !gfx_swap.add_font(font, &error))
+                sawgod::debug_log::errorf("gb", "%s: gb/font.png: %s", gb_res.c_str(), error.c_str());
+            const auto monsters = gb_read("gb/monsters.png");
+            const auto pics = gb_read("gb/monster_pics.csv"), types = gb_read("gb/monster_types.csv");
+            if (!monsters.empty() && !pics.empty() && !types.empty() &&
+                !gfx_swap.add_monsters(monsters, std::string(pics.begin(), pics.end()),
+                                       std::string(types.begin(), types.end()), &error))
+                sawgod::debug_log::errorf("gb", "%s: gb/monsters: %s", gb_res.c_str(), error.c_str());
+            std::map<std::string, std::vector<uint8_t>> effect_files;
+            for (auto &[name, data] : gb_files)
+                if (name.starts_with("gb/effect_"))
+                    effect_files.emplace(name, std::move(data));
+            gfx_swap.preload_battle_effects(std::move(effect_files));
+            const auto title = gb_read("gb/title.png");
+            if (!title.empty() && !gfx_swap.add_title(title, &error))
+                sawgod::debug_log::errorf("gb", "%s: gb/title.png: %s", gb_res.c_str(), error.c_str());
+        }
     }
     { // build the map banks from the grids (unchanged maps rebuild them byte for byte)
+        sawgod::startup::Stage stage("map parse and bank compression");
         std::vector<sawgod::game::MapData> maps(sawgod::game::kMapCount);
         std::vector<const sawgod::game::MapData *> use(sawgod::game::kMapCount, nullptr);
         for (int id = 0; id < sawgod::game::kMapCount; ++id) {
@@ -245,12 +273,17 @@ void load_game_resources(emu::Wsc &wsc, const LaunchArgs &args, game::SceneObser
             use[size_t(id)] = &maps[size_t(id)];
         }
         std::vector<std::string> map_errors;
-        const int moved = sawgod::game::build_map_banks(wsc, tables, use, &map_errors);
+        bool cache_hit = false;
+        const std::string cache = sawgod::data_dir().empty() ? "" : sawgod::data_dir() + "map-banks.cache";
+        const int moved =
+            sawgod::game::build_map_banks_cached(wsc, tables, use, cache, &map_errors, &cache_hit);
+        sawgod::startup::mark(cache_hit ? "map banks cache hit" : "map banks cache miss");
         for (const std::string &e : map_errors)
             sawgod::debug_log::warnf("maps", "%s", e.c_str());
         if (moved)
             std::fprintf(stderr, "sawgod: %d edited maps moved to free space in their banks\n", moved);
     }
+    sawgod::startup::Stage comparison("data tables ROM comparison");
     std::vector<std::string> diffs;
     const int rows = tables.compare_rom(wsc, &diffs);
     std::fprintf(stderr, "sawgod: data tables from %s: %d rows, %zu differ from the ROM\n", res.c_str(), rows,
@@ -272,6 +305,7 @@ void GameLanguage::apply(emu::Wsc &wsc, bool english, std::string &base_text, st
 void GameLanguage::set_text(emu::Wsc &wsc, bool english, std::string &base_text, std::string &english_text,
                             const std::optional<AssetArchive> &english_graphics) {
     sawgod::game::TextTable &table = sawgod::game::Session::of(wsc).text();
+    sawgod::startup::Stage timing("text load");
     table.clear();
     table.set_button_icons(true); // Ａ：けってい as {A}：けってい in Japanese too (game/text_tokens.h)
     for (const auto &[offset, bytes] : graphics_original_) // the ROM's own graphics back

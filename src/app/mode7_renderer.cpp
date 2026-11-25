@@ -1,3 +1,4 @@
+#include "engine/startup_timing.h"
 #include "app/mode7_renderer.h"
 #include "engine/cpu_scope.h"
 #include "engine/gpu_pass_timer.h"
@@ -11,6 +12,7 @@
 #include <set>
 namespace sawgod {
 bool Mode7Renderer::init(SDL_Renderer *renderer) {
+    sawgod::startup::Stage timing("Enhanced world scene passes");
     shutdown();
     auto *device = SDL_GetGPURendererDevice(renderer);
     if (!device)
@@ -795,6 +797,7 @@ bool Mode7Renderer::draw_minimap(const SDL_FRect &area, int tile, int rows, int 
     return ok;
 }
 bool Mode7Renderer::resize(int width, int height) {
+    sawgod::startup::Stage timing("Enhanced world scene resize");
     CpuScope cpu_scope("Mode7Renderer::resize");
     if (width == width_ && height == height_)
         return true;

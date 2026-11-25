@@ -1,3 +1,5 @@
+#include "engine/assets.h"
+#include "engine/derived_cache.h"
 // Extracts field map graphics and loads authored GB map replacements.
 #include "game/maps.h"
 
@@ -344,6 +346,93 @@ int build_map_banks(emu::Wsc &w, DataTables &tables, const std::vector<const Map
             }
         }
     return int(std::count(moved.begin(), moved.end(), true));
+}
+
+int build_map_banks_cached(emu::Wsc &w, DataTables &tables, const std::vector<const MapData *> &maps,
+                           const std::string &cache_path, std::vector<std::string> *errors, bool *cache_hit) {
+    if (cache_hit)
+        *cache_hit = false;
+    if (cache_path.empty())
+        return build_map_banks(w, tables, maps, errors);
+    const char *code_id =
+#include "resource_id.inc"
+        ;
+    std::vector<uint8_t> inputs;
+    auto append = [&](const auto &array) { inputs.insert(inputs.end(), array.begin(), array.end()); };
+    auto word = [&](unsigned value) {
+        inputs.push_back(uint8_t(value));
+        inputs.push_back(uint8_t(value >> 8));
+    };
+    auto headers = [&] {
+        std::vector<uint8_t> bytes;
+        const auto &layout = table_layout(Table::maps);
+        for (unsigned id = 0; id < layout.max_rows; ++id) {
+            const auto *row = tables.row(Table::maps, id);
+            bytes.push_back(row ? 1 : 0);
+            if (row)
+                bytes.insert(bytes.end(), row, row + layout.stride);
+        }
+        return bytes;
+    };
+    append(w.rom);
+    append(headers());
+    // Explicit fields and little-endian words: no padding, host layout or uninitialized bytes.
+    word(unsigned(maps.size()));
+    for (const auto *map : maps) {
+        inputs.push_back(map ? 1 : 0);
+        if (!map)
+            continue;
+        append(map->cells);
+        append(map->attributes);
+        append(map->tiles);
+        append(map->mirror);
+        for (const auto value : map->type_words)
+            word(value);
+        append(map->type_bytes);
+    }
+    const auto key = std::string(code_id) + ":map-banks-v1:" + to_hex(sha1(inputs.data(), inputs.size()));
+    if (const auto cached = read_derived_cache(cache_path, key)) {
+        const auto &layout = table_layout(Table::maps);
+        size_t offset = 2 + w.rom.size();
+        bool valid = cached->size() >= offset;
+        std::vector<std::vector<uint8_t>> rows(layout.max_rows);
+        for (unsigned id = 0; valid && id < layout.max_rows; ++id) {
+            if (offset >= cached->size()) {
+                valid = false;
+                break;
+            }
+            const auto present = (*cached)[offset++];
+            if (present > 1 || (present && layout.stride > cached->size() - offset)) {
+                valid = false;
+                break;
+            }
+            if (present) {
+                rows[id].assign(cached->begin() + offset, cached->begin() + offset + layout.stride);
+                offset += layout.stride;
+            }
+        }
+        if (valid && offset == cached->size()) {
+            std::copy(cached->begin() + 2, cached->begin() + 2 + w.rom.size(), w.rom.begin());
+            for (unsigned id = 0; id < layout.max_rows; ++id)
+                if (!rows[id].empty())
+                    tables.set_row(Table::maps, id, std::move(rows[id]));
+            if (cache_hit)
+                *cache_hit = true;
+            return (*cached)[0] | unsigned((*cached)[1]) << 8;
+        }
+    }
+    std::vector<std::string> issues;
+    const int moved = build_map_banks(w, tables, maps, &issues);
+    if (issues.empty()) {
+        std::vector<uint8_t> bytes{uint8_t(moved), uint8_t(unsigned(moved) >> 8)};
+        bytes.insert(bytes.end(), w.rom.begin(), w.rom.end());
+        const auto rows = headers();
+        bytes.insert(bytes.end(), rows.begin(), rows.end());
+        write_derived_cache(cache_path, key, bytes);
+    }
+    if (errors)
+        errors->insert(errors->end(), issues.begin(), issues.end());
+    return moved;
 }
 
 } // namespace sawgod::game

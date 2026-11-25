@@ -1,8 +1,10 @@
 #include "engine/presentation_renderer.h"
 #include "engine/data_dir.h"
 #include "engine/gpu_warmup.h"
-#ifdef SAWGOD_GPU_TIMESTAMPS
+#include "engine/startup_timing.h"
+#ifdef SAWGOD_GPU_PIPELINE_CACHE
 extern "C" void SawGodVulkanPipelineCacheSetPath(SDL_GPUDevice *, const char *);
+extern "C" void SawGodVulkanPipelineCacheSave(SDL_GPUDevice *);
 #endif
 
 #include <cstring>
@@ -55,7 +57,9 @@ bool PresentationRenderer::is_gpu() const {
 }
 
 bool PresentationRenderer::init(SDL_Window *window, bool legacy, bool identity) {
+    sawgod::startup::Stage timing("renderer/GPU init (shaders and pipelines)");
     shutdown();
+    cache_saved_ = false;
     if (!legacy) {
         // Headless runs (tests, screenshots) take the low-power GPU: on a hybrid laptop the NVIDIA driver
         // (615.71) crashes querying swapchain support for an offscreen window.
@@ -82,9 +86,15 @@ bool PresentationRenderer::init(SDL_Window *window, bool legacy, bool identity) 
 #endif
         renderer_ = SDL_CreateRendererWithProperties(props);
         SDL_DestroyProperties(props);
-#ifdef SAWGOD_GPU_TIMESTAMPS
+#ifdef SAWGOD_GPU_PIPELINE_CACHE
         if (renderer_)
             SawGodVulkanPipelineCacheSetPath(SDL_GetGPURendererDevice(renderer_), data_dir().c_str());
+        if (renderer_) {
+            const auto *status =
+                SDL_GetStringProperty(SDL_GetGPUDeviceProperties(SDL_GetGPURendererDevice(renderer_)),
+                                      "sawgod.pipeline-cache-status", "unavailable");
+            startup::mark((std::string("GPU pipeline cache ") + status).c_str());
+        }
 #endif
         if (!renderer_ || (identity && !init_identity()) || !probe() || !warm_gpu_defaults(renderer_)) {
             const std::string error = SDL_GetError();
@@ -96,6 +106,8 @@ bool PresentationRenderer::init(SDL_Window *window, bool legacy, bool identity) 
         renderer_ = legacy_renderer(window);
     if (!renderer_)
         return false;
+    if (!is_gpu())
+        startup::mark("GPU pipeline cache unavailable (legacy renderer)");
     const char *driver = is_gpu() ? SDL_GetGPUDeviceDriver(SDL_GetGPURendererDevice(renderer_)) : "legacy";
     const char *device =
         is_gpu() ? SDL_GetStringProperty(SDL_GetGPUDeviceProperties(SDL_GetGPURendererDevice(renderer_)),
@@ -104,6 +116,17 @@ bool PresentationRenderer::init(SDL_Window *window, bool legacy, bool identity) 
     SDL_Log("Presentation renderer: %s (%s%s%s), identity shader: %s", SDL_GetRendererName(renderer_), driver,
             *device ? ", " : "", device, state_ ? "on" : "off");
     return true;
+}
+
+void PresentationRenderer::persist_startup_cache() {
+    if (cache_saved_)
+        return;
+    cache_saved_ = true;
+#ifdef SAWGOD_GPU_PIPELINE_CACHE
+    startup::Stage timing("GPU pipeline cache persist");
+    if (is_gpu())
+        SawGodVulkanPipelineCacheSave(SDL_GetGPURendererDevice(renderer_));
+#endif
 }
 
 bool PresentationRenderer::init_identity() {

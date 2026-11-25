@@ -4,6 +4,56 @@
 #include "game/session.h"
 #include "test_presentation_support.h"
 
+TEST_CASE("Enhanced shared shader preserves pixels after either pass releases its reference [GPU]") {
+    if (!std::getenv("SAWGOD_GPU_TESTS"))
+        return;
+    REQUIRE(SDL_Init(SDL_INIT_VIDEO));
+    auto *window = SDL_CreateWindow("Shared shader test", 672, 432, SDL_WINDOW_HIDDEN);
+    REQUIRE(window);
+    PresentationRenderer renderer;
+    REQUIRE(renderer.init(window, false, false));
+    REQUIRE(renderer.is_gpu());
+    EnhancedGraphics original, shared;
+    REQUIRE(original.init(renderer.get()));
+    REQUIRE(shared.init(renderer.get(), nullptr, nullptr, nullptr, &original));
+    std::vector<uint32_t> colors(224 * 144), mask(colors.size(), 0);
+    for (size_t i = 0; i < colors.size(); ++i)
+        colors[i] = uint32_t(i * 7919) & 0xffffff;
+    EnhancedParameters params;
+    params.frame = 73;
+    params.water.assign(colors.size(), 0x101025);
+    const auto read = [&](EnhancedGraphics &pass) {
+        REQUIRE(pass.upload(colors, colors, mask.data(), params));
+        auto *texture = pass.render(true);
+        REQUIRE(texture);
+        REQUIRE(SDL_SetRenderTarget(renderer.get(), texture));
+        auto *surface = SDL_RenderReadPixels(renderer.get(), nullptr);
+        REQUIRE(surface);
+        auto *rgb = SDL_ConvertSurface(surface, SDL_PIXELFORMAT_XRGB8888);
+        REQUIRE(rgb);
+        std::vector<uint8_t> pixels;
+        for (int y = 0; y < rgb->h; ++y) {
+            const auto *row = static_cast<const uint8_t *>(rgb->pixels) + y * rgb->pitch;
+            pixels.insert(pixels.end(), row, row + rgb->w * 4);
+        }
+        SDL_DestroySurface(rgb);
+        SDL_DestroySurface(surface);
+        SDL_SetRenderTarget(renderer.get(), nullptr);
+        return pixels;
+    };
+    const auto expected = read(original);
+    CHECK(read(shared) == expected);
+    original.shutdown();
+    CHECK(read(shared) == expected);
+    REQUIRE(original.init(renderer.get(), nullptr, nullptr, nullptr, &shared));
+    shared.shutdown();
+    CHECK(read(original) == expected);
+    original.shutdown();
+    renderer.shutdown();
+    SDL_DestroyWindow(window);
+    SDL_Quit();
+}
+
 TEST_CASE("native palette fades bound every Enhanced color without recolor false positives") {
     const auto packed = [](int v) { return uint16_t(v * 0x111); };
     for (int amount = -15; amount <= 15; ++amount) {

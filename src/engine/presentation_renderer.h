@@ -21,9 +21,11 @@ class PresentationRenderer {
     // Scope this to the game's XRGB draws; clear before IPS masks, overlays and badges.
     bool begin_game();
     bool end_game();
+    void persist_startup_cache();
     void shutdown(); // call after destroying textures/ImGui, before SDL_Quit
 
   private:
+    bool cache_saved_ = false;
     bool init_identity();
     bool probe();
     SDL_Renderer *renderer_ = nullptr;

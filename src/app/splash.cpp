@@ -164,7 +164,8 @@ bool run_splash(SDL_Renderer *renderer, ui::Input &input, const ui::InputMap &ma
     // a press skips it: A held as the splash opens counts once it is let go
     bool a_was = input.button_held(map, ui::WscButton::A);
     bool open = true;
-    const uint64_t start = SDL_GetTicksNS();
+    uint64_t start = SDL_GetTicksNS();
+    bool working = bool(screen.work);
     for (uint64_t t = 0; open && t < end_at; t = SDL_GetTicksNS() - start) {
         SDL_Event e;
         while (SDL_PollEvent(&e)) {
@@ -226,6 +227,12 @@ bool run_splash(SDL_Renderer *renderer, ui::Input &input, const ui::InputMap &ma
             SDL_RenderFillRect(renderer, &all);
         }
         SDL_RenderPresent(renderer);
+        const bool still = (t >= kSplashFadeInNs && t < mosaic_at) || (t >= pixel_at && t < screen_at);
+        if (working && still) {
+            const uint64_t before = SDL_GetTicksNS();
+            working = screen.work();
+            start += SDL_GetTicksNS() - before; // the picture held; the stages keep their lengths
+        }
     }
     for (auto &[size, tex] : sizes)
         SDL_DestroyTexture(tex);

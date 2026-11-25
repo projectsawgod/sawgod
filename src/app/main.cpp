@@ -106,6 +106,10 @@
 #include "app/sound_mix.h"
 #include "app/splash.h"
 #include "app/startup.h"
+#include "engine/startup_timing.h"
+#ifdef __ANDROID__
+#include <jni.h>
+#endif
 #include "app/title_logo_overlay.h"
 #include "app/ui_screens.h"
 #include "app/world_card_overlay.h"
@@ -181,6 +185,24 @@ using sawgod::app::ZoomBackdrop;
 #endif
 
 int main(int argc, char **argv) {
+#ifdef __ANDROID__
+    auto *env = static_cast<JNIEnv *>(SDL_GetAndroidJNIEnv());
+    jobject activity = static_cast<jobject>(SDL_GetAndroidActivity());
+    jclass cls = env->GetObjectClass(activity);
+    auto startup_time = [&](const char *field) {
+        return double(env->GetLongField(activity, env->GetFieldID(cls, field, "J"))) / 1e6;
+    };
+    sawgod::startup::platform_origin(startup_time("processStartNs"));
+    sawgod::startup::platform_stage("process start", startup_time("processStartNs"), 0);
+    sawgod::startup::platform_stage("activity start", startup_time("activityStartNs"), 0);
+    sawgod::startup::platform_stage("Android bundled-asset install", startup_time("installEndNs"),
+                                    startup_time("installEndNs") - startup_time("installBeginNs"));
+    sawgod::startup::platform_stage("native library load", startup_time("libraryEndNs"),
+                                    startup_time("libraryEndNs") - startup_time("libraryBeginNs"));
+    env->DeleteLocalRef(cls);
+    env->DeleteLocalRef(activity);
+#endif
+    sawgod::startup::begin();
     sawgod::app::LaunchArgs args = sawgod::app::parse_launch_args(argc, argv);
     if (!args.shot_render_reset_error.empty()) {
         std::fprintf(stderr, "sawgod: %s\n", args.shot_render_reset_error.c_str());
@@ -280,6 +302,7 @@ int main(int argc, char **argv) {
     }
 
     sawgod::app::start_debug_log(args);
+    sawgod::startup::flush();
     struct DebugLogSession { // every return from here closes the session's file
         ~DebugLogSession() { sawgod::debug_log::stop(); }
     } debug_log_session;
@@ -295,7 +318,10 @@ int main(int argc, char **argv) {
     sawgod::Settings settings;
     settings.register_all(config, args.touch_controls);
     const std::string config_path = sawgod::app::config_file(args);
-    sawgod::app::load_settings(args, config_path, config, settings);
+    {
+        sawgod::startup::Stage timing("config load");
+        sawgod::app::load_settings(args, config_path, config, settings);
+    }
     auto save_config = [&] {
         if (!config.dirty() || config_path.empty() || !args.shot.empty())
             return;
@@ -324,6 +350,7 @@ int main(int argc, char **argv) {
         SDL_Quit();
         return result;
     }
+    sawgod::startup::mark("SDL and game setup complete");
     sawgod::app::EnhancedAudio enhanced_audio(soundfont);
     // First run builds <data>/wsc.sgz and gb.sgz; folders/.sgz in mods/ override their files in load order.
     std::string base_text; // text/ja.csv with the mods' text/ja.csv over it (empty: none, the ROM's text)
@@ -772,6 +799,7 @@ int main(int argc, char **argv) {
         SDL_Quit();
         return 1;
     }
+    sawgod::startup::mark("renderer ready");
     renderer = presentation.get();
     if (!world_card_overlay.prepare(renderer))
         sawgod::debug_log::warnf("gpu", "World card preparation failed: %s", SDL_GetError());
@@ -784,8 +812,6 @@ int main(int argc, char **argv) {
     enhanced_graphics.timing_enabled = mode7_graphics.timing_enabled = mode7_renderer.timing_enabled =
         timing_log.enabled();
     sawgod::FocusPass mode7_focus;
-    if (!mode7_focus.init(renderer))
-        sawgod::debug_log::warnf("gpu", "Mode 7 focus unavailable: %s", SDL_GetError());
     int initial_width = 224, initial_height = 144;
     SDL_GetRenderOutputSize(renderer, &initial_width, &initial_height);
     bool running = true;
@@ -799,14 +825,37 @@ int main(int argc, char **argv) {
     const auto initial_scene =
         sawgod::app::enhanced_scene_size(int(std::lround(initial_game.w)), int(std::lround(initial_game.h)));
     int mode7_width = initial_scene[0], mode7_height = initial_scene[1];
-    if (!mode7_renderer.init(renderer) || !mode7_renderer.resize(mode7_width, mode7_height) ||
-        !mode7_graphics.init(renderer, mode7_renderer.picture(), mode7_renderer.ownership(),
-                             mode7_renderer.water()))
-        sawgod::debug_log::errorf("gpu", "World camera GPU effects unavailable: %s", SDL_GetError());
-    if (!enhanced_graphics.init(renderer))
-        sawgod::debug_log::errorf("gpu", "Enhanced graphics unavailable: %s; using ordinary picture",
-                                  SDL_GetError());
-    mode7_supported = mode7_renderer.ready() && mode7_graphics.ready() && enhanced_graphics.ready();
+    // Enhanced's GPU state (shader and pipeline builds) in three steps, run during the splash's still frames
+    // (startup timing: about two thirds of a cold start's GPU work). Whatever is left when the splash ends or
+    // is skipped runs before anything draws Enhanced (finish_enhanced_setup), so no frame sees it half built.
+    int enhanced_setup_step = 0;
+    const auto enhanced_setup = [&]() -> bool {
+        switch (enhanced_setup_step++) {
+        case 0:
+            if (!mode7_focus.init(renderer))
+                sawgod::debug_log::warnf("gpu", "Mode 7 focus unavailable: %s", SDL_GetError());
+            return true;
+        case 1:
+            if (!mode7_renderer.init(renderer) || !mode7_renderer.resize(mode7_width, mode7_height) ||
+                !mode7_graphics.init(renderer, mode7_renderer.picture(), mode7_renderer.ownership(),
+                                     mode7_renderer.water()))
+                sawgod::debug_log::errorf("gpu", "World camera GPU effects unavailable: %s", SDL_GetError());
+            return true;
+        case 2:
+            if (!enhanced_graphics.init(renderer, nullptr, nullptr, nullptr, &mode7_graphics))
+                sawgod::debug_log::errorf("gpu", "Enhanced graphics unavailable: %s; using ordinary picture",
+                                          SDL_GetError());
+            mode7_supported = mode7_renderer.ready() && mode7_graphics.ready() && enhanced_graphics.ready();
+            sawgod::startup::mark("Enhanced GPU setup complete");
+            return false;
+        default:
+            return false;
+        }
+    };
+    const auto finish_enhanced_setup = [&] {
+        while (enhanced_setup())
+            ;
+    };
     bool mode7_uploaded = false;
     bool enhanced_uploaded = false;
     // Screen Mode LCD on the CPU picture, except while a GPU picture (Enhanced's, or its camera) is still on
@@ -1880,7 +1929,7 @@ int main(int argc, char **argv) {
                     mode7_graphics.shutdown(); // release sampler bindings before replacing plane targets
                     if (mode7_renderer.resize(width, height) &&
                         mode7_graphics.init(renderer, mode7_renderer.picture(), mode7_renderer.ownership(),
-                                            mode7_renderer.water())) {
+                                            mode7_renderer.water(), &enhanced_graphics)) {
                         mode7_width = width;
                         mode7_height = height;
                     }
@@ -2180,7 +2229,7 @@ int main(int argc, char **argv) {
         const bool world = mode7_renderer.init(renderer) &&
                            mode7_renderer.resize(mode7_width, mode7_height) &&
                            mode7_graphics.init(renderer, mode7_renderer.picture(), mode7_renderer.ownership(),
-                                               mode7_renderer.water());
+                                               mode7_renderer.water(), &enhanced_graphics);
         mode7_supported = flat && world;
         if (presentation.is_gpu() && !mode7_supported)
             return false;
@@ -2204,6 +2253,7 @@ int main(int argc, char **argv) {
 
     // --shot-overlay: a picture of the menu (or with --shot-page none, of the game), then exit.
     if (!args.shot.empty()) {
+        finish_enhanced_setup();
         int code = 0;
         sawgod::app::ShotSoak soak;
         if (!args.shot_soak.empty()) {
@@ -2508,8 +2558,12 @@ int main(int argc, char **argv) {
                              args.shot_run ? (view ? shot_ticks : 1) : 0, 1, true, false, w, h);
                 SDL_SetRenderTarget(renderer, nullptr);
                 // The GPU renderer releases a frame's transient resources only when the frame is presented.
-                if (args.shot_run)
+                if (args.shot_run) {
                     SDL_RenderPresent(renderer);
+                    sawgod::startup::finish();
+                    presentation.persist_startup_cache();
+                    world_card_overlay.preload();
+                }
                 if (timing_view) {
                     if (!surface && !sawgod::presentation_diagnostics::cpu_only())
                         code = 1;
@@ -2587,9 +2641,11 @@ int main(int argc, char **argv) {
             screen.recolor = [](std::vector<uint32_t> &rgb) { sawgod::fstn_color(rgb); };
         else if (effective_screen() == sawgod::ScreenMode::Ips)
             screen.overlay = [&](const SDL_FRect &r) { lcd_grid.draw(renderer, r, ips_amount); };
+        screen.work = enhanced_setup;
         running = sawgod::app::run_splash(renderer, input, input_map, screen);
         swallow = input.held(input_map);
     }
+    finish_enhanced_setup(); // a skipped or short splash: the rest now, before the first game frame
 
     if (wsc) {
         // Loading the soundfont must finish before game packets can accumulate in the worker.
@@ -2623,6 +2679,9 @@ int main(int argc, char **argv) {
         }
         draw_frame(ow, oh, (SDL_GetWindowFlags(window) & SDL_WINDOW_FULLSCREEN) != 0);
         SDL_RenderPresent(renderer);
+        sawgod::startup::finish();
+        presentation.persist_startup_cache();
+        world_card_overlay.preload();
         if (auto *device = SDL_GetGPURendererDevice(renderer))
             SDL_WaitForGPUIdle(device);
         cur_rgb.clear();
@@ -2904,6 +2963,9 @@ int main(int argc, char **argv) {
         }
         const auto present_start = SDL_GetTicksNS();
         SDL_RenderPresent(renderer);
+        sawgod::startup::finish();
+        presentation.persist_startup_cache();
+        world_card_overlay.preload();
         t_present = SDL_GetTicksNS() - present_start;
         write_timing(t_tick, t_upload, t_draw, t_present, ran, log_speed, false, clock_reset, ow, oh);
         last_present = now;

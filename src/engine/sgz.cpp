@@ -1,4 +1,5 @@
 #include "engine/sgz.h"
+#include "engine/startup_timing.h"
 
 #include <cstdlib>
 #include <fstream>
@@ -6,6 +7,7 @@
 
 #include <miniz.h>
 
+#include "engine/assets.h"
 #include "engine/persist.h"
 
 namespace sawgod {
@@ -41,10 +43,14 @@ std::optional<std::string> json_field(const std::string &json, const std::string
 }
 
 std::vector<uint8_t> read_whole(const std::string &path) {
-    std::ifstream in(path, std::ios::binary);
-    if (!in)
+    std::ifstream in(path, std::ios::binary | std::ios::ate);
+    if (!in || in.tellg() < 0)
         return {};
-    return std::vector<uint8_t>(std::istreambuf_iterator<char>(in), {});
+    std::vector<uint8_t> data(static_cast<size_t>(in.tellg()));
+    in.seekg(0);
+    if (!in.read(reinterpret_cast<char *>(data.data()), std::streamsize(data.size())))
+        return {};
+    return data;
 }
 
 } // namespace
@@ -91,13 +97,21 @@ bool write_sgz(const std::string &path, const SgzStamp &stamp, const SgzFiles &f
         if (error)
             *error = path + ": cannot finish the zip";
     }
-    if (ok)
+    if (ok) {
         ok = WriteFileAtomic(path, buffer, size, error);
+        if (ok) {
+            // The writer just produced these exact bytes; no need to inflate them on the next launch.
+            const std::string receipt = "sgz-crc-v1 " + to_hex(sha1(static_cast<uint8_t *>(buffer), size)) +
+                                        "\n" + sgz_stamp_json(stamp);
+            WriteFileAtomic(path + ".verified", receipt.data(), receipt.size(), nullptr);
+        }
+    }
     mz_zip_writer_end(&zip); // frees the heap buffer too
     return ok;
 }
 
 std::optional<SgzFiles> read_sgz(const std::string &path, std::string *error) {
+    sawgod::startup::Stage timing(".sgz open/decompress");
     const std::vector<uint8_t> data = read_whole(path);
     mz_zip_archive zip{};
     if (data.empty() || !mz_zip_reader_init_mem(&zip, data.data(), data.size(), 0)) {
@@ -130,9 +144,21 @@ std::optional<SgzFiles> read_sgz(const std::string &path, std::string *error) {
 }
 
 std::optional<SgzStamp> read_sgz_stamp(const std::string &path) {
+    sawgod::startup::Stage timing(".sgz verify");
     const std::vector<uint8_t> data = read_whole(path);
+    if (data.empty())
+        return std::nullopt;
+    const std::string key = "sgz-crc-v1 " + to_hex(sha1(data.data(), data.size())) + "\n";
+    const auto receipt = read_whole(path + ".verified");
+    const std::string saved(receipt.begin(), receipt.end());
+    if (saved.starts_with(key))
+        if (auto stamp = parse_sgz_stamp(saved.substr(key.size()))) {
+            startup::mark(".sgz verification cache hit (content hash)");
+            return stamp;
+        }
+    startup::mark(".sgz verification cache miss");
     mz_zip_archive zip{};
-    if (data.empty() || !mz_zip_reader_init_mem(&zip, data.data(), data.size(), 0))
+    if (!mz_zip_reader_init_mem(&zip, data.data(), data.size(), 0))
         return std::nullopt;
     std::optional<SgzStamp> stamp;
     size_t size = 0;
@@ -144,6 +170,10 @@ std::optional<SgzStamp> read_sgz_stamp(const std::string &path) {
     if (stamp && !mz_zip_validate_archive(&zip, 0))
         stamp.reset();
     mz_zip_reader_end(&zip);
+    if (stamp) {
+        const std::string record = key + sgz_stamp_json(*stamp);
+        WriteFileAtomic(path + ".verified", record.data(), record.size(), nullptr);
+    }
     return stamp;
 }
 

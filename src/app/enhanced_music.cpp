@@ -1,3 +1,4 @@
+#include "engine/startup_timing.h"
 #include "app/enhanced_music.h"
 #ifdef __ANDROID__
 #include "engine/data_dir.h"
@@ -1228,7 +1229,10 @@ struct EnhancedAudio::Impl {
     std::thread worker;
     explicit Impl(std::string sf)
         : worker([this, sf = std::move(sf)] {
-              EnhancedRenderer synth(sf);
+              auto synth = [&] {
+                  sawgod::startup::Stage timing("soundfont/FluidSynth load (background)");
+                  return EnhancedRenderer(sf);
+              }();
               available.store(synth.available());
               ready.store(true);
               ready.notify_all();

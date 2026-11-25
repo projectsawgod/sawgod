@@ -53,6 +53,9 @@ void criticalf(const char *area, const char *format, ...) SAWGOD_PRINTF(2, 3);
 // Where the game is ("map 1, GB, shop"): follows every line, and is what a crash report has to go on.
 void set_context(std::string_view context);
 
+// Informational diagnostics: no severity, deduplication or problem count.
+void info(std::string_view message);
+
 // For tests: the crash report a signal would write, without crashing.
 void write_crash_for_test(const char *what);
 

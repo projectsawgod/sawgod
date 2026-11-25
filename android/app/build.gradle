@@ -64,6 +64,8 @@ android {
     buildTypes {
         debug { debuggable true }
         release {
+            // -PsawgodProfile: an optimized build that run-as can read (startup logs, caches); never for release.
+            debuggable project.hasProperty('sawgodProfile')
             minifyEnabled false
             signingConfig signingStore ? signingConfigs.release : signingConfigs.debug
         }

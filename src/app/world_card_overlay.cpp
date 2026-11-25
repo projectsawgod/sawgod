@@ -1,32 +1,43 @@
 #include "app/world_card_overlay.h"
 #include "engine/cpu_scope.h"
 #include "engine/presentation_diagnostics.h"
+#include "engine/startup_timing.h"
 #include "game/world_card_lettering.h"
 namespace sawgod::app {
 WorldCardOverlay::~WorldCardOverlay() { shutdown(); }
+void WorldCardOverlay::preload() {
+    if (!preloading_.valid())
+        preloading_ = std::async(std::launch::async, [] {
+            startup::Stage timing("world card decode (background)");
+            // part() initializes immutable shared images once; a foreground caller joins its static guard.
+            (void)game::WorldCardLettering::part(1, false, 0);
+        });
+}
 void WorldCardOverlay::shutdown() {
     for (auto &texture : textures_) {
         SDL_DestroyTexture(texture);
         texture = nullptr;
     }
 }
-bool WorldCardOverlay::prepare(SDL_Renderer *renderer) {
-    // part() decodes/trims the shared authored sheets once. Upload every card before any can appear.
-    for (int card = 1; card <= 4; ++card)
-        for (int resolution = 0; resolution < 2; ++resolution)
-            for (int index = 0; index < 4; ++index) {
-                auto &texture = textures_[size_t(((card - 1) * 2 + resolution) * 4 + index)];
-                const auto &im = game::WorldCardLettering::part(card, resolution != 0, index).image;
-                if (texture || im.pixels.empty())
-                    continue;
-                texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STATIC,
-                                            im.width, im.height);
-                if (!texture || !SDL_UpdateTexture(texture, nullptr, im.pixels.data(), im.width * 4) ||
-                    !SDL_SetTextureScaleMode(texture,
-                                             resolution ? SDL_SCALEMODE_LINEAR : SDL_SCALEMODE_NEAREST) ||
-                    !SDL_SetTextureBlendMode(texture, SDL_BLENDMODE_BLEND))
-                    return false;
-            }
+bool WorldCardOverlay::prepare(SDL_Renderer *renderer, int requested_card) {
+    if (requested_card < 1 || requested_card > 4)
+        return true;
+    const int card = requested_card;
+    // Defer decoding/upload until a card is visible; only this card needs GPU textures.
+    for (int resolution = 0; resolution < 2; ++resolution)
+        for (int index = 0; index < 4; ++index) {
+            auto &texture = textures_[size_t(((card - 1) * 2 + resolution) * 4 + index)];
+            const auto &im = game::WorldCardLettering::part(card, resolution != 0, index).image;
+            if (texture || im.pixels.empty())
+                continue;
+            texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STATIC,
+                                        im.width, im.height);
+            if (!texture || !SDL_UpdateTexture(texture, nullptr, im.pixels.data(), im.width * 4) ||
+                !SDL_SetTextureScaleMode(texture,
+                                         resolution ? SDL_SCALEMODE_LINEAR : SDL_SCALEMODE_NEAREST) ||
+                !SDL_SetTextureBlendMode(texture, SDL_BLENDMODE_BLEND))
+                return false;
+        }
     return true;
 }
 void WorldCardOverlay::draw(SDL_Renderer *renderer, const game::WorldCardLettering &cards, emu::Wsc &w,
@@ -36,6 +47,8 @@ void WorldCardOverlay::draw(SDL_Renderer *renderer, const game::WorldCardLetteri
         shutdown();
     const float alpha = cards.opacity(w);
     if (alpha <= 0)
+        return;
+    if (!prepare(renderer, cards.card()))
         return;
     for (int resolution = 0; resolution < 2; ++resolution) {
         // Graphics weights are GB, WSC, Enhanced. GB keeps its own typed page.

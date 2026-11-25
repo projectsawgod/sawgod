@@ -1,4 +1,9 @@
+#include "engine/derived_cache.h"
+#include "engine/persist.h"
 #include "engine/version.h"
+#include "game/gb_extract.h"
+#include "game/maps.h"
+#include "game/tables.h"
 #include "test_first_run_support.h"
 
 TEST_CASE("data folder: SAWGOD_HOME, else portable beside the game, else the OS data folder") {
@@ -241,9 +246,9 @@ TEST_CASE("[ROM] first run: store the ROM, build both archives, rebuild a damage
     // both archives, current for this ROM
     const fs::path gb_maps =
         fs::path(SAWGOD_TEST_FIXTURES).parent_path().parent_path() / "assets" / "gb_maps";
-    CHECK_FALSE(sawgod::app::archives_current(data, check.sha1));
+    CHECK_FALSE(sawgod::app::archives_current(data, check.sha1, gb_maps.string()));
     REQUIRE(sawgod::app::ensure_archives(data, check.rom, check.sha1, gb_maps.string(), nullptr, &error));
-    CHECK(sawgod::app::archives_current(data, check.sha1));
+    CHECK(sawgod::app::archives_current(data, check.sha1, gb_maps.string()));
     const auto wsc = sawgod::read_sgz(sawgod::app::wsc_archive_path(data));
     const auto gb = sawgod::read_sgz(sawgod::app::gb_archive_path(data));
     REQUIRE(wsc);
@@ -251,12 +256,82 @@ TEST_CASE("[ROM] first run: store the ROM, build both archives, rebuild a damage
     CHECK(wsc->count("text/ja.csv") == 1);
     CHECK(gb->count("gb/title.png") == 1);
     CHECK(gb->count("gb/001_metatiles.png") == 1);
+    // Authored GB inputs use content, including names, rather than revision or timestamps.
+    const auto authored = home / "authored";
+    fs::copy(gb_maps, authored, fs::copy_options::recursive);
+    CHECK(sawgod::app::archives_current(data, check.sha1, authored.string()));
+    fs::path sample;
+    for (const auto &entry : fs::directory_iterator(authored))
+        if (entry.path().extension() == ".csv") {
+            sample = entry.path();
+            break;
+        }
+    REQUIRE_FALSE(sample.empty());
+    const auto original_input = read(sample);
+    const auto input_time = fs::last_write_time(sample);
+    const auto memo = data + "gb-inputs.cache";
+    if (fs::exists(memo)) { // Reliable POSIX filesystems use the metadata fast path.
+        const auto original_memo = read(memo);
+        const auto memo_time = fs::last_write_time(memo);
+        CHECK(sawgod::app::archives_current(data, check.sha1, authored.string()));
+        CHECK(read(memo) == original_memo);
+        CHECK(fs::last_write_time(memo) == memo_time);
+        auto broken_memo = original_memo;
+        broken_memo.back() ^= 1;
+        REQUIRE(sawgod::WriteFileAtomic(memo, broken_memo));
+        CHECK(sawgod::app::archives_current(data, check.sha1, authored.string()));
+        CHECK(read(memo) == original_memo); // Damaged cache was rehashed/repaired.
+    }
+    auto same_size_edit = original_input;
+    REQUIRE_FALSE(same_size_edit.empty());
+    same_size_edit[0] ^= 1;
+    { // In-place edit: inode stays the same, so restored mtime must still be caught through ctime.
+        std::ofstream out(sample, std::ios::binary | std::ios::trunc);
+        out.write(reinterpret_cast<const char *>(same_size_edit.data()),
+                  std::streamsize(same_size_edit.size()));
+        REQUIRE(bool(out));
+    }
+    fs::last_write_time(sample, input_time);
+    CHECK_FALSE(sawgod::app::archives_current(data, check.sha1, authored.string()));
+    REQUIRE(sawgod::WriteFileAtomic(sample.string(), original_input));
+    fs::last_write_time(sample, input_time);
+    CHECK(sawgod::app::archives_current(data, check.sha1, authored.string()));
+    auto edited_input = original_input;
+    edited_input.push_back('\n');
+    REQUIRE(sawgod::WriteFileAtomic(sample.string(), edited_input));
+    fs::last_write_time(sample, input_time);
+    CHECK_FALSE(sawgod::app::archives_current(data, check.sha1, authored.string()));
+    REQUIRE(sawgod::WriteFileAtomic(sample.string(), original_input));
+    CHECK(sawgod::app::archives_current(data, check.sha1, authored.string()));
+    REQUIRE(sawgod::WriteFileAtomic((authored / "extra.csv").string(), original_input));
+    CHECK_FALSE(sawgod::app::archives_current(data, check.sha1, authored.string()));
+    fs::remove(authored / "extra.csv");
+    CHECK(sawgod::app::archives_current(data, check.sha1, authored.string()));
+    fs::remove(sample);
+    CHECK_FALSE(sawgod::app::archives_current(data, check.sha1, authored.string()));
+    REQUIRE(sawgod::WriteFileAtomic(sample.string(), edited_input));
+    REQUIRE(sawgod::app::ensure_archives(data, check.rom, check.sha1, authored.string(), nullptr, &error));
+    CHECK(sawgod::app::archives_current(data, check.sha1, authored.string()));
+    auto rebuilt = sawgod::read_sgz(sawgod::app::gb_archive_path(data));
+    REQUIRE(rebuilt);
+    auto expected = *gb;
+    expected.erase(sawgod::kSgzStampFile);
+    rebuilt->erase(sawgod::kSgzStampFile);
+    // Shared art depends only on the unchanged ROM; recompute every authored-map result from current inputs.
+    std::map<std::string, std::string> current_inputs;
+    for (const auto &entry : fs::directory_iterator(authored))
+        if (entry.path().extension() == ".csv") {
+            const auto bytes = read(entry.path());
+            current_inputs[entry.path().filename().string()] = std::string(bytes.begin(), bytes.end());
+        }
+    REQUIRE(sawgod::game::build_gb_field_maps(check.rom, current_inputs, &expected, &error));
+    CHECK(bool(*rebuilt == expected));
     // damage gb.sgz: only it is rebuilt
     const auto wsc_time = fs::last_write_time(sawgod::app::wsc_archive_path(data));
     std::ofstream(sawgod::app::gb_archive_path(data), std::ios::binary) << "broken";
-    CHECK_FALSE(sawgod::app::archives_current(data, check.sha1));
+    CHECK_FALSE(sawgod::app::archives_current(data, check.sha1, gb_maps.string()));
     REQUIRE(sawgod::app::ensure_archives(data, check.rom, check.sha1, gb_maps.string(), nullptr, &error));
-    CHECK(sawgod::app::archives_current(data, check.sha1));
+    CHECK(sawgod::app::archives_current(data, check.sha1, gb_maps.string()));
     CHECK(fs::last_write_time(sawgod::app::wsc_archive_path(data)) == wsc_time);
     // an archive another build made is outdated
     CHECK_FALSE(sawgod::sgz_current(sawgod::app::gb_archive_path(data),
@@ -290,4 +365,95 @@ TEST_CASE("picker IO validates raw and archive contents rather than filename ext
     CHECK(sawgod::app::check_rom_selection(path.string()).verdict == V::Unreadable);
     fs::remove_all(dir);
     CHECK(sawgod::app::check_rom_selection(path.string()).verdict == V::Unreadable);
+}
+
+TEST_CASE("derived cache: exact hit, changed input/version miss, damaged payload ignored") {
+    const auto path = (fs::temp_directory_path() / "sawgod-derived-test.cache").string();
+    fs::remove(path);
+    const std::vector<uint8_t> bytes{0, 1, 2, 255, 0};
+    CHECK_FALSE(sawgod::read_derived_cache(path, "inputs-v1"));
+    sawgod::write_derived_cache(path, "inputs-v1", bytes);
+    REQUIRE(sawgod::read_derived_cache(path, "inputs-v1"));
+    CHECK(*sawgod::read_derived_cache(path, "inputs-v1") == bytes);
+    CHECK_FALSE(sawgod::read_derived_cache(path, "inputs-v2"));
+    auto damaged = read(path);
+    damaged.back() ^= 1;
+    REQUIRE(sawgod::WriteFileAtomic(path, damaged));
+    CHECK_FALSE(sawgod::read_derived_cache(path, "inputs-v1"));
+    fs::remove(path);
+}
+
+TEST_CASE("sgz verification receipt: hit is read-only, content changes with preserved size/time invalidate") {
+    const auto dir = fs::temp_directory_path() / "sawgod-verify-receipt-test";
+    fs::remove_all(dir);
+    fs::create_directories(dir);
+    const auto path = (dir / "archive.sgz").string();
+    const sawgod::SgzStamp stamp{"wsc", "test", std::string(40, 'a')};
+    std::string error;
+    REQUIRE(sawgod::write_sgz(path, stamp, {{"x", {1, 2, 3, 4}}}, &error));
+    REQUIRE(sawgod::sgz_current(path, stamp));
+    const auto receipt = path + ".verified";
+    REQUIRE(fs::exists(receipt));
+    const auto receipt_time = fs::last_write_time(receipt);
+    CHECK(sawgod::sgz_current(path, stamp));
+    CHECK(fs::last_write_time(receipt) == receipt_time);
+    const auto original_time = fs::last_write_time(path);
+    auto bytes = read(path);
+    // Damage the compressed first entry while preserving the ZIP directory and file metadata.
+    const size_t name_size = bytes[26] | unsigned(bytes[27]) << 8;
+    const size_t extra_size = bytes[28] | unsigned(bytes[29]) << 8;
+    bytes[30 + name_size + extra_size] ^= 0xff;
+    REQUIRE(sawgod::WriteFileAtomic(path, bytes));
+    fs::last_write_time(path, original_time);
+    CHECK_FALSE(sawgod::sgz_current(path, stamp));
+    fs::remove_all(dir);
+}
+
+TEST_CASE("map bank cache: real maps preserve ROM and table output byte for byte") {
+    const char *path = rom_path();
+    if (!path) {
+        MESSAGE("set SAWGOD_WSC_ROM for real map cache proof");
+        return;
+    }
+    const auto rom = read(path);
+    REQUIRE(rom.size() == 0x400000);
+    const auto cache = (fs::temp_directory_path() / "sawgod-real-map-bank-test.cache").string();
+    fs::remove(cache);
+    auto original = std::make_unique<sawgod::emu::Wsc>(rom, 0);
+    std::vector<sawgod::game::MapData> maps(sawgod::game::kMapCount);
+    std::vector<const sawgod::game::MapData *> use(maps.size());
+    for (int id = 0; id < sawgod::game::kMapCount; ++id)
+        if (sawgod::game::map_has_data(id, *original, nullptr)) {
+            maps[size_t(id)] = sawgod::game::extract_map(id, *original);
+            use[size_t(id)] = &maps[size_t(id)];
+        }
+    const auto &layout = sawgod::game::table_layout(sawgod::game::Table::maps);
+    for (bool edited : {false, true}) {
+        if (edited)
+            maps[1].type_words[0] ^= 1;
+        auto reference = std::make_unique<sawgod::emu::Wsc>(rom, 0);
+        sawgod::game::DataTables reference_tables;
+        std::vector<std::string> reference_errors;
+        const auto moved =
+            sawgod::game::build_map_banks(*reference, reference_tables, use, &reference_errors);
+        REQUIRE(reference_errors.empty());
+        for (bool want_hit : {false, true}) {
+            auto current = std::make_unique<sawgod::emu::Wsc>(rom, 0);
+            sawgod::game::DataTables tables;
+            std::vector<std::string> errors;
+            bool hit = false;
+            CHECK(sawgod::game::build_map_banks_cached(*current, tables, use, cache, &errors, &hit) == moved);
+            CHECK(hit == want_hit);
+            CHECK(errors == reference_errors);
+            CHECK(bool(current->rom == reference->rom));
+            for (unsigned id = 0; id < layout.max_rows; ++id) {
+                const auto *a = tables.row(sawgod::game::Table::maps, id);
+                const auto *b = reference_tables.row(sawgod::game::Table::maps, id);
+                REQUIRE(bool(a) == bool(b));
+                if (a)
+                    CHECK(std::equal(a, a + layout.stride, b));
+            }
+        }
+    }
+    fs::remove(cache);
 }
