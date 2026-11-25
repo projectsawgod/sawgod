@@ -1,3 +1,4 @@
+#include "engine/startup_timing.h"
 #include "engine/hd_menus.h"
 #include "engine/cpu_scope.h"
 #include "engine/presentation_blend.h"
@@ -53,6 +54,7 @@ void HdMenus::shutdown() {
     width_ = height_ = 0;
 }
 void HdMenus::prepare(SDL_Renderer *renderer) {
+    sawgod::startup::Stage timing("HD menu atlases");
     int width = 0, height = 0;
     if (!SDL_GetCurrentRenderOutputSize(renderer, &width, &height) || (width == width_ && height == height_))
         return;

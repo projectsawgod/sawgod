@@ -1,3 +1,4 @@
+#include "engine/startup_timing.h"
 #include "app/title_logo_overlay.h"
 #include "engine/cpu_scope.h"
 #include "engine/presentation_diagnostics.h"
@@ -21,6 +22,7 @@ void TitleLogoOverlay::shutdown() {
     uploaded_rows_ = 0;
 }
 bool TitleLogoOverlay::prepare(SDL_Renderer *renderer) {
+    sawgod::startup::Stage timing("title overlay preparation");
     if (texture_)
         return true;
     texture_ =

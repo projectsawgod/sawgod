@@ -1,6 +1,8 @@
 // Selects extracted WSC or GB graphics while preserving the native game state.
 #include "game/gfx_swap.h"
 #include "engine/cpu_scope.h"
+#include "engine/debug_log.h"
+#include "engine/startup_timing.h"
 #include "game/gb_battle_effects_native.h"
 
 #include "emu/wsc.h"
@@ -85,13 +87,19 @@ bool GfxSwap::load_field_map(int id, const std::string &root, std::string *error
         error);
 }
 
-bool GfxSwap::load_field_map(int id, const std::function<std::vector<uint8_t>(const std::string &)> &read,
-                             std::string *error) {
-    error->clear();
+std::array<std::string, 4> GfxSwap::field_map_files(int id) {
     char name[32];
     std::snprintf(name, sizeof name, "gb/%03d", id);
     const std::string base = name;
-    const auto png = read(base + "_metatiles.png"), lookup = read(base + "_lookup.csv");
+    return {base + "_metatiles.png", base + "_lookup.csv", base + "_cells.csv", base + "_hidden.csv"};
+}
+
+bool GfxSwap::load_field_map(int id, const std::function<std::vector<uint8_t>(const std::string &)> &read,
+                             std::string *error) {
+    error->clear();
+    const auto names = field_map_files(id);
+    const std::string base = names[0].substr(0, names[0].size() - std::string("_metatiles.png").size());
+    const auto png = read(names[0]), lookup = read(names[1]);
     if (png.empty() && lookup.empty())
         return false;
     if (png.empty() || lookup.empty()) {
@@ -100,12 +108,12 @@ bool GfxSwap::load_field_map(int id, const std::function<std::vector<uint8_t>(co
     }
     if (!add_map(id, png, std::string(lookup.begin(), lookup.end()), error))
         return false;
-    const auto cells = read(base + "_cells.csv");
+    const auto cells = read(names[2]);
     if (!cells.empty() && !add_cells(id, std::string(cells.begin(), cells.end()), error))
         return false;
     // A separate visibility mask leaves the pinned source triplet unchanged.
     // Coordinates have no visible WSC detail, including paths hidden by darkness.
-    const auto hidden = read(base + "_hidden.csv");
+    const auto hidden = read(names[3]);
     if (!hidden.empty()) {
         const auto rows = parse_csv(std::string(hidden.begin(), hidden.end()));
         if (rows.empty() || rows[0] != std::vector<std::string>{"x", "y"}) {
@@ -162,6 +170,7 @@ bool GfxSwap::add_map(int id, const std::vector<uint8_t> &png, const std::string
                 px[size_t(y * 16 + x)] = img.pixels[size_t(y * img.width + g * 16 + x)] & 3;
         m.metatiles.push_back(px);
     }
+    std::map<int, int> typed;
     const auto rows = parse_csv(csv);
     if (rows.empty() || rows[0].size() < 2 || rows[0][0] != "wsc" || rows[0][1] != "gb")
         return *error = "lookup: needs wsc,gb columns", false;
@@ -177,11 +186,12 @@ bool GfxSwap::add_map(int id, const std::vector<uint8_t> &png, const std::string
             const long type = std::strtol(rows[r][2].c_str(), &end, 10);
             if (*end || type < 0 || type >= 32)
                 return *error = "lookup: attribute type out of range", false;
-            m.by_type[int(wsc * 32 + type)] = int(gb);
+            typed[int(wsc * 32 + type)] = int(gb);
         } else {
             m.gb[size_t(wsc)] = int(gb);
         }
     }
+    m.by_type = std::move(typed);
     maps_[id] = std::move(m);
     install_hooks(); // track field cells even while the second picture is disabled
     return true;
@@ -424,6 +434,7 @@ void GfxSwap::install_hooks() {
 }
 
 GfxSwap::~GfxSwap() {
+    wait_battle_effects();
     if (active_ == this) {
         active_ = nullptr;
         Session::raster_world_words_hook = nullptr;
@@ -511,6 +522,24 @@ void GfxSwap::set_enabled(emu::Wsc &w, bool on) {
         };
         frame(w);
     }
+}
+
+void GfxSwap::preload_battle_effects(std::map<std::string, std::vector<uint8_t>> files) {
+    wait_battle_effects();
+    battle_loading_ = std::async(std::launch::async, [this, files = std::move(files)] {
+        startup::Stage timing("GB battle effects decode (background)");
+        const auto read = [&](const std::string &name) {
+            const auto found = files.find(name);
+            return found == files.end() ? std::vector<uint8_t>() : found->second;
+        };
+        std::string error;
+        if (!load_battle_effects(read, &error))
+            debug_log::errorf("gb", "GB battle effects: %s", error.c_str());
+    });
+}
+void GfxSwap::wait_battle_effects() {
+    if (battle_loading_.valid())
+        battle_loading_.get();
 }
 
 bool GfxSwap::load_battle_effects(const std::function<std::vector<uint8_t>(const std::string &)> &read,
@@ -615,6 +644,7 @@ void GfxSwap::begin_battle_effect(Machine &m, const hooks::Args &a) {
         default:
             break;
         }
+    wait_battle_effects();
     const int id = battle_effect_of_action_[size_t(a.c)];
     if (!(battle_effect_flags_[size_t(a.c)] & 0x80) || !battle_effects_.contains(id))
         return;

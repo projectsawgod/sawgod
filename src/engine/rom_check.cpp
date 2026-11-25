@@ -114,10 +114,16 @@ RomCheck check_rom_bytes(const std::string &name, const std::vector<uint8_t> &da
 }
 
 RomCheck check_rom_file(const std::string &path) {
-    std::ifstream in(std::filesystem::path(path), std::ios::binary);
+    std::ifstream in(std::filesystem::path(path), std::ios::binary | std::ios::ate);
     if (!in)
         return RomCheck{RomVerdict::Unreadable, {}, std::filesystem::path(path).filename().string(), {}};
-    std::vector<uint8_t> data(std::istreambuf_iterator<char>(in), {});
+    const auto size = in.tellg();
+    if (size < 0 || size > 64 * 1024 * 1024)
+        return RomCheck{RomVerdict::Unreadable, {}, std::filesystem::path(path).filename().string(), {}};
+    std::vector<uint8_t> data(static_cast<size_t>(size));
+    in.seekg(0);
+    if (!in.read(reinterpret_cast<char *>(data.data()), std::streamsize(data.size())))
+        return RomCheck{RomVerdict::Unreadable, {}, std::filesystem::path(path).filename().string(), {}};
     return check_rom_bytes(path, data);
 }
 

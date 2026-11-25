@@ -35,9 +35,11 @@
 #include "game/gb_intro.h"
 #include "game/hooks.h"
 
+#include <algorithm>
 #include <array>
 #include <cstdint>
 #include <functional>
+#include <future>
 #include <map>
 #include <string>
 #include <vector>
@@ -75,6 +77,11 @@ class GfxSwap {
     // nothing when it's absent.
     bool load_field_map(int id, const std::function<std::vector<uint8_t>(const std::string &)> &read,
                         std::string *error);
+    // Replace the field maps; a derived cache holds decoded pixels/lookups, keyed by the four layered file
+    // types for each map. Returns cache hit. Errors are recomputed rather than cached. Empty path disables
+    // caching.
+    bool load_field_maps_cached(const std::map<std::string, std::vector<uint8_t>> &files,
+                                const std::string &cache_path, std::vector<std::string> *errors);
     // Optional audit observer: actual field sprite requests and replacement availability.
     std::function<void(int, int, int, bool)> observe_sprite; // map, WSC set, pose, replaced
     // The GB field sprites from their two files; false and `error` if they don't decode.
@@ -96,6 +103,9 @@ class GfxSwap {
     bool add_title(const std::vector<uint8_t> &png, std::string *error);
     bool load_battle_effects(const std::function<std::vector<uint8_t>(const std::string &)> &read,
                              std::string *error);
+    // Own the source bytes on a worker. The first effect joins before reading any result; no frame skips.
+    void preload_battle_effects(std::map<std::string, std::vector<uint8_t>> files);
+    void wait_battle_effects();
     bool has_data() const {
         return !maps_.empty() || !sprites_.empty() || !objects_.empty() || has_hand_ || has_font_ ||
                !pics_.empty() || !title_.empty();
@@ -114,11 +124,45 @@ class GfxSwap {
     }
 
   private:
+    friend struct GfxSwapCacheProof;
+    static std::array<std::string, 4> field_map_files(int id);
+    // Immutable during play. Contiguous sorted pairs avoid a heap node per cell on cache restore.
+    struct Lookup {
+        std::vector<std::pair<int, int>> entries;
+        using const_iterator = std::vector<std::pair<int, int>>::const_iterator;
+        const_iterator begin() const { return entries.begin(); }
+        const_iterator end() const { return entries.end(); }
+        size_t size() const { return entries.size(); }
+        bool empty() const { return entries.empty(); }
+        const_iterator find(int key) const {
+            auto it = std::lower_bound(entries.begin(), entries.end(), key,
+                                       [](const auto &entry, int value) { return entry.first < value; });
+            return it != entries.end() && it->first == key ? it : entries.end();
+        }
+        int &operator[](int key) {
+            auto it = std::lower_bound(entries.begin(), entries.end(), key,
+                                       [](const auto &entry, int value) { return entry.first < value; });
+            if (it == entries.end() || it->first != key)
+                it = entries.insert(it, {key, 0});
+            return it->second;
+        }
+        Lookup &operator=(std::map<int, int> &&source) {
+            entries.assign(source.begin(), source.end());
+            return *this;
+        }
+        bool append_sorted(int key, int value) {
+            if (!entries.empty() && entries.back().first >= key)
+                return false;
+            entries.emplace_back(key, value);
+            return true;
+        }
+        bool operator==(const Lookup &) const = default;
+    };
     struct Map {
         std::vector<std::array<uint8_t, 256>> metatiles; // per GB metatile: 16 x 16 shades
         std::array<int, 256> gb{};                       // WSC metatile -> GB metatile, -1: none
-        std::map<int, int> by_cell; // (y modulo 256) * 256 + (x modulo 256) -> GB metatile
-        std::map<int, int> by_type; // optional (WSC id * 32 + attribute type) -> GB metatile
+        Lookup by_cell; // (y modulo 256) * 256 + (x modulo 256) -> GB metatile
+        Lookup by_type; // optional (WSC id * 32 + attribute type) -> GB metatile
     };
     struct Pic {
         int w = 0, h = 0;        // in tiles
@@ -199,6 +243,7 @@ class GfxSwap {
     std::vector<hooks::Subscription> battle_subscriptions_;
     int battle_animation_ = 0;
     bool party_hp_loss_ = false;
+    std::future<void> battle_loading_;
     std::map<int, GbBattleEffect> battle_effects_;
     std::array<int, 256> battle_effect_of_action_{};
     std::array<int, 256> battle_effect_flags_{};

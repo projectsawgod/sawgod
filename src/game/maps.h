@@ -63,4 +63,10 @@ std::vector<uint8_t> render_map_png(int id, const MapData &m, const emu::Wsc &w,
 int build_map_banks(emu::Wsc &w, DataTables &tables, const std::vector<const MapData *> &maps,
                     std::vector<std::string> *errors);
 
+// Same operation, with a disposable cache keyed by the ROM, map headers, every map byte and code identity.
+// Empty cache_path disables caching. Errors are recomputed, never hidden by a cache hit.
+int build_map_banks_cached(emu::Wsc &w, DataTables &tables, const std::vector<const MapData *> &maps,
+                           const std::string &cache_path, std::vector<std::string> *errors,
+                           bool *cache_hit = nullptr);
+
 } // namespace sawgod::game

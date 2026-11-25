@@ -66,6 +66,9 @@ struct SplashScreen {
     std::function<SDL_FRect(int, int)> picture;
     std::function<void(std::vector<uint32_t> &)> recolor; // LCD's colors on a 224 x 144 picture
     std::function<void(const SDL_FRect &)> overlay;       // IPS's grid over the picture's rect
+    // Startup work done while the picture holds still (the sharp logo, the mosaic's last step): one slice per
+    // frame; true while more remains. The splash's clock stops for each slice, so no stage is cut short.
+    std::function<bool()> work;
 };
 
 // Runs the splash on `renderer`; a press of A ends it. False when the window was closed.

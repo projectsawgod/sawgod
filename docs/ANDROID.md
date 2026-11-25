@@ -64,6 +64,42 @@ never overwrites ROM data, archives, saves, config or mods. Uninstall/clear-data
 Licenses and dependency source archives remain in APK assets. Backups are disabled to avoid copying ROM
 content into cloud backups. A debug build's files can be inspected with `adb shell run-as org.sawgod.app`.
 
+## Startup diagnostics and reuse
+
+The debug log in `files/logs/` includes monotonic process/activity, bundled-asset installation, native
+library loading and native startup stages, plus a first-present summary (see [DEBUG_LOG.md](DEBUG_LOG.md#startup-timings)).
+`adb logcat -s SawGod SDL SDL/APP` also shows Java milestones and renderer diagnostics. A same-APK
+`adb install -r` keeps the asset manifest, ROM, resource archives and derived caches. Native extraction
+identity depends on source contents and GB map inputs rather than the release revision. Changed maps
+invalidate GB extraction; changed translations or soundfonts are loaded directly. The installer still
+checks every installed file for absence; the unchanged-manifest path parses once and writes nothing.
+
+Bundled SDL's Vulkan pipeline cache is enabled on Android as well as desktop Vulkan. It is keyed by
+vendor/device/driver and validated against the Vulkan header/UUID plus a complete-blob CRC/size receipt
+(`gpu-*.cache.crc`); a missing, damaged or rejected blob falls back to
+an empty cache. It is saved after the first present, as Android process termination may bypass normal
+renderer destruction. No-change saves compare the blob before writing. D3D12/Metal use their driver's
+cache behavior; there is no claim of a Vulkan cache hit for those backends.
+Enhanced's GPU setup (focus, world and flat scene passes) runs during the splash's still frames, one step
+per frame, with the splash's clock paused for each step; whatever is left when the splash ends or is skipped
+finishes before the first game frame (src/app/main.cpp, `enhanced_setup`). The splash appears as soon as the
+base renderer is ready. `-PsawgodProfile` builds an optimized release APK that `run-as` can read (startup logs,
+caches) for profiling; never ship it.
+Flat and world Enhanced passes share their identical shader handle on the same renderer, so SDL reuses
+the compiled pipelines across target sizes. Bindings, textures and uniforms remain per pass. Renderer
+recovery and world-target resizing preserve this reuse; a new device creates a fresh shader.
+
+Decoded GB field-map pixels/lookups are cached by the layered map PNG/lookup/cell/hidden inputs and extraction code; the
+map-bank cache separately preserves the exact ROM/header result of compression. On reliable POSIX
+filesystems, authored GB input hashing uses a size/mtime/ctime/inode/device snapshot and the complete file
+list, rehashing after edits, replacement, additions or removals. Unknown/removable filesystems and Windows
+use full content hashing. Damaged derived payloads fall back to the original loaders.
+
+GB battle-effect decoding runs on a worker with owned, already-layered source bytes. The first effect
+joins before reading the result, preserving every animation frame; quitting joins before destroying
+its state. FluidSynth already loads on its existing audio worker. World-entry lettering is decoded on a worker after the first present; only a visible card’s GPU textures
+are uploaded. A foreground call waits for the immutable decode if needed, preserving the picture. These changes add no loading screen or gameplay/audio-clock changes.
+
 ## Touch controls
 
 The Gamepad page starts with the saved **Touch Controls: Auto / On / Off** setting

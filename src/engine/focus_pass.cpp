@@ -1,3 +1,4 @@
+#include "engine/startup_timing.h"
 #include "engine/focus_pass.h"
 
 #include <algorithm>
@@ -8,6 +9,7 @@
 
 namespace sawgod {
 bool FocusPass::init(SDL_Renderer *renderer) {
+    sawgod::startup::Stage timing("Enhanced focus pass");
     shutdown();
     auto *device = SDL_GetGPURendererDevice(renderer);
     if (!device)

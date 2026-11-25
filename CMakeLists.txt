@@ -95,9 +95,7 @@ else()
 endif()
 
 # Private timestamp instrumentation currently targets the static desktop SDL library.
-if(NOT ANDROID)
-    include(cmake/GpuTiming.cmake)
-endif()
+include(cmake/GpuTiming.cmake)
 
 # --- miniz (MIT; reading mod zips, engine/mod_pack) ------------------------------
 include(FetchContent)
@@ -196,6 +194,8 @@ add_library(sawgod_engine STATIC
     src/engine/rom_check.cpp
     src/engine/rom_check.h
     src/engine/archive_7z.cpp
+    src/engine/derived_cache.cpp
+    src/engine/startup_timing.cpp
     src/engine/debug_log.cpp
     src/engine/debug_log.h
 )
@@ -217,8 +217,40 @@ file(READ ${CMAKE_SOURCE_DIR}/assets/ui/button_icons.csv icons_csv)
 file(CONFIGURE OUTPUT ${CMAKE_BINARY_DIR}/generated/button_icons_csv.inc
     CONTENT "R\"SAWGODCSV(${icons_csv})SAWGODCSV\"\n" @ONLY)
 target_include_directories(sawgod_engine PRIVATE ${CMAKE_BINARY_DIR}/generated)
-# The build identity (version label + source revision), refreshed on every build: stored archives built by
-# another build are rebuilt (engine/sgz.h).
+# Extraction code identity: unrelated releases/assets do not invalidate expensive ROM extraction.
+# Conservative closure: game/emulation sources plus the engine serializers used by extraction.
+file(GLOB_RECURSE resource_sources CONFIGURE_DEPENDS
+    "${CMAKE_SOURCE_DIR}/src/game/*.cpp" "${CMAKE_SOURCE_DIR}/src/game/*.h"
+    "${CMAKE_SOURCE_DIR}/src/emu/*.cpp" "${CMAKE_SOURCE_DIR}/src/emu/*.h"
+    "${CMAKE_SOURCE_DIR}/src/game/*.inc" "${CMAKE_SOURCE_DIR}/src/emu/*.inc")
+list(APPEND resource_sources "${CMAKE_SOURCE_DIR}/src/app/first_run.cpp"
+    "${CMAKE_SOURCE_DIR}/src/app/first_run.h")
+foreach(resource_helper assets indexed_png persist sgz rom_check font_m5x7 options_text palette_fade point_light button_icons
+                        derived_cache)
+    file(GLOB resource_helpers "${CMAKE_SOURCE_DIR}/src/engine/${resource_helper}.*")
+    list(APPEND resource_sources ${resource_helpers})
+endforeach()
+# A codec dependency update can change encoded bytes without changing our extraction sources.
+file(GLOB resource_codec_sources CONFIGURE_DEPENDS "${miniz_SOURCE_DIR}/*.c" "${miniz_SOURCE_DIR}/*.h")
+list(APPEND resource_sources ${resource_codec_sources})
+set(resource_hash_entries "resource-v1")
+foreach(resource_source IN LISTS resource_sources)
+    set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${resource_source}")
+    file(SHA256 "${resource_source}" resource_hash)
+    if(resource_source IN_LIST resource_codec_sources)
+        get_filename_component(resource_name "${resource_source}" NAME)
+        set(resource_name "codec/miniz/${resource_name}")
+    else()
+        file(RELATIVE_PATH resource_name "${CMAKE_SOURCE_DIR}" "${resource_source}")
+    endif()
+    list(APPEND resource_hash_entries "${resource_name}:${resource_hash}")
+endforeach()
+list(SORT resource_hash_entries)
+string(JOIN ";" resource_hashes ${resource_hash_entries})
+string(SHA256 resource_code_id "${resource_hashes}")
+file(CONFIGURE OUTPUT "${CMAKE_BINARY_DIR}/generated/resource_id.inc" CONTENT "\"${resource_code_id}\"\n" @ONLY)
+# The display/build identity (version label + source revision), refreshed on every build.
+# Resource archives use the separate content identity above.
 add_custom_target(sawgod_build_id
     COMMAND ${CMAKE_COMMAND} -DSOURCE_DIR=${CMAKE_SOURCE_DIR} -DLABEL=${SAWGOD_VERSION_LABEL}
         -DOUT=${CMAKE_BINARY_DIR}/generated/build_id.inc -P ${CMAKE_SOURCE_DIR}/cmake/BuildId.cmake
@@ -340,6 +372,7 @@ add_library(sawgod_game STATIC
     src/game/system.h
     src/game/routines_system.cpp
 )
+target_sources(sawgod_game PRIVATE src/game/gfx_swap_cache.cpp)
 target_include_directories(sawgod_game PUBLIC ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(sawgod_game PUBLIC sawgod_emu sawgod_engine PRIVATE sawgod_warnings)
 

@@ -1,7 +1,11 @@
 // Field maps as grid files (game/maps.h).
 #include <doctest/doctest.h>
 
+#include "engine/derived_cache.h"
 #include "game/maps.h"
+#include "game/tables.h"
+#include <filesystem>
+#include <memory>
 
 using namespace sawgod::game;
 
@@ -35,4 +39,79 @@ TEST_CASE("map files: cells, attributes and metatiles round-trip, bad files are 
                                &error)); // wrong size
     CHECK_FALSE(map_from_files(map_cells_csv(m), map_attributes_csv(m), "id,tile,mirror\n0,1,4\n",
                                map_types_csv(m), &back, &error));
+}
+
+TEST_CASE("map bank cache: identical output, all map fields, ROM and headers invalidate") {
+    namespace fs = std::filesystem;
+    const auto path = (fs::temp_directory_path() / "sawgod-map-bank-test.cache").string();
+    fs::remove(path);
+    // Zero map banks/header: tests attribute output and every key field without requiring a ROM.
+    const std::vector<uint8_t> rom(4u << 20, 0);
+    MapData map;
+    map.type_words[0] = 0x1234;
+    std::vector<const MapData *> maps(kMapCount, nullptr);
+    maps[1] = &map;
+    auto run = [&](bool expected_hit, const std::vector<uint8_t> &input, bool header = false) {
+        auto machine = std::make_unique<sawgod::emu::Wsc>(input, 0);
+        DataTables tables;
+        if (header)
+            tables.set_row(Table::maps, 0, std::vector<uint8_t>(table_layout(Table::maps).stride, 0));
+        std::vector<std::string> errors;
+        bool hit = false;
+        const int moved = build_map_banks_cached(*machine, tables, maps, path, &errors, &hit);
+        CHECK(hit == expected_hit);
+        auto reference = std::make_unique<sawgod::emu::Wsc>(input, 0);
+        DataTables reference_tables;
+        if (header)
+            reference_tables.set_row(Table::maps, 0,
+                                     std::vector<uint8_t>(table_layout(Table::maps).stride, 0));
+        std::vector<std::string> reference_errors;
+        CHECK(moved == build_map_banks(*reference, reference_tables, maps, &reference_errors));
+        CHECK(errors == reference_errors);
+        CHECK(bool(machine->rom == reference->rom));
+        for (unsigned id = 0; id < table_layout(Table::maps).max_rows; ++id) {
+            const auto *a = tables.row(Table::maps, id), *b = reference_tables.row(Table::maps, id);
+            REQUIRE(bool(a) == bool(b));
+            if (a)
+                CHECK(std::equal(a, a + table_layout(Table::maps).stride, b));
+        }
+    };
+    run(false, rom);
+    run(true, rom);
+    for (int field = 0; field < 6; ++field) {
+        switch (field) {
+        case 0:
+            ++map.cells[0];
+            break;
+        case 1:
+            ++map.attributes[0];
+            break;
+        case 2:
+            ++map.tiles[0];
+            break;
+        case 3:
+            ++map.mirror[0];
+            break;
+        case 4:
+            ++map.type_words[0];
+            break;
+        default:
+            ++map.type_bytes[0];
+            break;
+        }
+        run(false, rom);
+        run(true, rom);
+    }
+    auto changed_rom = rom;
+    changed_rom[100] = 1;
+    run(false, changed_rom);
+    run(true, changed_rom);
+    run(false, changed_rom, true);
+    run(true, changed_rom, true);
+    maps[1] = nullptr;
+    run(false, changed_rom, true);
+    run(true, changed_rom, true);
+    sawgod::write_derived_cache(path, "wrong algorithm version", {1, 2, 3});
+    run(false, changed_rom, true);
+    fs::remove(path);
 }

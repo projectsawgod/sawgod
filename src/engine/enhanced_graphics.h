@@ -7,6 +7,7 @@
 #include <SDL3/SDL.h>
 #include <array>
 #include <cstdint>
+#include <memory>
 #include <vector>
 
 namespace sawgod {
@@ -28,7 +29,7 @@ class EnhancedGraphics {
   public:
     ~EnhancedGraphics() { shutdown(); }
     bool init(SDL_Renderer *renderer, SDL_Texture *scene = nullptr, SDL_Texture *ownership = nullptr,
-              SDL_Texture *water = nullptr);
+              SDL_Texture *water = nullptr, const EnhancedGraphics *shared = nullptr);
     bool upload(const std::vector<uint32_t> &wsc, const std::vector<uint32_t> &gb, const uint32_t *mask,
                 const EnhancedParameters &parameters);
     SDL_Texture *render(bool force_redraw = false); // restores caller's target and clears custom shader state
@@ -61,7 +62,9 @@ class EnhancedGraphics {
     EnhancedParameters influence_parameters_;
     bool build_influences();
     std::array<bool, 4> influence_active_{};
-    SDL_GPUShader *shader_ = nullptr;
+    // Flat and world passes use identical shader bytes. Sharing the handle also reuses SDL pipelines,
+    // whose keys include the shader pointer; independent bindings/targets/uniforms stay per instance.
+    std::shared_ptr<SDL_GPUShader> shader_;
     SDL_GPUSampler *nearest_ = nullptr, *linear_ = nullptr;
     SDL_Texture *water_pattern_ = nullptr;
     SDL_Texture *source_ = nullptr, *original_ = nullptr, *gb_ = nullptr, *mask_ = nullptr, *water_ = nullptr;

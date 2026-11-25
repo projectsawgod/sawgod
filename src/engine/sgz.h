@@ -8,9 +8,8 @@
 //   <data>/mods/*.sgz    mods: the same layout, laid over the base archives file by file (or a folder)
 //
 // Each base archive carries sgz.json, its stamp: {"kind": "wsc", "build": "...", "rom_sha1": "..."}. A
-// missing archive, one that won't open, or one whose kind/ROM differs from what this build expects, or that
-// another build made, is rebuilt from the stored ROM copy (once per new build). Nothing else ever writes a
-// base archive.
+// missing or damaged archive, or one with different kind, ROM, extraction code or authored inputs,
+// is rebuilt from the stored ROM copy. Application revisions alone do not invalidate base archives.
 #pragma once
 
 #include <cstdint>
@@ -25,7 +24,7 @@ inline constexpr const char *kSgzStampFile = "sgz.json";
 
 struct SgzStamp {
     std::string kind;     // "wsc", "gb", "enhanced"
-    std::string build;    // kBuildId of the build that made it (engine/version.h)
+    std::string build;    // content identity of the extraction code and authored inputs
     std::string rom_sha1; // hex, of the ROM it was built from
     bool operator==(const SgzStamp &) const = default;
 };

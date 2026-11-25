@@ -25,7 +25,7 @@ static SDL_GPUTransferBuffer *SawGodUploadBuffer(GPU_RenderData *renderer, GPU_T
     return texture->sawgod_upload;
 }
 
-void SawGodRendererUploadWork(SDL_Renderer *renderer, Uint64 *bytes, Uint64 *calls, Uint64 *allocations) {
+SDL_DECLSPEC void SawGodRendererUploadWork(SDL_Renderer *renderer, Uint64 *bytes, Uint64 *calls, Uint64 *allocations) {
     *bytes = *calls = *allocations = 0;
     if (SDL_strcmp(SDL_GetRendererName(renderer), "gpu") != 0)
         return;

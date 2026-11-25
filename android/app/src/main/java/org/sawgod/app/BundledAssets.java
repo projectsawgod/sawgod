@@ -7,20 +7,24 @@ import java.nio.file.StandardCopyOption;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.*;
+import java.util.regex.Pattern;
 
 /** Incremental APK asset installation; independent of Android for JVM regression tests. */
 final class BundledAssets {
     interface Source { InputStream open(String path) throws IOException; }
     interface DirectorySync { void sync(File directory) throws IOException; }
 
+    private static final Pattern ROW = Pattern.compile("[0-9a-f]{64}  ");
+    private static final Pattern PATH = Pattern.compile("(gb_maps|text|soundfonts)/[A-Za-z0-9_./ -]+");
+
     private static Map<String, String> parse(byte[] manifest) throws IOException {
         Map<String, String> rows = new LinkedHashMap<>();
         for (String row : new String(manifest, StandardCharsets.UTF_8).split("\n")) {
-            if (row.length() < 67 || !row.substring(0, 66).matches("[0-9a-f]{64}  "))
+            if (row.length() < 67 || !ROW.matcher(row.substring(0, 66)).matches())
                 throw new IOException("Invalid bundled manifest row");
             String path = row.substring(66);
             // Only authored asset roots can ever be installed or pruned. Never accept traversal.
-            if (!path.matches("(gb_maps|text|soundfonts)/[A-Za-z0-9_./ -]+"))
+            if (!PATH.matcher(path).matches())
                 throw new IOException("Invalid bundled asset path: " + path);
             for (String part : path.split("/", -1))
                 if (part.isEmpty() || part.equals(".") || part.equals(".."))
@@ -76,7 +80,9 @@ final class BundledAssets {
         File stamp = new File(root, ".bundled-assets");
         Map<String, String> wanted = parse(manifest), installed = null;
         byte[] previous = stamp.isFile() ? Files.readAllBytes(stamp.toPath()) : null;
-        if (previous != null) {
+        final boolean sameManifest = Arrays.equals(previous, manifest);
+        if (sameManifest) installed = wanted;
+        else if (previous != null) {
             try { installed = parse(previous); }
             catch (IOException ignored) { /* Legacy digest or invalid stamp: hash existing files. */ }
         }
@@ -84,12 +90,14 @@ final class BundledAssets {
         Set<File> parents = new LinkedHashSet<>();
         for (Map.Entry<String, String> row : wanted.entrySet()) {
             File dest = destination(root, row.getKey());
+            final boolean current = dest.isFile() &&
+                row.getValue().equals(installed == null ? hash(dest) : installed.get(row.getKey()));
+            if (sameManifest && current) continue;
             for (File dir = dest.getParentFile(); dir != null; dir = dir.getParentFile()) {
                 parents.add(dir);
                 if (dir.equals(root)) break;
             }
-            if (dest.isFile() && row.getValue().equals(installed == null ? hash(dest) : installed.get(row.getKey())))
-                continue;
+            if (current) continue;
             File parent = dest.getParentFile();
             if (!parent.isDirectory() && !parent.mkdirs()) throw new IOException("Cannot create " + parent);
             replace(dest, source.open(row.getKey()));

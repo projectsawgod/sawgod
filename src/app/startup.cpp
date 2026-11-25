@@ -1,4 +1,5 @@
 #include "app/startup.h"
+#include "engine/startup_timing.h"
 
 #include <SDL3/SDL.h>
 
@@ -31,6 +32,7 @@ std::vector<uint8_t> read_file(const std::string &path) {
 
 int load_rom(const LaunchArgs &args, [[maybe_unused]] const std::string &exe_dir,
              const std::string &gb_maps_dir, LoadedRom &loaded) {
+    sawgod::startup::Stage timing("ROM load/verify and archives check");
     std::vector<uint8_t> &rom = loaded.rom;
     std::string &english_text = loaded.english_text;
     std::optional<AssetArchive> &english_graphics = loaded.english_graphics;
@@ -48,6 +50,7 @@ int load_rom(const LaunchArgs &args, [[maybe_unused]] const std::string &exe_dir
     }
     // --rom follows the same first-run storage contract as a drop/picker. Never store --any-rom input.
     if (sawgod::to_hex(digest) == sawgod::kBaselineSha1 && !sawgod::data_dir().empty() &&
+        std::filesystem::path(args.rom).parent_path() != std::filesystem::path(sawgod::data_dir()) / "rom" &&
         sawgod::app::stored_rom(sawgod::data_dir()).empty()) {
         std::string error;
         if (sawgod::app::store_rom(sawgod::data_dir(), args.rom, rom, &error).empty()) {
@@ -58,7 +61,8 @@ int load_rom(const LaunchArgs &args, [[maybe_unused]] const std::string &exe_dir
     // The resource archives for this ROM (first run, a format change, or a damaged archive): built from
     // the ROM as dumped, before any byte pack below.
     if (const std::string sha1 = sawgod::to_hex(digest);
-        !sawgod::data_dir().empty() && !sawgod::app::archives_current(sawgod::data_dir(), sha1)) {
+        !sawgod::data_dir().empty() &&
+        !sawgod::app::archives_current(sawgod::data_dir(), sha1, gb_maps_dir)) {
         std::fprintf(stderr, "sawgod: building the resource archives in %s\n", sawgod::data_dir().c_str());
         std::string error;
         if (!sawgod::app::ensure_archives(sawgod::data_dir(), rom, sha1, gb_maps_dir, nullptr, &error))

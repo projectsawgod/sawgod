@@ -11,17 +11,32 @@ import java.security.NoSuchAlgorithmException;
 
 /** SDL owns rendering, touch/gamepad input and the system document picker. */
 public class SawGodActivity extends SDLActivity {
+    public long processStartNs = android.os.Process.getStartUptimeMillis() * 1000000L;
+    public long activityStartNs, installBeginNs, installEndNs, libraryBeginNs, libraryEndNs;
+    @Override public void loadLibraries() {
+        libraryBeginNs = System.nanoTime();
+        super.loadLibraries();
+        libraryEndNs = System.nanoTime();
+        android.util.Log.i("SawGod", "startup: native library load " +
+            (libraryEndNs - libraryBeginNs) / 1000000.0 + " ms");
+    }
+
     @Override protected String[] getLibraries() {
         return new String[] { "SDL3", "fluidsynth", "sawgod" };
     }
 
     @Override protected void onCreate(Bundle state) {
+        activityStartNs = System.nanoTime();
+        installBeginNs = System.nanoTime();
         // Install authored assets before SDL's native main starts. Never replace config, saves or ROM data.
         try {
             installBundledFiles();
         } catch (IOException | NoSuchAlgorithmException error) {
             throw new IllegalStateException("Cannot install SawGod assets", error);
         }
+        installEndNs = System.nanoTime();
+        android.util.Log.i("SawGod", "startup: bundled-asset install " +
+            (installEndNs - installBeginNs) / 1000000.0 + " ms");
         super.onCreate(state);
         immersive();
     }

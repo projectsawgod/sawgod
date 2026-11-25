@@ -45,7 +45,8 @@ SgzFiles build_gb_resources(const std::vector<uint8_t> &rom, const std::string &
                             const std::function<void(float)> &progress, std::string *error);
 
 // Whether either archive needs (re)building for this ROM.
-bool archives_current(const std::string &data_dir, const std::string &rom_sha1);
+bool archives_current(const std::string &data_dir, const std::string &rom_sha1,
+                      const std::string &gb_maps_dir);
 
 // Builds the archives that aren't current. `progress` (0..1) is called as work completes; may be called from
 // any thread. False and `error` on failure.

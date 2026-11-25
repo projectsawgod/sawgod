@@ -1,6 +1,6 @@
 # Debug log
 
-What went wrong during play, and how badly. One small text file per session, problems only.
+What went wrong during play, and how badly. One small text file per session, with startup timings and problems.
 
 ## Where
 
@@ -31,6 +31,22 @@ screen). The severities say how badly it needs fixing:
 
 A session that ends without its `session end:` line (killed, hung, power lost) is reported as an ERROR at the start
 of the next one. A crash writes `CRITICAL crash: <what> [<where>]` and `session end: crashed`.
+
+## Startup timings
+
+Every logged launch includes `startup:` lines, measured with a monotonic clock in milliseconds since
+process creation (Linux process creation has clock-tick resolution; other desktop platforms without a
+process-creation clock use native initialization). Android includes process/activity start, bundled-asset
+installation and native library loading, followed by the same native stages as desktop. Early milestones
+are buffered until the log opens. Stage durations can overlap: background audio/effect loads and nested
+resource stages must not be added together.
+
+`startup: total N ms; top stages ...` ends at the first game/splash frame presented. A fresh import includes
+extraction and any time spent choosing the ROM. Background completions can follow this line; they never
+skip simulation or animation frames. Archive verification, map banks and Vulkan pipeline-cache hit/miss
+are logged explicitly. Timings are informational and do not count as warnings. Scripted performance runs
+can enable the same log with `SAWGOD_DEBUG_LOG=1`; timings also go to stderr, and Android's Java milestones
+go to logcat. No GPU readback or extra synchronization is added for timing.
 
 ## Staying small
 

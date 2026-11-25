@@ -5,6 +5,7 @@
 #include "engine/pixel_upload.h"
 #include "engine/presentation_diagnostics.h"
 #include "engine/shaders/enhanced.generated.h"
+#include "engine/startup_timing.h"
 #include <algorithm>
 #include <bit>
 #include <cmath>
@@ -12,7 +13,8 @@
 
 namespace sawgod {
 bool EnhancedGraphics::init(SDL_Renderer *renderer, SDL_Texture *scene, SDL_Texture *ownership,
-                            SDL_Texture *water) {
+                            SDL_Texture *water, const EnhancedGraphics *shared) {
+    startup::Stage timing("Enhanced scene passes");
     CpuScope cpu_scope("EnhancedGraphics::init");
     shutdown();
     auto *device = SDL_GetGPURendererDevice(renderer);
@@ -42,7 +44,13 @@ bool EnhancedGraphics::init(SDL_Renderer *renderer, SDL_Texture *scene, SDL_Text
         shutdown();
         return SDL_SetError("Enhanced shader format unavailable");
     }
-    shader_ = SDL_CreateGPUShader(device, &info);
+    if (shared && shared != this && shared->renderer_ == renderer && shared->shader_) {
+        shader_ = shared->shader_;
+        startup::mark("Enhanced shader/pipeline reuse");
+    } else if (auto *shader = SDL_CreateGPUShader(device, &info)) {
+        shader_ = std::shared_ptr<SDL_GPUShader>(
+            shader, [device](SDL_GPUShader *value) { SDL_ReleaseGPUShader(device, value); });
+    }
     SDL_GPUSamplerCreateInfo sampler{};
     sampler.address_mode_u = sampler.address_mode_v = sampler.address_mode_w =
         SDL_GPU_SAMPLERADDRESSMODE_CLAMP_TO_EDGE;
@@ -133,7 +141,7 @@ bool EnhancedGraphics::init(SDL_Renderer *renderer, SDL_Texture *scene, SDL_Text
             {gpu_texture(water_pattern_), linear_},
             {gpu_texture(i == 6 ? targets_[4] : gb_), linear_}};
         SDL_GPURenderStateCreateInfo state{};
-        state.fragment_shader = shader_;
+        state.fragment_shader = shader_.get();
         state.num_sampler_bindings = 11;
         state.sampler_bindings = bindings;
         states_[i] = SDL_CreateGPURenderState(renderer_, &state);
@@ -460,7 +468,7 @@ bool EnhancedGraphics::present(SDL_Texture *scaled_scene, SDL_Texture *ordinary,
             {gpu(water_pattern_), linear_},
             {gpu(gb_), linear_}};
         SDL_GPURenderStateCreateInfo state{};
-        state.fragment_shader = shader_;
+        state.fragment_shader = shader_.get();
         state.num_sampler_bindings = 11;
         state.sampler_bindings = bindings;
         states_[5] = SDL_CreateGPURenderState(renderer_, &state);
@@ -496,8 +504,7 @@ void EnhancedGraphics::shutdown() {
             SDL_DestroyGPURenderState(s);
         s = nullptr;
     }
-    if (shader_)
-        SDL_ReleaseGPUShader(device, shader_);
+    shader_.reset();
     if (nearest_)
         SDL_ReleaseGPUSampler(device, nearest_);
     if (linear_)
@@ -527,7 +534,6 @@ void EnhancedGraphics::shutdown() {
     external_ = false;
     dirty_ = true;
     source_ = original_ = gb_ = mask_ = water_ = nullptr;
-    shader_ = nullptr;
     nearest_ = linear_ = nullptr;
     renderer_ = nullptr;
 }

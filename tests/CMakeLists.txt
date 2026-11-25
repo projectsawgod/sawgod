@@ -122,3 +122,6 @@ if(UNIX AND NOT CMAKE_CROSSCOMPILING)
         ${CMAKE_CURRENT_SOURCE_DIR}/test_android_assets.py)
     set_tests_properties(android_bundled_assets PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 60)
 endif()
+
+# Startup derived data must round-trip against the uncached loaders.
+target_sources(sawgod_tests PRIVATE test_startup_cache.cpp)

@@ -24,8 +24,24 @@ Without `--rom` (or `$SAWGOD_ROM`) and without a stored copy, the game shows the
 English and Japanese): drop the ROM on the window, or Choose File; a supported ROM beside the game is offered
 too. `.wsc`, `.zip` and `.7z` are accepted; only the exact supported dump (its SHA-1) is. The game copies it to
 `rom/`, builds `wsc.sgz` and `gb.sgz` behind a progress bar (a few seconds), and goes straight to the title. A
-missing, damaged or outdated archive is rebuilt the same way at the next start. `python3 tools/sgz.py unpack`
-opens an archive for reading; changes go in a mod (docs/MODS.md).
+missing, damaged or outdated archive is rebuilt the same way at the next start.
+
+Archives identify extraction-code contents and, for GB resources, the names/contents of the authored
+GB map inputs, rather than the application release/revision. An unrelated release or same-package
+reinstall keeps them. The ROM is still SHA-1 checked on every launch. Disposable `.sgz.verified` receipts
+avoid repeat CRC decompression after hashing the compressed archive contents; `map-banks.cache` holds the
+ROM/map-header result of map compression, keyed by every ROM, header and parsed map byte plus extraction
+code identity. Cache payload hashes detect damage. Deleting these caches is safe; they rebuild on demand.
+`gb-field-maps.cache` holds decoded GB map pixels and lookups, keyed by each map’s layered PNG/lookup/cell/hidden inputs and the
+extraction-code identity, with checksum/shape validation. Invalid resources are parsed again and reported.
+On ext4, F2FS, Btrfs, XFS, tmpfs and overlayfs, `gb-inputs.cache` reuses the authored-input content hash
+when the complete file list, size, nanosecond mtime/ctime, inode, device and code identity match. Ctime catches
+same-size writes with restored mtime; atomic replacement changes inode/ctime. Other filesystems and Windows
+hash the actual contents each launch. The first launch adopting these identities rebuilds old revision-keyed
+archives once.
+Config, translations and mods are read normally; map mods participate in the map-bank key after layering.
+Startup stage durations and cache hit/miss appear in the [debug log](DEBUG_LOG.md#startup-timings).
+`python3 tools/sgz.py unpack` opens an archive for reading; changes go in a mod (docs/MODS.md).
 
 `sawgod --config FILE` uses another file. The menu writes the file when it closes (and at exit) if
 something changed. A first exit also writes the file without menu changes when the app records the

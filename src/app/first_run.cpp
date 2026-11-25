@@ -9,6 +9,13 @@
 
 #include "emu/wsc.h"
 #include "engine/assets.h"
+#include "engine/derived_cache.h"
+#include "engine/startup_timing.h"
+#ifdef __linux__
+#include <linux/magic.h>
+#include <sys/stat.h>
+#include <sys/vfs.h>
+#endif
 #include "engine/persist.h"
 #include "engine/rom_check.h"
 #include "engine/version.h"
@@ -31,10 +38,14 @@ namespace {
 std::vector<uint8_t> bytes_of(const std::string &s) { return std::vector<uint8_t>(s.begin(), s.end()); }
 
 std::vector<uint8_t> read_file(const fs::path &p) {
-    std::ifstream in(p, std::ios::binary);
-    if (!in)
+    std::ifstream in(p, std::ios::binary | std::ios::ate);
+    if (!in || in.tellg() < 0)
         return {};
-    return std::vector<uint8_t>(std::istreambuf_iterator<char>(in), {});
+    std::vector<uint8_t> data(static_cast<size_t>(in.tellg()));
+    in.seekg(0);
+    if (!in.read(reinterpret_cast<char *>(data.data()), std::streamsize(data.size())))
+        return {};
+    return data;
 }
 
 std::unique_ptr<emu::Wsc> machine(const std::vector<uint8_t> &rom) {
@@ -176,15 +187,84 @@ SgzFiles build_gb_resources(const std::vector<uint8_t> &rom, const std::string &
     return out;
 }
 
-bool archives_current(const std::string &data_dir, const std::string &rom_sha1) {
-    return sgz_current(wsc_archive_path(data_dir), {"wsc", kBuildId, rom_sha1}) &&
-           sgz_current(gb_archive_path(data_dir), {"gb", kBuildId, rom_sha1});
+namespace {
+const char *const resource_code_id =
+#include "resource_id.inc"
+    ;
+bool reliable_input_metadata(const std::string &directory) {
+#ifdef __linux__
+    struct statfs filesystem {};
+    if (statfs(directory.c_str(), &filesystem) != 0)
+        return false;
+    // POSIX nanosecond change time cannot be restored by ordinary file writes/utimensat.
+    // Do not trust coarse/removable/network filesystems (including the shared-drive FUSE mount).
+    // The per-file check below also rejects zero subsecond ctime (ext2/3 share ext4’s magic).
+    return filesystem.f_type == EXT4_SUPER_MAGIC || filesystem.f_type == F2FS_SUPER_MAGIC ||
+           filesystem.f_type == BTRFS_SUPER_MAGIC || filesystem.f_type == XFS_SUPER_MAGIC ||
+           filesystem.f_type == TMPFS_MAGIC || filesystem.f_type == OVERLAYFS_SUPER_MAGIC;
+#else
+    (void)directory;
+    return false;
+#endif
+}
+std::string gb_resource_id(const std::string &directory, const std::string &cache_path) {
+    startup::Stage timing("GB authored input identity");
+    std::map<std::string, fs::path> files;
+    std::error_code ec;
+    if (!directory.empty() && fs::is_directory(directory, ec))
+        for (const auto &e : fs::directory_iterator(directory, ec))
+            if (e.is_regular_file() && e.path().extension() == ".csv")
+                files[e.path().filename().string()] = e.path();
+    bool metadata_safe = reliable_input_metadata(directory);
+    std::string metadata = std::string("gb-inputs-v1:") + resource_code_id + ":" + directory;
+#ifdef __linux__
+    for (const auto &[name, path] : files) {
+        if (!metadata_safe)
+            break;
+        struct stat info {};
+        if (stat(path.c_str(), &info) != 0 || info.st_ctim.tv_nsec == 0) {
+            metadata_safe = false;
+            break;
+        }
+        metadata += "\n" + name + ":" + std::to_string(info.st_dev) + ":" + std::to_string(info.st_ino) +
+                    ":" + std::to_string(info.st_size) + ":" + std::to_string(info.st_mtim.tv_sec) + ":" +
+                    std::to_string(info.st_mtim.tv_nsec) + ":" + std::to_string(info.st_ctim.tv_sec) + ":" +
+                    std::to_string(info.st_ctim.tv_nsec);
+    }
+#endif
+    if (metadata_safe)
+        if (const auto cached = read_derived_cache(cache_path, metadata); cached && cached->size() == 40) {
+            startup::mark("GB input hash cache hit (size/mtime/ctime/inode)");
+            return std::string(cached->begin(), cached->end());
+        }
+    startup::mark(metadata_safe ? "GB input hash cache miss"
+                                : "GB input hash (content; filesystem metadata not trusted)");
+    std::string hashes = resource_code_id;
+    for (const auto &[name, path] : files) {
+        const auto data = read_file(path);
+        hashes += "\n" + name + ":" + to_hex(sha1(data.data(), data.size()));
+    }
+    const auto result = to_hex(sha1(reinterpret_cast<const uint8_t *>(hashes.data()), hashes.size()));
+    if (metadata_safe)
+        write_derived_cache(cache_path, metadata, {result.begin(), result.end()});
+    return result;
+}
+} // namespace
+bool archives_current(const std::string &data_dir, const std::string &rom_sha1,
+                      const std::string &gb_maps_dir) {
+    return sgz_current(wsc_archive_path(data_dir), {"wsc", resource_code_id, rom_sha1}) &&
+           sgz_current(gb_archive_path(data_dir),
+                       {"gb",
+                        gb_resource_id(gb_maps_dir, data_dir.empty() ? "" : data_dir + "gb-inputs.cache"),
+                        rom_sha1});
 }
 
 bool ensure_archives(const std::string &data_dir, const std::vector<uint8_t> &rom,
                      const std::string &rom_sha1, const std::string &gb_maps_dir,
                      const std::function<void(float)> &progress, std::string *error) {
-    const SgzStamp wsc_stamp{"wsc", kBuildId, rom_sha1}, gb_stamp{"gb", kBuildId, rom_sha1};
+    const SgzStamp wsc_stamp{"wsc", resource_code_id, rom_sha1},
+        gb_stamp{"gb", gb_resource_id(gb_maps_dir, data_dir.empty() ? "" : data_dir + "gb-inputs.cache"),
+                 rom_sha1};
     const bool need_wsc = !sgz_current(wsc_archive_path(data_dir), wsc_stamp);
     const bool need_gb = !sgz_current(gb_archive_path(data_dir), gb_stamp);
     // The bar follows the time each part takes (measured, about 10 s in all): the WSC archive
