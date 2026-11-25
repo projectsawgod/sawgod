@@ -19,7 +19,7 @@ void Settings::register_all(Config &c, bool debug_touch) {
     pacing->choice_help = {
         "Exact WSC 75.47 Hz; 60 Hz skips 1 in 5",
         "Smooth motion at native refresh rate",
-        "30 FPS; lighter Enhanced graphics",
+        "30 FPS; lighter Enhanced FX",
     };
     // Screen Mode: LCD is the stock screen's look (engine/screen.h), IPS the subpixel grid of an
     // IPS-modded unit.

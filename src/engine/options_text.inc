@@ -7,7 +7,7 @@
     {"ui_options_performance", "パフォーマンス", "Performance", "Options: Performance (frame pacing: Smooth / Exact / Lo-Spec)"},
     {"ui_options_exact", "げんさくどおり", "Exact", "Options: Exact"},
     {"ui_options_lo_spec", "ロー スペック", "Lo-Spec", "Options: Lo-Spec"},
-    {"ui_options_30_fps_lighter_enhanced_graphics", "30 FPS　かるい　きょうかグラフィック", "30 FPS; lighter Enhanced graphics", "Options: Lo-Spec help"},
+    {"ui_options_30_fps_lighter_enhanced_fx", "30 FPS　かるい　きょうかグラフィック", "30 FPS; lighter Enhanced FX", "Options: Lo-Spec help"},
     {"ui_options_smooth", "なめらか", "Smooth", "Options: Smooth"},
     {"ui_options_exact_wsc_75_47_hz_60_hz_skips_1_in_5", "WSCとおなじ75.47ヘルツ　60ヘルツでは　5まいに1まい　とばす", "Exact WSC 75.47 Hz; 60 Hz skips 1 in 5", "Options: Exact WSC 75.47 Hz; 60 Hz skips 1 in 5"},
     {"ui_options_smooth_motion_at_native_refresh_rate", "がめんの　こうしんそくどにあわせて　なめらかに", "Smooth motion at native refresh rate", "Options: Smooth motion at native refresh rate"},
