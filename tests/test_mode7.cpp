@@ -1930,14 +1930,11 @@ TEST_CASE("Mode 7 world places script-only field sprites and the app's UI mask l
     CHECK(cache.get(w, false, false)[effect] == 0);
     // A picture drawn without the world keeps the script's sprite as native pixels.
     CHECK(game::mode7_ui_mask(w, false, false)[effect] == 0xFF0000);
-    // So does a tick the world was not updated on (a held service screen, a cleared field): the cached
-    // mask rebuilds for it instead of hiding the sprite, and back once the world reads the field again.
-    const auto rebuilt = cache.rebuilds;
+    // So does a tick the world was not updated on (a held service screen, a cleared field): the mask follows
+    // the request instead of hiding the sprite, and back once the world reads the field again.
     CHECK(cache.get(w, false, false, false, false)[effect] == 0xFF0000);
     CHECK(cache.get(w, false, false, false, false)[ui] == 0xFF0000);
-    CHECK(cache.rebuilds == rebuilt + 1);
     CHECK(cache.get(w, false, false)[effect] == 0);
-    CHECK(cache.rebuilds == rebuilt + 2);
 }
 
 TEST_CASE("A held Mode 7 world keeps its layout and sprites but takes the live palettes (Inn fade)") {
@@ -2018,7 +2015,7 @@ TEST_CASE("A held Mode 7 world keeps its layout and sprites but takes the live p
             CHECK(*held.pixels == *party->pixels);
 }
 
-TEST_CASE("Mode 7 UI mask cache reuses held frames and invalidates coverage provenance and scene kind") {
+TEST_CASE("Mode 7 UI mask follows held frames, coverage provenance and scene kind") {
     emu::Wsc w(std::vector<uint8_t>(0x400000), 0x2000);
     game::Mode7UiMask cache;
     std::array<uint8_t, emu::FrameLayers::Pixels> coverage{};
@@ -2029,27 +2026,19 @@ TEST_CASE("Mode 7 UI mask cache reuses held frames and invalidates coverage prov
     REQUIRE(layers);
     layers->valid.fill(1);
     CHECK(cache.get(w, false, false) == game::mode7_ui_mask(w, false, false));
-    CHECK(cache.rebuilds == 1);
     cache.get(w, false, false);
-    CHECK(cache.rebuilds == 1);
     coverage[0] = 1;
     CHECK(cache.get(w, false, false)[0] == 0xFF0000);
-    CHECK(cache.rebuilds == 2);
     auto &pixel = layers->planes[emu::FrameLayers::Screen2][1];
     pixel.flags = emu::RasterPixel::Present;
     pixel.palette = 15;
     CHECK(cache.get(w, false, false)[1] == 0xFF0000);
-    CHECK(cache.rebuilds == 3);
     CHECK(cache.get(w, true, false)[80 * 224] == 0xFF0000);
-    CHECK(cache.rebuilds == 4);
     CHECK(cache.get(w, false, true) == game::mode7_ui_mask(w, false, true));
-    CHECK(cache.rebuilds == 5);
     w.ui_coverage = nullptr;
     CHECK(cache.get(w, false, true) == game::mode7_ui_mask(w, false, true));
-    CHECK(cache.rebuilds == 6);
     w.capture_layers(false);
     CHECK(cache.get(w, false, false) == game::mode7_ui_mask(w, false, false));
-    CHECK(cache.rebuilds == 7);
 }
 
 TEST_CASE("South Town lifts onto grass rather than the mixed sand shoreline") {
