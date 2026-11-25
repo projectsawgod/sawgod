@@ -168,7 +168,7 @@ std::vector<uint32_t> draw_rom_screen(const RomScreenState &s) {
                 cv.centered(134, s.detail, kGrey);
             return cv.px;
         }
-        pair(cv, 104, rom_text::kSettingUp, kWhite);
+        pair(cv, 104, s.rebuilding ? rom_text::kRebuilding : rom_text::kSettingUp, kWhite);
         const RomScreenRect bar{124, 146, 200, 10};
         cv.outline(bar, kWhite, 0, 0);
         const int fill = int(float(bar.w - 4) * std::clamp(s.progress, 0.0f, 1.0f));

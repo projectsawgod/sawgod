@@ -55,7 +55,7 @@ const rom_text::Pair *message_for(RomVerdict v) {
 } // namespace
 
 std::string run_rom_screen(const std::string &data_dir, const std::string &exe_dir,
-                           const std::string &gb_maps_dir) {
+                           const std::string &gb_maps_dir, const std::string &rebuild_rom) {
     if (!SDL_InitSubSystem(SDL_INIT_VIDEO | SDL_INIT_GAMEPAD)) {
         SDL_Log("ROM screen: %s", SDL_GetError());
         return {};
@@ -131,6 +131,21 @@ std::string run_rom_screen(const std::string &data_dir, const std::string &exe_d
             working_done = true;
         });
     };
+    if (!rebuild_rom.empty()) {
+        const RomCheck c = check_rom_selection(rebuild_rom);
+        if (c.verdict == RomVerdict::Ok) {
+            rom = c.rom;
+            stored = rebuild_rom;
+            state.mode = RomScreenState::Mode::Working;
+            state.rebuilding = true;
+            worker = std::thread([&, sha1 = c.sha1] {
+                if (!ensure_archives(
+                        data_dir, rom, sha1, gb_maps_dir, [&](float f) { progress = f; }, &work_error))
+                    SDL_Log("rebuild: %s", work_error.c_str());
+                working_done = true;
+            });
+        }
+    }
     const auto open_picker = [&] {
         if (picker_open)
             return;

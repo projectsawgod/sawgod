@@ -25,6 +25,7 @@ struct RomScreenState {
     std::string expected_sha1;               // shown with an error
     std::string detail;                      // a short extra line (a setup error), ASCII
     float progress = 0;                      // Working
+    bool rebuilding = false;                 // Working: rebuilding a stored ROM's archives after an update
 };
 
 // Hit areas and the logo's place, in canvas pixels.

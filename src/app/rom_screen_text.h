@@ -42,5 +42,7 @@ inline constexpr Pair kNo{"No", "いいえ"};
 // First-run extraction.
 inline constexpr Pair kSettingUp{"Setting up the game...", "ゲームを準備しています…"};
 inline constexpr Pair kSetupFailed{"Setup failed:", "準備に失敗しました："};
+// An update whose resource extraction changed rebuilds the archives from the stored ROM on its first launch.
+inline constexpr Pair kRebuilding{"Rebuilding assets...", "アセットを再構築しています…"};
 
 } // namespace sawgod::app::rom_text

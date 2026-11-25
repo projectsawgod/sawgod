@@ -259,6 +259,18 @@ bool archives_current(const std::string &data_dir, const std::string &rom_sha1,
                         rom_sha1});
 }
 
+bool archives_need_rebuild(const std::string &data_dir, const std::string &rom_path,
+                           const std::string &gb_maps_dir) {
+    if (data_dir.empty() || rom_path.empty())
+        return false;
+    const auto rom = read_file(rom_path);
+    if (rom.empty())
+        return false;
+    const std::string sha1 = to_hex(sawgod::sha1(rom.data(), rom.size()));
+    // Only the supported ROM has archives; any other ROM is the launch's own business (load_rom).
+    return sha1 == kBaselineSha1 && !archives_current(data_dir, sha1, gb_maps_dir);
+}
+
 bool ensure_archives(const std::string &data_dir, const std::vector<uint8_t> &rom,
                      const std::string &rom_sha1, const std::string &gb_maps_dir,
                      const std::function<void(float)> &progress, std::string *error) {

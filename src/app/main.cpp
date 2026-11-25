@@ -289,6 +289,15 @@ int main(int argc, char **argv) {
                 return 0; // the window was closed
         }
     }
+    // An update whose extraction changed rebuilds the archives once: behind "Rebuilding assets..." and its
+    // progress bar, not a blank screen (an ordinary launch; load_rom rebuilds silently for scripted runs).
+    if (!args.rom.empty() && !PrefDir().empty() && args.shot.empty() && args.audio_review.empty() &&
+        !args.frames && sawgod::app::archives_need_rebuild(PrefDir(), args.rom, gb_maps_dir)) {
+        sawgod::debug_log::info("resources: rebuilding the resource archives (the extraction changed)");
+        if (sawgod::app::run_rom_screen(PrefDir(), exe_dir, gb_maps_dir, args.rom).empty())
+            return 0; // closed during the rebuild (the build itself finished: archives are written
+                      // atomically)
+    }
     if (!args.rom.empty()) {
         sawgod::app::LoadedRom loaded;
         if (const int code = sawgod::app::load_rom(args, exe_dir, gb_maps_dir, loaded))

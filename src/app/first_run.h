@@ -58,7 +58,13 @@ bool ensure_archives(const std::string &data_dir, const std::vector<uint8_t> &ro
 // storage permission or persistent URI access is needed.
 // The ROM screen: runs its own window until the player supplies the supported ROM, then builds the archives
 // behind a progress bar. Returns the stored ROM's path, or "" when the player closed the window.
+// With `rebuild_rom` (a stored ROM whose archives are out of date after an update), it skips the choice and
+// shows "Rebuilding assets..." with the same progress bar; returns that path, or "" when closed.
 std::string run_rom_screen(const std::string &data_dir, const std::string &exe_dir,
+                           const std::string &gb_maps_dir, const std::string &rebuild_rom = {});
+// The stored ROM's resource archives are missing or out of date (first run aside: an update changed
+// the extraction code or the GB map inputs). Reads and hashes the ROM.
+bool archives_need_rebuild(const std::string &data_dir, const std::string &rom_path,
                            const std::string &gb_maps_dir);
 
 } // namespace sawgod::app
