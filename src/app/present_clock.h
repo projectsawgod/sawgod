@@ -72,10 +72,11 @@ class LoSpecCadence {
 // Smooth's fallback. A device that keeps missing refreshes at full rate presents every second refresh
 // instead of hitching (through LoSpecCadence::due_every, with the same interpolation); it retries full
 // rate after 10 s, then 20/40/80 s while retries keep failing. Late: more than 1.5 refreshes since the
-// previous present; 6 late presents within the last 60 trigger the fallback (a single load stall does not).
+// previous present; 18 late presents (30%) within the last 60 trigger the fallback. A device that is mostly on
+// time (the Pixel 5's world map: about 11% late) keeps full rate; a single load stall never triggers it.
 class SmoothFallback {
   public:
-    static constexpr int kWindow = 60, kLate = 6;
+    static constexpr int kWindow = 60, kLate = 18;
     static constexpr uint64_t kFirstRetry = 10'000'000'000ull, kLastRetry = 80'000'000'000ull;
     // Once per Smooth present: the interval since the previous present and the display refresh period
     // (0 when unknown: the fallback is off). Returns true when the mode changed.

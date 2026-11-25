@@ -574,8 +574,9 @@ TEST_CASE("Smooth falls back to half refresh after repeated late presents and re
     for (int i = 0; i < 100; ++i)
         present(period);
     CHECK_FALSE(fallback.halved());
-    // Five late presents in the window are tolerated; the sixth halves.
-    for (int i = 0; i < 5; ++i) {
+    // Up to kLate - 1 late presents in the window are tolerated (about 11% late stays at full rate); the next
+    // halves.
+    for (int i = 0; i < SmoothFallback::kLate - 1; ++i) {
         present(2 * period);
         present(period);
     }
