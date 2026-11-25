@@ -1,4 +1,4 @@
-// Half-native bloom and native influence stamps; scene edges/UI stay at output resolution.
+// Quarter-native bloom and native influence stamps; scene edges/UI stay at output resolution.
 #pragma once
 #include "engine/battle_lighting.h"
 #include "engine/influence_buffer.h"
@@ -61,7 +61,10 @@ class EnhancedGraphics {
     InfluenceBuffer influence_;
     EnhancedParameters influence_parameters_;
     bool build_influences();
-    std::array<bool, 4> influence_active_{};
+    std::array<bool, 4> influence_active_{}, influence_valid_{};
+    std::array<InfluenceBuffer::Parameters, 4> influence_keys_{};
+    std::array<std::vector<PointLight>, 4> influence_sources_{};
+    std::array<std::vector<std::array<float, 4>>, 4> influence_actors_{};
     // Flat and world passes use identical shader bytes. Sharing the handle also reuses SDL pipelines,
     // whose keys include the shader pointer; independent bindings/targets/uniforms stay per instance.
     std::shared_ptr<SDL_GPUShader> shader_;
@@ -82,13 +85,13 @@ class EnhancedGraphics {
         std::array<std::array<float, 4>, 3> battle_groups{};
         std::array<float, 4> palette_fade{}; // native lower/upper channel limits
     } uniforms_;
-    // Exact byte cache keys for all 256 supported sources, including the bit patterns of native spell masks.
-    std::array<std::array<float, 4>, 256> light_positions_{}, light_colors_{}, light_beams_{};
+    // Exact byte cache keys for at most 32 field and 8 spell sources.
+    std::array<std::array<float, 4>, 40> light_positions_{}, light_colors_{}, light_beams_{};
     static_assert(sizeof(Uniforms) <= 4096);
     std::array<uint32_t, 224 * 144> upload_mask_{};
     std::array<uint32_t, 224 * 144> dry_{};
     std::vector<uint32_t> cached_source_, cached_original_, cached_gb_, cached_water_, cached_mask_;
     Uniforms cached_uniforms_{};
-    std::array<std::array<float, 4>, 256> cached_positions_{}, cached_colors_{}, cached_beams_{};
+    std::array<std::array<float, 4>, 40> cached_positions_{}, cached_colors_{}, cached_beams_{};
 };
 } // namespace sawgod

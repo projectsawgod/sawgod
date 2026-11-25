@@ -22,14 +22,6 @@ float4 main(float4 color : TEXCOORD0, float2 uv : TEXCOORD1) : SV_Target0 {
             amount=lerp(picture.SampleLevel(picture_sampler,float2(uv.x,(y+a)/16),0).r,
                         picture.SampleLevel(picture_sampler,float2(uv.x,(y+b)/16),0).r,frac(phase));
         } else amount=picture.SampleLevel(picture_sampler,uv,0).r;
-    } else if(extent.z>2.5) {
-        float2 q=options.w>0.5 ? (floor(uv*scroll.zw)+0.5)/scroll.zw : uv;
-        amount=picture.SampleLevel(picture_sampler,q,0).r;
-    } else {
-        float2 q=options.w>0.5 ? (floor(uv*grid.xy)+0.5)/grid.xy : uv;
-        amount=picture.SampleLevel(picture_sampler,(q*float2(224,144)-scroll.xy)/scroll.zw,0).r;
-        return position.w>8.5 ? float4(0,0,0,amount*emission.a)
-            : float4(emission.rgb*(amount*emission.a),0);
-    }
+    } else amount=picture.SampleLevel(picture_sampler,uv,0).r;
     return color.a<0 ? float4(0,0,0,amount*-color.a) : float4(color.rgb*(amount*color.a),0);
 }

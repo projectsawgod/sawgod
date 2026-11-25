@@ -48,5 +48,8 @@ class LightTags {
     void seed_water(const emu::Wsc &, const DataTables *);
     std::map<int, std::vector<WaterTag>> water_sets_;
     std::map<int, std::vector<LightTag>> sets_;
+    // Tag matching is static until a tileset is edited. Store indices so copies remain valid.
+    using TagLookup = std::array<std::array<int, 4>, 128>;
+    mutable std::map<int, TagLookup> lookups_;
 };
 } // namespace sawgod::game

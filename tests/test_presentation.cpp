@@ -483,8 +483,8 @@ TEST_CASE("delivery glow samples mixed live palette pixels while casting stays w
             for (size_t channel = 0; channel < 3; ++channel)
                 CHECK(light.emission[channel] ==
                       doctest::Approx(rom == 0x378130 ? 1 : weighted[channel] / peak));
-            CHECK(light.position[2] == 8);
-            CHECK(light.source_pixels == std::array<uint32_t, 2>{0xFFFFFFFF, 0xFFFFFFFF});
+            CHECK(light.position[2] >= 8);
+            CHECK(light.extent == std::array<float, 2>{});
             CHECK(light.beam[3] == 64);
         }
         game::hooks::emit(game::hooks::Event::BattleAnimationEnd, m, {rom});
@@ -1294,7 +1294,7 @@ TEST_CASE("neon strips remain uniform when their segments use shared-corner anch
     CHECK(lights[0].beam[3] == 3);
 }
 
-TEST_CASE("GPU battle glow has bounded native-filter support and preserves sparse patches and UI [GPU]") {
+TEST_CASE("GPU battle soft lights have bounded support and preserve UI [GPU]") {
     if (!std::getenv("SAWGOD_GPU_TESTS")) {
         MESSAGE("set SAWGOD_GPU_TESTS with a GPU-capable SDL driver for measured glow reach");
         return;
@@ -1331,9 +1331,7 @@ TEST_CASE("GPU battle glow has bounded native-filter support and preserves spars
     params.light_strength = 1;
     REQUIRE(effects.upload(colors, colors, mask.data(), params));
     const auto baseline = read();
-    // Sparse occupied pixels: their enclosing rectangle must not emit light. Full patches also keep
-    // their exact support, including all-ones bit patterns.
-    // Exercise bit 31 in both mask words, including the float bit patterns uploaded to the GPU.
+    // Soft connected-group discs retain bounded support in both snap modes.
     for (bool snap : {true, false}) {
         CAPTURE(snap);
         params.snap = snap;
@@ -1345,11 +1343,7 @@ TEST_CASE("GPU battle glow has bounded native-filter support and preserves spars
                     CAPTURE(type);
                     PointLight light;
                     light.position = {100, 44, float(radius), 0};
-                    light.extent = {3.5f, 3.5f};
-                    light.source_pixels =
-                        dense ? std::array<uint32_t, 2>{0xFFFFFFFF, 0xFFFFFFFF}
-                              : std::array<uint32_t, 2>{1 | (uint32_t(1) << 31), uint32_t(1) << 31};
-                    // Source centers: (96.5,40.5), (103.5,43.5), (103.5,47.5).
+                    light.position[2] += dense ? 2 : 0;
                     light.type = type;
                     light.emission =
                         type == 6 ? std::array<float, 4>{1, 1, 1, 1} : std::array<float, 4>{0, 0, 0, 1};
@@ -1361,20 +1355,12 @@ TEST_CASE("GPU battle glow has bounded native-filter support and preserves spars
                         for (int xx = 84 * 3; xx < 116 * 3; ++xx) {
                             const float x = snap ? float(xx / 3) + 0.5f : (float(xx) + 0.5f) / 3;
                             const float y = snap ? float(yy / 3) + 0.5f : (float(yy) + 0.5f) / 3;
-                            float distance = 1000;
-                            // Independent oracle: enumerate covered native pixel centers, never rectangles.
-                            for (int py = 0; py < 8; ++py)
-                                for (int px = 0; px < 8; ++px) {
-                                    const int bit = py * 8 + px;
-                                    if (light.source_pixels[size_t(bit / 32)] & (uint32_t(1) << (bit % 32)))
-                                        distance = std::min(distance,
-                                                            std::hypot(x - (96.5f + px), y - (40.5f + py)));
-                                }
+                            const float distance = std::hypot(x - 100, y - 44);
                             const size_t at = size_t(yy * 672 + xx);
                             const bool lit = (glow[at] & 0xFFFFFF) != (baseline[at] & 0xFFFFFF);
                             changed += lit;
-                            outside += lit && distance >= radius + (snap ? 0 : 1);
-                            inner_missing += !lit && distance <= radius * 0.5f;
+                            outside += lit && distance >= light.position[2] + 2;
+                            inner_missing += !lit && distance <= light.position[2] * 0.4f;
                         }
                     CHECK(changed > 0);
                     CHECK(outside == 0);
@@ -1396,8 +1382,6 @@ TEST_CASE("GPU battle glow has bounded native-filter support and preserves spars
     PointLight peak;
     peak.type = 6;
     peak.position = {100, 44, 8, 0};
-    peak.extent = {3.5f, 3.5f};
-    peak.source_pixels = {0xFFFFFFFF, 0xFFFFFFFF};
     peak.emission = {1, 0.5f, 0.25f, 0.2f};
     std::vector<uint32_t> one;
     uint64_t scene_pixels = 0;
@@ -1411,10 +1395,17 @@ TEST_CASE("GPU battle glow has bounded native-filter support and preserves spars
             scene_pixels = effects.last_work.shaded_pixels;
         } else
             CHECK(image == one);
-        CHECK(effects.last_work.shaded_pixels == scene_pixels);
-        CHECK(effects.last_work.passes == 1); // no bloom requested
-        CHECK(effects.influence_work.quads == count * 2 + 20);
-        CHECK(effects.influence_work.clear_pixels <= 4 * 672u * 432u);
+        if (count > 20) {
+            // Both inputs cap to the same eight sources: reuse the whole picture, not just the fields.
+            CHECK(effects.last_work.shaded_pixels == 0);
+            CHECK(effects.last_work.passes == 0);
+            CHECK(effects.influence_work.quads == 0);
+        } else {
+            CHECK(effects.last_work.shaded_pixels == scene_pixels);
+            CHECK(effects.last_work.passes == 1); // no bloom requested
+        }
+        CHECK(effects.influence_work.quads <= std::min<size_t>(count, 8) * 2 + 20);
+        CHECK(effects.influence_work.clear_pixels <= 4 * 224u * 144u);
         CHECK(EnhancedGraphics::composite_influence_samples <= 4);
         CHECK(EnhancedGraphics::restore_influence_samples <= 2);
     }
@@ -1482,7 +1473,6 @@ TEST_CASE("GPU battle glow has bounded native-filter support and preserves spars
     const auto monster = [&](int source_x) {
         PointLight light;
         light.position = {float(source_x) + 0.5f, 40.5f, 8, 0};
-        light.source_pixels = {1, 0};
         light.type = 6;
         light.emission = {1, 1, 1, 1};
         params.lights = {light};
@@ -1544,84 +1534,6 @@ TEST_CASE("GPU timestamps are delayed nonblocking and associated with the submit
     SDL_Quit();
 }
 #endif
-
-TEST_CASE("GPU patch falloff fields preserve shape without occupied-pixel overdraw [GPU]") {
-    if (!std::getenv("SAWGOD_GPU_TESTS"))
-        return;
-    REQUIRE(SDL_Init(SDL_INIT_VIDEO));
-    auto *window = SDL_CreateWindow("Patch distance field", 672, 432, SDL_WINDOW_HIDDEN);
-    REQUIRE(window);
-    PresentationRenderer renderer;
-    REQUIRE(renderer.init(window, false, false));
-    InfluenceBuffer field;
-    REQUIRE(field.init(renderer.get()));
-    PointLight light;
-    light.type = 7;
-    light.position = {100, 44, 8, 0};
-    light.extent = {3.5f, 3.5f};
-    light.emission = {0, 0, 0, 1};
-    const std::array<std::array<uint32_t, 2>, 5> masks{{{1, 0},
-                                                        {1 | (uint32_t(1) << 31), uint32_t(1) << 31},
-                                                        {0xA5A55A5A, 0x55AA55AA},
-                                                        {0xFFFFFFFF, 0xFFFFFFFE},
-                                                        {0xFFFFFFFF, 0xFFFFFFFF}}};
-    for (bool snap : {false, true})
-        for (int radius : {4, 8}) {
-            uint64_t sparse_pixels = 0;
-            for (const auto &mask : masks) {
-                CAPTURE(snap);
-                CAPTURE(radius);
-                CAPTURE(mask[0]);
-                CAPTURE(mask[1]);
-                light.position[2] = float(radius);
-                light.source_pixels = mask;
-                InfluenceBuffer::Parameters params;
-                params.options[3] = float(snap);
-                field.work = {};
-                REQUIRE(field.begin(2));
-                REQUIRE(field.light(light, params, 2));
-                REQUIRE(field.end());
-                CHECK(field.work.quads == 1);
-                CHECK(field.work.patch_allocations == 0);
-                // Occupancy from 1 to 64 pixels cannot increase submitted fragments per patch.
-                if (!sparse_pixels)
-                    sparse_pixels = field.work.pixels;
-                CHECK(field.work.pixels == sparse_pixels);
-                REQUIRE(SDL_SetRenderTarget(renderer.get(), field.texture(2)));
-                const SDL_Rect region{84 * 3, 28 * 3, 36 * 3, 36 * 3};
-                auto *surface = SDL_RenderReadPixels(renderer.get(), &region);
-                REQUIRE(surface);
-                std::vector<std::array<float, 4>> pixels(size_t(region.w) * region.h);
-                REQUIRE(SDL_ConvertPixels(region.w, region.h, surface->format, surface->pixels,
-                                          surface->pitch, SDL_PIXELFORMAT_RGBA128_FLOAT, pixels.data(),
-                                          region.w * 16));
-                SDL_DestroySurface(surface);
-                REQUIRE(SDL_SetRenderTarget(renderer.get(), nullptr));
-                double max_error = 0;
-                for (int y = 0; y < region.h; ++y)
-                    for (int x = 0; x < region.w; ++x) {
-                        const double px = snap ? double((x + region.x) / 3) + 0.5 : (x + region.x + 0.5) / 3;
-                        const double py = snap ? double((y + region.y) / 3) + 0.5 : (y + region.y + 0.5) / 3;
-                        double distance = 1000;
-                        // Independent brute-force scalar oracle, including almost-full masks.
-                        for (int bit = 0; bit < 64; ++bit)
-                            if (mask[size_t(bit / 32)] & (uint32_t(1) << (bit % 32)))
-                                distance = std::min(distance,
-                                                    std::hypot(px - (96.5 + bit % 8), py - (40.5 + bit / 8)));
-                        const double d = distance / radius;
-                        const double t = std::clamp((d - 0.6) / 0.4, 0.0, 1.0);
-                        const double expected = std::exp(-d * d * 3) * (1 - t * t * (3 - 2 * t));
-                        max_error =
-                            std::max(max_error, std::abs(pixels[size_t(y * region.w + x)][3] - expected));
-                    }
-                CHECK(max_error <= 0.001); // float16 field/texture rounding, below one RGB code value
-            }
-        }
-    field.shutdown();
-    renderer.shutdown();
-    SDL_DestroyWindow(window);
-    SDL_Quit();
-}
 
 TEST_CASE("Screen Mode LCD: Enhanced's wash meets the exact response at black and white") {
     const sawgod::FstnWash w = sawgod::fstn_wash();

@@ -18,7 +18,7 @@ bool Mode7Renderer::init(SDL_Renderer *renderer) {
     if (!device)
         return SDL_SetError("Mode 7 requires SDL_GPU");
     renderer_ = renderer;
-    if (!shadow_.init(renderer, 672, 432, 1))
+    if (!shadow_.init(renderer, 224, 144, 1))
         return false;
     SDL_GPUShaderCreateInfo info{};
     info.entrypoint = "main";

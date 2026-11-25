@@ -1,5 +1,6 @@
 // Derives field and battle presentation layers from observed native game events.
 #include "game/presentation_scene.h"
+#include "engine/light_groups.h"
 #include "engine/palette_fade.h"
 #include "game/game_config.h"
 #include "game/machine.h"
@@ -42,12 +43,9 @@ constexpr LitAnimation kLitAnimations[] = {
     {0x3788B0, 650, true, 0, 1, 8, -1, false, true}, // thunder delivery
     {0x3784B0, 650, true, 0, 1, 8, -1, false, true}, // cloud delivery
 };
-constexpr int kPatch = 8; // the glow follows the effect's own shape in 8x8-pixel patches
 } // namespace
 // Native sprites above the panels light (type 6) or dim (type 7) the scene; never UI or the effect art.
-// Each occupied 8x8 patch carries its exact 64-bit pixel coverage. The GPU measures distance to the
-// nearest emitting pixel, not a bounding rectangle or centroid; sparse patches cannot broaden the reach.
-// Lights combine by maximum, with one sampled or fixed color for the whole effect.
+// Connected native pixels share at most eight soft lights; excess groups merge by nearest center.
 // Brightness rises and falls with the effect's pixel count against its busiest frame, smoothed: up fast, down
 // a little slower.
 std::vector<PointLight> SceneObserver::animation_lights(const emu::FrameLayers &layers,
@@ -61,11 +59,7 @@ std::vector<PointLight> SceneObserver::animation_lights(const emu::FrameLayers &
         level_ = 0;
         return {};
     }
-    struct Patch {
-        int n = 0, x0 = 224, y0 = 80, x1 = -1, y1 = -1;
-        std::array<uint32_t, 2> pixels{};
-    };
-    std::array<Patch, (224 / kPatch) * (80 / kPatch)> patches{};
+    std::array<uint16_t, 224 * 80> weights{};
     double r = 0, g = 0, b = 0, bright = 0;
     int total = 0;
     for (int y = 0; y < 80; ++y) {
@@ -77,17 +71,10 @@ std::vector<PointLight> SceneObserver::animation_lights(const emu::FrameLayers &
                 const auto &p = layers.planes[size_t(layer)][at];
                 if (!(p.flags & emu::RasterPixel::Present))
                     continue;
-                auto &patch = patches[size_t(y / kPatch * (224 / kPatch) + x / kPatch)];
-                ++patch.n;
-                const int bit = y % kPatch * kPatch + x % kPatch;
-                patch.pixels[size_t(bit / 32)] |= uint32_t(1) << (bit % 32);
-                patch.x0 = std::min(patch.x0, x);
-                patch.x1 = std::max(patch.x1, x);
-                patch.y0 = std::min(patch.y0, y);
-                patch.y1 = std::max(patch.y1, y);
                 ++total;
                 const int cr = p.color >> 8 & 15, cg = p.color >> 4 & 15, cb = p.color & 15;
                 const int brightness = cr * 3 + cg * 6 + cb;
+                weights[at] = uint16_t(lit->color ? std::max(1, brightness) : brightness);
                 if (lit->delivery_color) {
                     // Mean weighted by native RGB brightness (3:6:1). Black contributes zero.
                     // Sampling raster colors, rather than palette IDs, follows any caller/recolor.
@@ -131,18 +118,13 @@ std::vector<PointLight> SceneObserver::animation_lights(const emu::FrameLayers &
                          (unsigned long long)frame, animation_, unsigned(std::lround(color[0] * 255)),
                          unsigned(std::lround(color[1] * 255)), unsigned(std::lround(color[2] * 255)));
     }
-    for (const auto &patch : patches) {
-        if (patch.n == 0)
-            continue;
+    for (const auto &group : connected_light_groups(weights)) {
         PointLight l;
         l.type = lit->subtractive ? 7 : 6;
-        l.position = {float(patch.x0 + patch.x1 + 1) / 2, float(patch.y0 + patch.y1 + 1) / 2, lit->reach, 0};
-        l.extent = {float(patch.x1 - patch.x0 + 1) / 2 - 0.5f, float(patch.y1 - patch.y0 + 1) / 2 - 0.5f};
-        // twice a torch (0.18) at the effect's peak; a sparse patch glows less than a full one
-        const float fill = std::min(1.0f, float(patch.n) / float(kPatch * kPatch / 2));
+        l.position = {group.center_x(), group.center_y(), group.radius(lit->reach), 0};
+        const float fill = std::min(1.0f, float(group.pixels) / 32);
         l.emission = {color[0], color[1], color[2], 0.36f * lit->gain * level_ * fill};
-        l.source_pixels = patch.pixels;
-        l.beam = {0, 0, 0, float(total)}; // debug: effect pixels this frame
+        l.beam[3] = float(total); // debug: effect pixels this frame
         lights.push_back(l);
     }
     return lights;

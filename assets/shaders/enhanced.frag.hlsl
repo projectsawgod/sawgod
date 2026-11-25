@@ -186,7 +186,7 @@ float battle_outline(float2 p) {
     }
     return result;
 }
-// Runs in the final scene draw. Enemy art never enters the blurred source.
+// Runs in the final scene draw. Enemy art stays sharp.
 float3 battle_light(float3 c, float2 uv, float2 owner) {
     float2 p = uv * float2(224,144);
     // The battlefield is rows 0-79: the native header rows hold the backdrop (the HP plates are UI, kept above).
@@ -205,19 +205,6 @@ float3 battle_light(float3 c, float2 uv, float2 owner) {
     } else {
         float r = length((p-float2(112,40))/float2(112,40));
         float vignette = smoothstep(0,1,saturate((r-1)/0.45));
-        if (vignette > 0) {
-            float3 blurred = 0;
-            // Nine bilinear taps, sigma about one native pixel. Clamp to battlefield rows,
-            // so the panels below cannot leak into the corners.
-            [unroll] for (int y=-1; y<=1; ++y)
-                [unroll] for (int x=-1; x<=1; ++x) {
-                    float2 at = clamp(p+float2(x,y)*1.1824,float2(0.5,0.5),float2(223.5,79.5));
-                    float wx = x == 0 ? 0.40262 : 0.29869;
-                    float wy = y == 0 ? 0.40262 : 0.29869;
-                    blurred += picture.SampleLevel(picture_sampler,at/float2(224,144),0).rgb*wx*wy;
-                }
-            lit = lerp(lit,blurred,vignette);
-        }
         lit *= 1-0.12*vignette;
         float cone = 0;
         [unroll] for (int j=0; j<3; ++j)
@@ -294,7 +281,7 @@ float4 main(float4 color : TEXCOORD0, float2 uv : TEXCOORD1) : SV_Target0 {
     }
     float3 bloom = 0;
     if (control.x < 1.5 || control.x > 3.5) {
-        // Five bilinear taps at half-native resolution: the same ~7 native-pixel glow reach.
+        // Quarter-native targets, with offsets kept in native UV units for the same glow reach.
         static const float2 taps[5] = {float2(0,0.227027),float2(-1.384615,0.316216),
             float2(1.384615,0.316216),float2(-3.230769,0.070270),float2(3.230769,0.070270)};
         [unroll] for (int i = 0; i < 5; ++i) {
