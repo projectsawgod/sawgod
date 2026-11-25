@@ -170,7 +170,8 @@ It saves callee-saved registers, stack pointer and floating-point control state,
 
 ## Performance
 
-Options → Video → Performance offers Smooth / Exact / Lo-Spec. Smooth is the default
+Options → Video → Performance offers Smooth / Exact / Lo-Spec. Smooth falls back to every second refresh while
+the device keeps missing refreshes and retries full rate after 10 s or more (CONFIG.md). Smooth is the default
 everywhere; choose Lo-Spec (`video.pacing = "lospec"`) on slower phones.
 Lo-Spec presents at half refresh through 120 Hz: 30 FPS on 60 Hz panels, 45 FPS on 90 Hz, and
 60 FPS on 120 Hz, including Options. Faster panels use the smallest whole divisor that stays at or

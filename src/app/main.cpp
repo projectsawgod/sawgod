@@ -2794,7 +2794,10 @@ int main(int argc, char **argv) {
     int frame_count = 0;
     uint64_t last_present = SDL_GetTicksNS();
     sawgod::app::LoSpecCadence lospec_cadence;
-    sawgod::app::PresentClock present_clock; // Enhanced Smooth's steady refresh clock
+    sawgod::app::PresentClock present_clock;     // Enhanced Smooth's steady refresh clock
+    sawgod::app::SmoothFallback smooth_fallback; // Smooth at half refresh while the device falls behind
+    sawgod::app::LoSpecCadence smooth_half_cadence;
+    uint64_t smooth_present_period = 0; // this pass's Smooth refresh period, 0 when Smooth is not presenting
     while (running) {
         const auto work_cpu_start = live_check ? sawgod::app::LivePictureCheck::cpu_time() : 0;
         uint64_t t_tick = 0, t_upload = 0, t_draw = 0, t_present = 0;
@@ -2963,6 +2966,7 @@ int main(int argc, char **argv) {
         }
 
         int ran = 0;
+        smooth_present_period = 0;
         const sawgod::Pacing pacing = settings.pacing_mode();
         const bool lospec = pacing == sawgod::Pacing::LoSpec;
         if (!lospec)
@@ -2990,6 +2994,15 @@ int main(int argc, char **argv) {
                     refresh_ns = uint64_t(1e9 / double(mode->refresh_rate));
             } else
                 present_clock.reset();
+            if (!refresh_ns) {
+                smooth_fallback.reset();
+                smooth_half_cadence.reset();
+            }
+            smooth_present_period = refresh_ns;
+            // Fallen behind: present on every second refresh by the wall clock, as Lo-Spec does.
+            const bool smooth_half = refresh_ns && smooth_fallback.halved();
+            if (smooth_half)
+                refresh_ns = 0;
             const uint64_t clock_now = refresh_ns ? present_clock.step(now, refresh_ns) : now;
             // (compare, don't subtract: when ahead of schedule clock_now - next_frame would wrap around)
             if (clock_now > next_frame + frame_ns * 8) {
@@ -3025,7 +3038,18 @@ int main(int argc, char **argv) {
                 }
                 continue;
             }
-            if (lospec) {
+            if (smooth_half) {
+                if (!smooth_half_cadence.due_every(now, 2 * smooth_present_period)) {
+                    if (overlay.is_open()) {
+                        menu_carry = actions;
+                        menu_carry.toggle = false;
+                    }
+                    const auto wait_now = SDL_GetTicksNS();
+                    const auto native_wait = wait_now < next_frame ? next_frame - wait_now : 0;
+                    SDL_DelayPrecise(std::min(native_wait, smooth_half_cadence.remaining(wait_now)));
+                    continue;
+                }
+            } else if (lospec) {
                 int vsync = 0;
                 SDL_GetRenderVSync(renderer, &vsync);
                 const auto *mode = SDL_GetCurrentDisplayMode(SDL_GetDisplayForWindow(window));
@@ -3111,6 +3135,12 @@ int main(int argc, char **argv) {
         world_card_overlay.preload();
         t_present = SDL_GetTicksNS() - present_start;
         write_timing(t_tick, t_upload, t_draw, t_present, ran, log_speed, false, clock_reset, ow, oh);
+        if (smooth_present_period && smooth_fallback.record(now - last_present, smooth_present_period, now)) {
+            smooth_half_cadence.reset();
+            present_clock.reset();
+            SDL_Log("Smooth: %s", smooth_fallback.halved() ? "falling behind, presenting every second refresh"
+                                                           : "retrying every refresh");
+        }
         last_present = now;
         ++fps_presents;
         if (now - fps_start >= 500000000ull) {

@@ -558,3 +558,59 @@ TEST_CASE("Lo-Spec selects whole display refreshes and drops missed presentation
     cadence.reset();
     CHECK(cadence.due(101'000'001));
 }
+
+TEST_CASE("Smooth falls back to half refresh after repeated late presents and retries with backoff") {
+    constexpr uint64_t ms = 1'000'000, period = 11'111'111; // 90 Hz
+    SmoothFallback fallback;
+    uint64_t now = 0;
+    const auto present = [&](uint64_t interval) {
+        now += interval;
+        return fallback.record(interval, period, now);
+    };
+    // On time, and one long stall (a load): stays at full rate.
+    for (int i = 0; i < 200; ++i)
+        CHECK_FALSE(present(period));
+    CHECK_FALSE(present(500 * ms));
+    for (int i = 0; i < 100; ++i)
+        present(period);
+    CHECK_FALSE(fallback.halved());
+    // Five late presents in the window are tolerated; the sixth halves.
+    for (int i = 0; i < 5; ++i) {
+        present(2 * period);
+        present(period);
+    }
+    CHECK_FALSE(fallback.halved());
+    CHECK(present(2 * period));
+    CHECK(fallback.halved());
+    // Halved: retried after 10 s.
+    const uint64_t halved_at = now;
+    while (!present(2 * period)) {
+    }
+    CHECK_FALSE(fallback.halved());
+    CHECK(now - halved_at >= SmoothFallback::kFirstRetry);
+    CHECK(now - halved_at < SmoothFallback::kFirstRetry + 3 * period);
+    // The retry fails at once: halved again, next retry after 20 s.
+    for (int i = 0; i < SmoothFallback::kLate; ++i)
+        present(2 * period);
+    CHECK(fallback.halved());
+    const uint64_t second = now;
+    while (!present(2 * period)) {
+    }
+    CHECK(now - second >= 2 * SmoothFallback::kFirstRetry);
+    // This retry holds for a full window: a later fallback starts again at 10 s.
+    for (int i = 0; i < SmoothFallback::kWindow; ++i)
+        present(period);
+    for (int i = 0; i < SmoothFallback::kLate; ++i)
+        present(2 * period);
+    CHECK(fallback.halved());
+    const uint64_t third = now;
+    while (!present(2 * period)) {
+    }
+    CHECK(now - third < 2 * SmoothFallback::kFirstRetry);
+    // An unknown refresh period turns the fallback off.
+    for (int i = 0; i < SmoothFallback::kLate; ++i)
+        present(2 * period);
+    CHECK(fallback.halved());
+    CHECK(fallback.record(period, 0, now));
+    CHECK_FALSE(fallback.halved());
+}

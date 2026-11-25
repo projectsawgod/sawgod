@@ -8,6 +8,7 @@
 // ignoring return jitter. A stall of several refreshes (a window move, loading) re-anchors it.
 #pragma once
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <cstdint>
 
@@ -47,8 +48,9 @@ class LoSpecCadence {
         }
         return 1'000'000'000ull / 30;
     }
-    bool due(uint64_t now, double refresh_hz = 0) {
-        const auto interval = period(refresh_hz);
+    bool due(uint64_t now, double refresh_hz = 0) { return due_every(now, period(refresh_hz)); }
+    // The same gate for an explicit presentation interval (Smooth's half-refresh fallback).
+    bool due_every(uint64_t now, uint64_t interval) {
         if (interval != period_) {
             reset();
             period_ = interval;
@@ -66,5 +68,67 @@ class LoSpecCadence {
 
   private:
     uint64_t next_ = 0, period_ = 0;
+};
+// Smooth's fallback. A device that keeps missing refreshes at full rate presents every second refresh
+// instead of hitching (through LoSpecCadence::due_every, with the same interpolation); it retries full
+// rate after 10 s, then 20/40/80 s while retries keep failing. Late: more than 1.5 refreshes since the
+// previous present; 6 late presents within the last 60 trigger the fallback (a single load stall does not).
+class SmoothFallback {
+  public:
+    static constexpr int kWindow = 60, kLate = 6;
+    static constexpr uint64_t kFirstRetry = 10'000'000'000ull, kLastRetry = 80'000'000'000ull;
+    // Once per Smooth present: the interval since the previous present and the display refresh period
+    // (0 when unknown: the fallback is off). Returns true when the mode changed.
+    bool record(uint64_t interval_ns, uint64_t period_ns, uint64_t now) {
+        if (!period_ns) {
+            const bool was = halved_;
+            reset();
+            return was;
+        }
+        if (halved_) {
+            if (now < retry_at_)
+                return false;
+            halved_ = false;
+            probing_ = true;
+            clear();
+            return true;
+        }
+        const bool late = interval_ns * 2 > period_ns * 3;
+        if (count_ == kWindow)
+            late_ -= window_[size_t(at_)];
+        else
+            ++count_;
+        window_[size_t(at_)] = late;
+        late_ += late;
+        at_ = (at_ + 1) % kWindow;
+        if (late_ >= kLate) {
+            delay_ = probing_ ? std::min(delay_ * 2, kLastRetry) : kFirstRetry;
+            retry_at_ = now + delay_;
+            halved_ = true;
+            probing_ = false;
+            clear();
+            return true;
+        }
+        if (probing_ && count_ == kWindow)
+            probing_ = false; // the retry held: a later fallback starts again at 10 s
+        return false;
+    }
+    bool halved() const { return halved_; }
+    void reset() {
+        halved_ = probing_ = false;
+        delay_ = kFirstRetry;
+        retry_at_ = 0;
+        clear();
+    }
+
+  private:
+    void clear() {
+        window_ = {};
+        count_ = late_ = at_ = 0;
+    }
+    std::array<bool, kWindow> window_{};
+    int count_ = 0, late_ = 0, at_ = 0;
+    bool halved_ = false, probing_ = false;
+    uint64_t delay_ = kFirstRetry, retry_at_ = 0;
 };
 } // namespace sawgod::app
