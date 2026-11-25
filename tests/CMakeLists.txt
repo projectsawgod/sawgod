@@ -19,7 +19,7 @@ target_link_libraries(sawgod_tests PRIVATE sawgod_first_run sawgod_enhanced_musi
 target_sources(sawgod_tests PRIVATE test_audio_queue.cpp ${CMAKE_SOURCE_DIR}/src/app/audio_queue.cpp ${CMAKE_SOURCE_DIR}/src/app/audio_output.cpp)
 target_sources(sawgod_tests PRIVATE test_audio_review.cpp ${CMAKE_SOURCE_DIR}/src/app/audio_review.cpp)
 target_link_libraries(sawgod_tests PRIVATE SDL3::SDL3)
-target_sources(sawgod_tests PRIVATE test_falloff_field.cpp test_graphics_transitions.cpp test_debug_log.cpp)
+target_sources(sawgod_tests PRIVATE test_light_groups.cpp test_graphics_transitions.cpp test_debug_log.cpp)
 target_sources(sawgod_tests PRIVATE test_terrain_veil.cpp test_host_picture.cpp test_audio_switch.cpp test_enhanced_music.cpp test_mode7.cpp test_presentation.cpp test_party_ui.cpp test_item_dialog_ui.cpp test_creation_ui.cpp test_bestiary_ui.cpp test_save_ui.cpp test_service_ui.cpp test_dialogue_ui.cpp test_ui_detail.cpp test_gb_core.cpp test_gb_music.cpp test_gb_sfx.cpp ${CMAKE_SOURCE_DIR}/src/app/gb_music.cpp ${CMAKE_SOURCE_DIR}/src/app/gb_cues.cpp ${CMAKE_SOURCE_DIR}/src/app/sound_mix.cpp test_player_names.cpp test_ui_chrome.cpp test_text_fit.cpp test_text_wrap.cpp test_first_run.cpp)
 target_compile_definitions(sawgod_tests PRIVATE SAWGOD_TEST_FIXTURES="${CMAKE_CURRENT_SOURCE_DIR}/fixtures")
 target_sources(sawgod_tests PRIVATE test_field_npcs.cpp test_battle_rewards.cpp)

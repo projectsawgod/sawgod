@@ -362,7 +362,7 @@ in config or use `--no-snap-to-grid` for this run. Defaults:
 
 ```toml
 [enhanced]
-battle_lighting = true # Battle Lighting: stage light, floor pools, corner focus and pulsing target light
+battle_lighting = true # Battle Lighting: stage/corner dimming and pulsing target light
 snap_to_grid = true
 contact_shadows = true
 beam_style = 0   # hidden: 0 cone (default), 1 parallel shaft, 2 cone with dust
@@ -427,6 +427,11 @@ transparent bottom padding, rather than the 16×16 cell bottom. Projected shadow
 output-pixel anchor. Party/NPC ellipses have radii 6.6×2.2 native pixels; battle ellipses keep their
 portrait-cell anchors.
 
+All performance settings use 224×144 light/shadow fields, at most 32 visible field sources and
+eight spell groups. Unchanged light planes reuse their resident texture. Bloom extracts and blurs
+at 56×36 (formerly 112×72), keeping the existing blur reach and full battle strength. These limits
+are fixed and add no options; Lo-Spec still controls its existing scene cap and pacing.
+
 The current effects include actor/enemy contact shadows, warm grading, bloom, tagged lights,
 tagged water and the native fire-landing light. Warm grade defaults off; map bloom
 (field maps and world maps) uses 25% of the setting and battle bloom 100%. Field dialogue keeps effects while map, scroll
@@ -441,7 +446,7 @@ outside the effects. No silhouette shadows.
 
 `enhanced.battle_lighting` (Options → Video → Enhanced → HD Battles, default On) adds
 battlefield lighting at output resolution, fading with the Enhanced weight. Only background rows 16–79
-receive corner focus (sigma about 1 native pixel, 12% darkening) and stage dimming (18% outside Gaussian
+receive corner dimming (12%, without blur) and stage dimming (18% outside Gaussian
 34×40 px cones at visible enemy picture centers). During enemy-target selection the selected group's gain
 pulses from 1 to 2.2 over 1.2 s and its own pixels lift by up to 18% with a slight warm addition; the
 selected group also gets an outline: a 1 native px warm near-white (255,232,200) ring on
@@ -460,21 +465,22 @@ involved. For a before/after capture, setting one of `SAWGOD_BATTLE_ICE`, `SAWGO
 `SAWGOD_BATTLE_POISON`, `SAWGOD_BATTLE_SLEEP`, `SAWGOD_BATTLE_DEATH`, `SAWGOD_BATTLE_CAST_GLOW` to exactly `0`
 turns that one off for the session. Sleep covers only effect-7 palette 1; death covers palette 4 and
 its dark follow-up. Other shared palettes remain ordinary. All native art and coverage are preserved,
-including ice's transparent cracks. Glow reach: fire 8 native pixels (one tile); ice, thunder, poison, sleep
+including ice's transparent cracks. Group padding: fire 8 native pixels (one tile); ice, thunder, poison, sleep
 and death 4 px. Thunder uses #FFF080 light at 1.25x strength. Death uses the subtractive light path.
-The casting glow (shared casting 0x378130) is white with 8 px reach; the delivery glow (native delivery states
-0x378EA0, 0x3788B0 and 0x3784B0) has 8 px reach and takes its color from the traveling sprite's live palette.
+The casting glow (shared casting 0x378130) is white with 8 px padding; the delivery glow (native delivery states
+0x378EA0, 0x3788B0 and 0x3784B0) has 8 px padding and takes its color from the traveling sprite's live palette.
 Casting stays white. Delivery samples the traveling sprite's live raster colors: all nonblack
 covered pixels contribute RGB weighted by brightness (3R + 6G + B). The mean's largest channel
 is normalized to 1, preserving hue/saturation and the previous peak strength. An entirely black
 sprite emits no delivery light. No per-spell color table is used; phase 3 is unchanged.
 Native ice, sleep and death casts have no separate delivery state.
-Reach is Euclidean distance from the nearest occupied effect-pixel center: exactly zero
-at/beyond the radius. Normalized falloff falls below 1/255 at 0.942366583 times the radius
-(7.539 px for 8 px; 3.769 px for 4 px). Exact patch bitmaps prevent sparse sprites or
-centroids from enlarging support. Spell art is restored exactly and excluded from ambient
+Connected native spell pixels form at most eight groups, merging the nearest centers when needed.
+Each group's light is centered at its brightness-weighted mean and uses a soft disc whose radius
+covers its extent plus the animation's padding (rounded up to 2 px). All sizes share one cached
+texture. This replaces exact 8×8 pixel masks and per-mask distance textures. Spell art is restored
+exactly and excluded from ambient
 bloom extraction; the existing scene bloom remains independent. Moving delivery lights
-visible enemies/background/floor as it travels; UI stays protected. Separate breath/gaze/physical
+light visible enemies/background/floor as they travel; UI stays protected. Separate breath/gaze/physical
 animations, stone, WSC and GB stay unchanged. `SAWGOD_BATTLE_TRACE=1` logs native animation
 returns and HP changes for hit-frame comparisons.
 
@@ -495,7 +501,8 @@ The GPU resolves the loaded 80×80 cell layout (160×160 quadrant words), packed
 palettes, and water tags. Ground repair and field-ring/event edits change only the cell layout;
 tile/palette animation uploads only those small textures. GPU-generated color mip levels with Lanczos
 reconstruction smooth minified ground while magnified WSC texels stay crisp. The plane, standing cards,
-water, lights, bloom, and grade render at the game picture's output resolution. Mode 7 ignores pixel snap;
+water and grade composite at the game picture's output resolution; light/shadow fields and bloom use
+the fixed smaller targets described above. Mode 7 ignores pixel snap;
 flat Enhanced retains it. The ordinary sharply scaled UI is restored on top. Tagged landmarks and actors share depth-sorted, cached
 textured cards. Suzaku ruined blocks stay flat; Tokyo Tower stands at its original height with its painted
 shadow. Perspective water keeps tint/shimmer; shoreline reflection remains an overhead-only effect.

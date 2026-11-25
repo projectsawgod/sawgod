@@ -120,13 +120,13 @@ void log_shot_gpu_work(const Mode7Renderer &mode7, const EnhancedGraphics &graph
             (unsigned long long)(mode7_uploaded ? mode7.ui_regions.pixels : 0),
             (unsigned long long)underlay_pixels, mode7_uploaded ? 2u : 0u);
     SDL_Log("GPU influence proxy: lights=%llu light_clear=%llu light_quads=%u "
-            "light_passes=%u shadows=%llu shadow_clear=%llu shadow_quads=%u "
+            "light_passes=%u light_draws=%u shadows=%llu shadow_clear=%llu shadow_quads=%u "
             "composite_samples=%u restore_samples=%u ground_shadow_samples=%u",
             (unsigned long long)graphics.influence_work.pixels,
             (unsigned long long)graphics.influence_work.clear_pixels, graphics.influence_work.quads,
-            graphics.influence_work.passes, (unsigned long long)mode7.shadow_work.pixels,
-            (unsigned long long)mode7.shadow_work.clear_pixels, mode7.shadow_work.quads,
-            sawgod::EnhancedGraphics::composite_influence_samples,
+            graphics.influence_work.passes, graphics.influence_work.draws,
+            (unsigned long long)mode7.shadow_work.pixels, (unsigned long long)mode7.shadow_work.clear_pixels,
+            mode7.shadow_work.quads, sawgod::EnhancedGraphics::composite_influence_samples,
             sawgod::EnhancedGraphics::restore_influence_samples,
             sawgod::Mode7Renderer::ground_shadow_samples);
 }

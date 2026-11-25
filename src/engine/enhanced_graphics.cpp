@@ -7,7 +7,6 @@
 #include "engine/shaders/enhanced.generated.h"
 #include "engine/startup_timing.h"
 #include <algorithm>
-#include <bit>
 #include <cmath>
 #include <cstring>
 
@@ -64,7 +63,7 @@ bool EnhancedGraphics::init(SDL_Renderer *renderer, SDL_Texture *scene, SDL_Text
         return t;
     };
     external_ = scene && ownership && water;
-    if (!influence_.init(renderer, 224, 144, 4, !external_)) {
+    if (!influence_.init(renderer, 224, 144, 4)) {
         shutdown();
         return false;
     }
@@ -107,7 +106,7 @@ bool EnhancedGraphics::init(SDL_Renderer *renderer, SDL_Texture *scene, SDL_Text
     if (external_)
         SDL_GetTextureSize(scene, &width, &height);
     for (size_t i = 0; i < 3; ++i)
-        targets_[i] = texture(SDL_TEXTUREACCESS_TARGET, 112, 72);
+        targets_[i] = texture(SDL_TEXTUREACCESS_TARGET, 56, 36);
     targets_[3] = texture(SDL_TEXTUREACCESS_TARGET, external_ ? 448 : 672, external_ ? 288 : 432);
     if (external_)
         SDL_SetTextureScaleMode(targets_[3], SDL_SCALEMODE_LINEAR);
@@ -178,7 +177,6 @@ bool EnhancedGraphics::upload(const std::vector<uint32_t> &wsc, const std::vecto
             h.add(l.beam);
             h.add(l.type);
             h.add(l.extent);
-            h.add(l.source_pixels);
         }
         t.write(external_ ? "Mode7.lights" : "Enhanced.lights", h);
     }
@@ -188,6 +186,25 @@ bool EnhancedGraphics::upload(const std::vector<uint32_t> &wsc, const std::vecto
     if (!external_)
         sharp_ui_regions_.update(mask);
     influence_parameters_ = p;
+    auto &lights = influence_parameters_.lights;
+    // Keep the brightest nearby visible sources, with stable ties. Maps have at most 32 field
+    // lights; connected spells have at most 8. Hidden mod sources cannot crowd out visible ones.
+    std::erase_if(lights, [](const PointLight &l) {
+        const float rx = l.position[2] + l.extent[0], ry = l.position[2] + l.extent[1];
+        return l.position[0] + rx < 0 || l.position[0] - rx > 224 || l.position[1] + ry < 0 ||
+               l.position[1] - ry > 144;
+    });
+    if (lights.size() > 32) {
+        const auto score = [](const PointLight &l) {
+            const float x = l.position[0] - 112, y = l.position[1] - 72;
+            return l.emission[3] / (1 + (x * x + y * y) / (112 * 112));
+        };
+        std::stable_sort(lights.begin(), lights.end(),
+                         [&](const PointLight &a, const PointLight &b) { return score(a) > score(b); });
+    }
+    size_t field_count = 0, spell_count = 0;
+    std::erase_if(lights,
+                  [&](const PointLight &l) { return l.type < 6 ? field_count++ >= 32 : spell_count++ >= 8; });
     uniforms_ = {};
     uniforms_.palette_fade = {p.palette_range[0], p.palette_range[1], 0, 0};
     uniforms_.battle[0] = external_ ? 0.f : p.battle_lighting.weight;
@@ -196,11 +213,10 @@ bool EnhancedGraphics::upload(const std::vector<uint32_t> &wsc, const std::vecto
     uniforms_.battle_groups = p.battle_lighting.groups;
     uniforms_.metadata[0] = external_ ? 1.f : 0.f;
     uniforms_.metadata[1] =
-        std::any_of(p.lights.begin(), p.lights.end(), [](const PointLight &l) { return l.type < 6; }) ? 1.f
-                                                                                                      : 0.f;
+        std::any_of(lights.begin(), lights.end(), [](const PointLight &l) { return l.type < 6; }) ? 1.f : 0.f;
     uniforms_.metadata[2] =
-        std::any_of(p.lights.begin(), p.lights.end(), [](const PointLight &l) { return l.type == 6; }) ? 1.f
-                                                                                                       : 0.f;
+        std::any_of(lights.begin(), lights.end(), [](const PointLight &l) { return l.type == 6; }) ? 1.f
+                                                                                                   : 0.f;
     uniforms_.control = {0, p.snap ? 1.0f : 0.0f, p.grade, p.bloom};
     uniforms_.effect_grid = {p.effect_grid[0], p.effect_grid[1], p.effect_origin[0], p.effect_origin[1]};
     uniforms_.scene = {p.shadows ? 1.0f : 0.0f, p.gb_weight, float(std::min<size_t>(p.actors.size(), 20)), 0};
@@ -216,32 +232,24 @@ bool EnhancedGraphics::upload(const std::vector<uint32_t> &wsc, const std::vecto
     std::copy_n(p.actors.begin(), std::min<size_t>(p.actors.size(), 20), uniforms_.actors.begin());
     uniforms_.water = {
         p.water_strength, float(p.frame % 30720), p.effect_weight,
-        std::any_of(p.lights.begin(), p.lights.end(), [](const PointLight &l) { return l.type == 7; })
-            ? 1.0f
-            : 0.0f};
-    for (const auto &l : p.lights)
+        std::any_of(lights.begin(), lights.end(), [](const PointLight &l) { return l.type == 7; }) ? 1.0f
+                                                                                                   : 0.0f};
+    for (const auto &l : lights)
         if (l.type == 7) {
             // Each native animation has one table-selected gloomy target, shared by all its patches.
             uniforms_.dark_color = l.emission;
             break;
         }
-    uniforms_.lighting = {float(std::min<size_t>(p.lights.size(), 256)), p.light_strength,
-                          float(p.beam_style), float(p.frame % 30720)};
-    for (size_t i = 0; i < std::min<size_t>(p.lights.size(), 256); ++i) {
-        light_positions_[i] = p.lights[i].position;
-        light_positions_[i][3] = float(p.lights[i].type);
-        if ((p.lights[i].type == 6 || p.lights[i].type == 7) &&
-            (p.lights[i].source_pixels[0] || p.lights[i].source_pixels[1]))
-            light_positions_[i][3] += 2;
-        light_colors_[i] = p.lights[i].emission;
-        light_beams_[i] = p.lights[i].beam;
-        if (p.lights[i].type != 4) {
-            light_beams_[i][0] = p.lights[i].extent[0];
-            light_beams_[i][1] = p.lights[i].extent[1];
-        }
-        if (light_positions_[i][3] >= 8) {
-            light_beams_[i][2] = std::bit_cast<float>(p.lights[i].source_pixels[0]);
-            light_beams_[i][3] = std::bit_cast<float>(p.lights[i].source_pixels[1]);
+    uniforms_.lighting = {float(std::min<size_t>(lights.size(), 40)), p.light_strength, float(p.beam_style),
+                          float(p.frame % 30720)};
+    for (size_t i = 0; i < std::min<size_t>(lights.size(), 40); ++i) {
+        light_positions_[i] = lights[i].position;
+        light_positions_[i][3] = float(lights[i].type);
+        light_colors_[i] = lights[i].emission;
+        light_beams_[i] = lights[i].beam;
+        if (lights[i].type != 4) {
+            light_beams_[i][0] = lights[i].extent[0];
+            light_beams_[i][1] = lights[i].extent[1];
         }
     }
     if (auto &t = presentation_diagnostics::trace(); t.enabled()) {
@@ -316,7 +324,23 @@ bool EnhancedGraphics::build_influences() {
                                          });
         if (!active && !influence_active_[size_t(plane)])
             continue;
-        influence_active_[size_t(plane)] = active;
+        std::vector<PointLight> sources;
+        if (plane < 3 && active)
+            for (const auto &l : influence_parameters_.lights)
+                if (plane == 0 ? l.type < 6 : (plane == 1 ? l.type == 6 : l.type >= 6))
+                    sources.push_back(l);
+        auto key = u;
+        if (!std::any_of(sources.begin(), sources.end(),
+                         [&](const PointLight &l) { return l.type == 4 && u.options[1] > 1.5f; }))
+            key.options[2] = 0; // steady stamps do not depend on the animation clock
+        const std::vector<std::array<float, 4>> actors =
+            plane == 3 && active ? influence_parameters_.actors : std::vector<std::array<float, 4>>{};
+        const auto index = size_t(plane);
+        if (!presentation_diagnostics::fresh() && influence_valid_[index] &&
+            influence_sources_[index] == sources && influence_actors_[index] == actors &&
+            influence_keys_[index] == key)
+            continue;
+        influence_active_[index] = active;
         if (!influence_.begin(plane))
             return false;
         bool ok = true;
@@ -343,6 +367,10 @@ bool EnhancedGraphics::build_influences() {
         ok = influence_.end() && ok;
         if (!ok)
             return false;
+        influence_valid_[index] = true;
+        influence_sources_[index] = std::move(sources);
+        influence_actors_[index] = actors;
+        influence_keys_[index] = key;
     }
     influence_work = influence_.work;
     return true;
@@ -523,6 +551,9 @@ void EnhancedGraphics::shutdown() {
     water_pattern_ = nullptr;
     influence_.shutdown();
     influence_active_ = {};
+    influence_valid_ = {};
+    influence_sources_ = {};
+    influence_actors_ = {};
     SDL_DestroyTexture(gb_);
     finish_ordinary_ = nullptr;
     finish_width_ = finish_height_ = 0;

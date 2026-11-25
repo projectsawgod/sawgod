@@ -256,6 +256,7 @@ uint32_t color(const std::string &s) {
 
 void LightTags::seed(const emu::Wsc &w, const DataTables *tables) {
     sets_.clear();
+    lookups_.clear();
     water_sets_.clear();
     if (w.rom.size() != 0x400000)
         return;
@@ -428,6 +429,7 @@ bool LightTags::load(int set, const std::string &text, std::string *error) {
             tags.push_back(t);
         }
         sets_[set] = std::move(tags);
+        lookups_.erase(set);
         water_sets_[set] = std::move(waters);
         return true;
     } catch (const std::exception &e) {
@@ -474,15 +476,27 @@ std::vector<PointLight> LightTags::visible(const emu::FrameLayers &layers, const
                                            uint64_t frame) const {
     std::array<std::array<const LightTag *, 4>, 128> lookup{};
     if (const auto it = sets_.find(set); it != sets_.end()) {
-        // find()'s precedence (the first exact mirror, else the last -1 fallback) without searching
-        // the entire tag list for each of the 512 lookup entries per chunk.
         const auto &tags = it->second;
-        for (const auto &tag : tags)
-            if (tag.mirror == -1 && tag.metatile >= 0 && tag.metatile < 128)
-                lookup[size_t(tag.metatile)].fill(&tag);
-        for (auto tag = tags.rbegin(); tag != tags.rend(); ++tag)
-            if (tag->mirror >= 0 && tag->mirror < 4 && tag->metatile >= 0 && tag->metatile < 128)
-                lookup[size_t(tag->metatile)][size_t(tag->mirror)] = &*tag;
+        auto [cached, inserted] = lookups_.try_emplace(set);
+        auto &indices = cached->second;
+        if (inserted) {
+            for (auto &entry : indices)
+                entry.fill(-1);
+            for (size_t i = 0; i < tags.size(); ++i) {
+                const auto &tag = tags[i];
+                if (tag.mirror == -1 && tag.metatile >= 0 && tag.metatile < 128)
+                    indices[size_t(tag.metatile)].fill(int(i));
+            }
+            for (size_t i = tags.size(); i-- > 0;) {
+                const auto &tag = tags[i];
+                if (tag.mirror >= 0 && tag.mirror < 4 && tag.metatile >= 0 && tag.metatile < 128)
+                    indices[size_t(tag.metatile)][size_t(tag.mirror)] = int(i);
+            }
+        }
+        for (size_t tile = 0; tile < 128; ++tile)
+            for (size_t mirror = 0; mirror < 4; ++mirror)
+                if (indices[tile][mirror] >= 0)
+                    lookup[tile][mirror] = &tags[size_t(indices[tile][mirror])];
     }
     struct Sample {
         float score;

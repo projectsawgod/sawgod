@@ -430,7 +430,6 @@ add_library(sawgod_ui STATIC
     src/engine/enhanced_graphics.cpp
     src/engine/menu_fill.cpp
     src/engine/hd_menus.cpp
-    src/engine/falloff_field.cpp
     src/engine/influence_stamp.cpp
     src/engine/influence_buffer.cpp
     src/engine/presentation_renderer.cpp
