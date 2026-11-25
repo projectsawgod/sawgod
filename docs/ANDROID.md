@@ -147,7 +147,8 @@ MidiShare, network, OSS, DirectSound, WASAPI, WaveOut, WinMIDI, SDL audio, Pulse
 OpenMP, systemd, native DLS, Signalsmith, PortAudio, OpenSL ES and Oboe. SDL motion sensors are disabled for this gamepad build; miniz uses memory IO only. Private desktop
 GPU timestamp instrumentation is omitted from Android; rendering/effects are unchanged.
 The app sends the existing mixer
-samples to SDL; ordinary FluidSynth chorus/reverb and threading remain enabled. No Enhanced casting changes.
+samples to SDL. Chorus is disabled; Lo-Spec also disables reverb and selects the cheapest interpolation.
+The authored score and its gain envelopes are retained.
 
 The APK includes exact FluidSynth/GCEM source archives and a rebuild script in `assets/source/`, plus
 licenses/. To replace FluidSynth, unzip the APK's assets/source into a writable folder, then run:
@@ -170,11 +171,16 @@ It saves callee-saved registers, stack pointer and floating-point control state,
 
 Options → Video → Performance offers Smooth / Exact / Lo-Spec. Smooth is the default
 everywhere; choose Lo-Spec (`video.pacing = "lospec"`) on slower phones.
-Lo-Spec presents at 30 FPS (every 2nd/3rd/4th refresh on 60/90/120 Hz panels; otherwise timed),
-including Options, using Smooth's latest-two-native-step interpolation. Enhanced scenes cap at
-672×432 and Enhanced music uses 16 voices per synth (32 otherwise; from the next song). Host UI, text,
-minimap and touch controls stay at output resolution. Input service, every 75.471698 Hz native tick, RNG,
-battle speed and audio buffers remain unchanged.
+Lo-Spec presents at half refresh through 120 Hz: 30 FPS on 60 Hz panels, 45 FPS on 90 Hz, and
+60 FPS on 120 Hz, including Options. Faster panels use the smallest whole divisor that stays at or
+below 60 FPS (144 Hz: 48 FPS; 165 Hz: 55 FPS; 240 Hz: 60 FPS). Without vsync or a known refresh rate it uses timed
+30 FPS. It retains Smooth's native motion history and latest-two-step interpolation.
+Enhanced scenes cap at 672×432. Enhanced music uses measured per-song voice limits (8–22, instead of
+32), no reverb, and nearest-sample interpolation at 24 kHz; this takes effect with the next song.
+Lo-Spec removes the idle synth reserve and creates cue synths only while needed. Host UI, text,
+minimap and touch controls stay at output resolution. Input service, every 75.471698 Hz native tick,
+RNG, battle speed and audio buffers remain unchanged. Scene descriptions/world inputs are reused
+on refreshes with no new native picture; camera projection remains per presentation.
 
 ## Device smoke check
 

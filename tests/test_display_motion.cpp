@@ -502,9 +502,10 @@ TEST_CASE("Enhanced scene cap preserves small outputs and fits larger outputs at
     CHECK(enhanced_scene_size(3360, 2160) == std::array<int, 2>{1120, 720});
 }
 
-TEST_CASE("Lo-Spec presents 30 times a second independently of native ticks and input") {
+TEST_CASE("Lo-Spec presents at half refresh capped at 60 by a whole divisor independently of native ticks "
+          "and input") {
     constexpr uint64_t second = 1'000'000'000;
-    for (int refresh : {0, 60, 90, 120, 144}) {
+    for (int refresh : {0, 60, 90, 120, 144, 165, 240, 360}) {
         CAPTURE(refresh);
         LoSpecCadence cadence;
         int presents = 0, native = 0, serviced = 0;
@@ -521,11 +522,12 @@ TEST_CASE("Lo-Spec presents 30 times a second independently of native ticks and 
             }
             presents += cadence.due(now, refresh);
         }
-        CHECK(presents == 300);
+        CHECK(presents ==
+              (refresh ? int(std::lround(10.0 * refresh / (LoSpecCadence::divisor_for(refresh)))) : 300));
         CHECK(native == 755);
         CHECK(serviced == 1);
         if (refresh == 60 || refresh == 90 || refresh == 120) {
-            CHECK(double(LoSpecCadence::period(refresh)) * refresh / second == doctest::Approx(refresh / 30));
+            CHECK(double(LoSpecCadence::period(refresh)) * refresh / second == doctest::Approx(2));
         }
     }
     CHECK(enhanced_scene_size(2240, 1440, true) == std::array<int, 2>{672, 432});
@@ -534,18 +536,18 @@ TEST_CASE("Lo-Spec presents 30 times a second independently of native ticks and 
 }
 
 TEST_CASE("Lo-Spec selects whole display refreshes and drops missed presentation deadlines") {
-    for (int refresh : {60, 90, 120, 144}) {
+    for (int refresh : {60, 90, 120, 144, 165, 240, 360}) {
         LoSpecCadence cadence;
         int count = 0, previous = -1;
         for (int frame = 0; frame < refresh * 10; ++frame) {
             if (cadence.due(uint64_t(1e9 * frame / refresh), refresh)) {
-                if (previous >= 0 && refresh != 144)
-                    CHECK(frame - previous == refresh / 30);
+                if (previous >= 0)
+                    CHECK(frame - previous == int(LoSpecCadence::divisor_for(refresh)));
                 previous = frame;
                 ++count;
             }
         }
-        CHECK(count == 300);
+        CHECK(count == int(std::ceil(double(refresh * 10) / (LoSpecCadence::divisor_for(refresh)))));
     }
     LoSpecCadence cadence;
     CHECK(cadence.due(1));

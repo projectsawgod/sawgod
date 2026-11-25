@@ -136,7 +136,9 @@ class EnhancedObserver {
 
 // Synchronous renderer is also used by the worker and accelerated review/tests. Owns all FluidSynth state.
 // A small lookahead keeps the offline spike's next-frame velocity and tick-based articulation exact.
-// FluidSynth voices per synth for songs started from now on: 32, or 16 in Performance Lo-Spec.
+// Performance Lo-Spec uses a measured per-song voice budget and lighter synthesis,
+// applied when the next song starts. Explicit voice counts are for deterministic auditions.
+void set_enhanced_music_low_spec(bool enabled);
 void set_enhanced_music_voices(int voices);
 int enhanced_music_voices();
 
@@ -148,6 +150,17 @@ class EnhancedRenderer {
     void mix(EnhancedFrame &frame, std::span<const EnhancedFrame> future);
     struct Stats {
         uint64_t frames = 0, notes = 0, bridges = 0, releases = 0, unmapped = 0;
+        uint64_t dropped_notes = 0, failed_noteons = 0;
+        Stats &operator+=(const Stats &s) {
+            frames += s.frames;
+            notes += s.notes;
+            bridges += s.bridges;
+            releases += s.releases;
+            unmapped += s.unmapped;
+            dropped_notes += s.dropped_notes;
+            failed_noteons += s.failed_noteons;
+            return *this;
+        }
     };
     Stats stats() const;
     Stats cue_stats() const;
@@ -191,6 +204,8 @@ class EnhancedRenderer {
     struct Pool;
     std::unique_ptr<Impl> impl_;
     std::unique_ptr<EnhancedRenderer> cue_;
+    bool with_cue_ = false;
+    Stats retired_cue_stats_;
     std::vector<EnhancedFrame> cue_future_;
     EnhancedRenderer(std::shared_ptr<Pool> pool, bool with_cue);
     void mix_stream(EnhancedFrame &frame, std::span<const EnhancedFrame> future);

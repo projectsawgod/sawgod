@@ -15,12 +15,16 @@
 #include <cmath>
 #include <condition_variable>
 #include <cstdio>
+#include <ctime>
 #include <deque>
 #include <filesystem>
 #include <map>
 #include <mutex>
 #include <optional>
 #include <thread>
+#ifdef __linux__
+#include <pthread.h>
+#endif
 #ifdef _WIN32
 #include <windows.h>
 #else
@@ -41,6 +45,7 @@ int midi(double n) { return std::clamp(int(std::nearbyint(n)), 0, 127); }
 struct fluid_settings_t;
 struct fluid_synth_t;
 struct fluid_sfont_t;
+struct fluid_voice_t;
 struct Fluid {
     bool usable = false;
 #ifdef _WIN32
@@ -57,6 +62,13 @@ struct Fluid {
     int (*fluid_synth_sfload)(fluid_synth_t *, const char *, int) = nullptr;
     fluid_sfont_t *(*fluid_synth_get_sfont)(fluid_synth_t *, unsigned int) = nullptr;
     int (*fluid_synth_add_sfont)(fluid_synth_t *, fluid_sfont_t *) = nullptr;
+    int (*fluid_synth_set_interp_method)(fluid_synth_t *, int, int) = nullptr;
+    int (*fluid_synth_reverb_on)(fluid_synth_t *, int, int) = nullptr;
+    int (*fluid_synth_get_active_voice_count)(fluid_synth_t *) = nullptr;
+    void (*fluid_synth_get_voicelist)(fluid_synth_t *, fluid_voice_t **, int, int) = nullptr;
+    int (*fluid_voice_get_channel)(const fluid_voice_t *) = nullptr;
+    int (*fluid_voice_get_key)(const fluid_voice_t *) = nullptr;
+    int (*fluid_voice_is_on)(const fluid_voice_t *) = nullptr;
     int (*fluid_synth_set_polyphony)(fluid_synth_t *, int) = nullptr;
     int (*fluid_synth_remove_sfont)(fluid_synth_t *, fluid_sfont_t *) = nullptr;
     int (*fluid_synth_noteon)(fluid_synth_t *, int, int, int) = nullptr;
@@ -99,6 +111,13 @@ struct Fluid {
         LOAD(fluid_synth_get_sfont);
         LOAD(fluid_synth_add_sfont);
         LOAD(fluid_synth_set_polyphony);
+        LOAD(fluid_synth_set_interp_method);
+        LOAD(fluid_synth_reverb_on);
+        LOAD(fluid_synth_get_active_voice_count);
+        LOAD(fluid_synth_get_voicelist);
+        LOAD(fluid_voice_get_channel);
+        LOAD(fluid_voice_get_key);
+        LOAD(fluid_voice_is_on);
         LOAD(fluid_synth_remove_sfont);
         LOAD(fluid_synth_noteon);
         LOAD(fluid_synth_noteoff);
@@ -359,7 +378,31 @@ EnhancedFrame EnhancedObserver::frame(const emu::Wsc &w) {
 
 namespace {
 std::atomic<int> g_music_voices{32};
+std::atomic<bool> g_low_spec_music{false};
+bool low_spec_music() {
+    return g_low_spec_music.load(std::memory_order_relaxed) ||
+           g_music_voices.load(std::memory_order_relaxed) < 32;
+}
+int song_voices(int song) {
+    if (!g_low_spec_music.load(std::memory_order_relaxed))
+        return g_music_voices.load(std::memory_order_relaxed);
+    switch (song) {
+    case 139:
+        return 22;
+    case 147:
+    case 148:
+        return 14;
+    case 151:
+    case 138:
+        return 12;
+    case 141:
+        return 10;
+    default:
+        return 8;
+    }
+}
 } // namespace
+void set_enhanced_music_low_spec(bool enabled) { g_low_spec_music.store(enabled, std::memory_order_relaxed); }
 void set_enhanced_music_voices(int voices) { g_music_voices.store(voices, std::memory_order_relaxed); }
 int enhanced_music_voices() { return g_music_voices.load(std::memory_order_relaxed); }
 
@@ -414,7 +457,7 @@ struct EnhancedRenderer::Pool {
     std::condition_variable wake;
     std::vector<std::unique_ptr<Synth>> ready;
     std::deque<std::unique_ptr<Synth>> retired;
-    size_t target = 0;
+    size_t target = 0, reserve_target = 0;
     bool stopping = false, failed = false;
     std::atomic<uint64_t> prepared{0}, inline_created{0};
     std::thread preparer;
@@ -461,7 +504,8 @@ struct EnhancedRenderer::Pool {
         }
         // One largest replacement for music and one for an overlapping cue. The two persistent
         // base synths retain their original lifetime/controllers/reverb across song boundaries.
-        target = 2 * largest;
+        reserve_target = 2 * largest;
+        target = low_spec_music() ? 0 : reserve_target;
         ready.reserve(target);
         for (size_t i = 0; i < target; ++i) {
             auto entry = fresh();
@@ -504,7 +548,10 @@ struct EnhancedRenderer::Pool {
                     }
                     std::lock_guard lock(mutex);
                     if (attached) {
-                        ready.push_back(std::move(entry));
+                        if (ready.size() < target)
+                            ready.push_back(std::move(entry));
+                        else
+                            retired.push_back(std::move(entry));
                         ++prepared;
                     } else
                         failed = true;
@@ -514,7 +561,27 @@ struct EnhancedRenderer::Pool {
     }
     // Audio worker never waits for preparation. Exceptional rapid replacements retain the old
     // correct-but-slow behavior using the already loaded font, and expose the shortage in stats.
-    std::unique_ptr<Synth> take() {
+    // Lo-Spec keeps only song-owned instances. The helper retires its unused reserve;
+    // leaving Lo-Spec refills it in the background, without changing a playing song.
+    void reserve(bool low) {
+        std::lock_guard lock(mutex);
+        const size_t desired = low ? 0 : reserve_target;
+        if (desired == target)
+            return;
+        target = desired;
+        while (ready.size() > target) {
+            retired.push_back(std::move(ready.back()));
+            ready.pop_back();
+        }
+        wake.notify_one();
+    }
+    static void quality(Synth &entry, int voices, bool low) {
+        entry.api.fluid_synth_set_polyphony(entry.synth, voices);
+        entry.api.fluid_synth_reverb_on(entry.synth, -1, !low);
+        // FLUID_INTERP_NONE = 0; the normal FluidSynth default is fourth order = 4.
+        entry.api.fluid_synth_set_interp_method(entry.synth, -1, low ? 0 : 4);
+    }
+    std::unique_ptr<Synth> take(int voices, bool low) {
         std::unique_ptr<Synth> entry;
         {
             std::lock_guard lock(mutex);
@@ -530,7 +597,7 @@ struct EnhancedRenderer::Pool {
         }
         // Voices per synth (Performance Lo-Spec: 16), set before the synth renders anything.
         if (entry && entry->synth)
-            entry->api.fluid_synth_set_polyphony(entry->synth, enhanced_music_voices());
+            quality(*entry, voices, low);
         return entry;
     }
     void retire(std::unique_ptr<Synth> entry) {
@@ -571,6 +638,9 @@ struct EnhancedRenderer::Impl {
     const EnhancedSong *song = nullptr;
     uint64_t generation = ~uint64_t(0), sequence = ~uint64_t(0);
     Stats stats;
+    bool low_spec = false;
+    int voices = 32;
+    bool measure_notes = std::getenv("SAWGOD_AUDIO_NOTE_AUDIT") != nullptr;
     EventSink sink;
     DrumSink drum_sink;
     std::unique_ptr<Impl> percussion;
@@ -663,7 +733,8 @@ struct EnhancedRenderer::Impl {
             }
             for (auto it = drum_ons.begin(); it != drum_ons.end();) {
                 if (it->sample <= drum_sample) {
-                    api.fluid_synth_noteon(percussion->synth, it->channel, it->key, it->velocity);
+                    if (api.fluid_synth_noteon(percussion->synth, it->channel, it->key, it->velocity) != 0)
+                        ++stats.failed_noteons;
                     drum_offs.push_back(
                         {drum_sample + uint64_t(it->channel == 0 ? 9600 : 2880), it->channel, it->key});
                     if (drum_sink)
@@ -695,11 +766,20 @@ struct EnhancedRenderer::Impl {
         int expression = 127, off_frames = -1;
         uint64_t gate_at = ~uint64_t(0);
         EnhancedVoice cast{};
+        bool lost = false;
     };
     std::array<Playing, 15> playing{};
     std::array<std::map<int, uint64_t>, 8> tick_samples;
     std::vector<float> pcm;
     std::array<std::vector<double>, 15> gain_pcm;
+    bool sounding() const {
+        if (synth && api.fluid_synth_get_active_voice_count(synth))
+            return true;
+        for (const auto &voice : amplified)
+            if (voice && voice->sounding())
+                return true;
+        return percussion && percussion->sounding();
+    }
     int channel(int voice) const {
         return song->voices[size_t(voice)].noise ? 9 : voice < 9 ? voice : voice + 1;
     }
@@ -708,6 +788,43 @@ struct EnhancedRenderer::Impl {
             send(synth);
         if (const auto &extra = amplified[size_t(voice)])
             send(extra->synth);
+    }
+    uint16_t sounding_notes() {
+        uint16_t mask = 0;
+        if (!measure_notes || !song)
+            return mask;
+        for (size_t lane = 0; lane < playing.size(); ++lane) {
+            const auto &active = playing[lane];
+            if (active.voice < 0 || active.articulating || active.lost)
+                continue;
+            bool present = true;
+            for_voice(active.voice, [&](auto *target) {
+                std::array<fluid_voice_t *, 128> voices{};
+                api.fluid_synth_get_voicelist(target, voices.data(), int(voices.size()), -1);
+                present &= std::any_of(voices.begin(), voices.end(), [&](auto *v) {
+                    return v && api.fluid_voice_is_on(v) &&
+                           api.fluid_voice_get_channel(v) == channel(active.voice) &&
+                           api.fluid_voice_get_key(v) == active.key;
+                });
+            });
+            if (present)
+                mask |= uint16_t(1u << lane);
+        }
+        return mask;
+    }
+    void audit_notes(uint16_t before) {
+        if (!measure_notes)
+            return;
+        // No samples render between these snapshots: disappearing held notes were
+        // stolen by this note-on, rather than reaching their sample's natural end.
+        const auto lost = uint16_t(before & ~sounding_notes());
+        for (size_t lane = 0; lane < playing.size(); ++lane)
+            if (lost & (1u << lane)) {
+                playing[lane].lost = true;
+                ++stats.dropped_notes;
+                std::fprintf(stderr, "note audit: song %d frame %llu lane %zu key %d missing\n", song->id,
+                             (unsigned long long)sequence, lane, playing[lane].key);
+            }
     }
     void stop(Playing &p, int subframe = 0) {
         if (p.voice >= 0) {
@@ -721,8 +838,9 @@ struct EnhancedRenderer::Impl {
     void select(int id, uint64_t gen) {
         for (auto &p : playing)
             stop(p);
-        for (int ch = 0; ch < 16; ++ch)
-            api.fluid_synth_all_sounds_off(synth, ch);
+        if (synth)
+            for (int ch = 0; ch < 16; ++ch)
+                api.fluid_synth_all_sounds_off(synth, ch);
         for (auto &extra : amplified)
             extra.reset();
         if (song && drum_sink)
@@ -737,11 +855,32 @@ struct EnhancedRenderer::Impl {
         playing = {};
         tick_samples = {};
         generation = gen;
+        low_spec = low_spec_music();
+        voices = song_voices(id);
         song = enhanced_song(id);
+        // A Lo-Spec song starts fresh, including its per-song voice allocation and
+        // controllers. Keep no unused base for an isolated score or an empty cue.
+        if (low_spec) {
+            pool->retire(std::move(instance));
+            synth = nullptr;
+        }
+        if (low_spec && (!song || song->isolated_voices)) {
+            pool->retire(std::move(instance));
+            synth = nullptr;
+        } else {
+            if (!instance)
+                instance = pool->take(voices, low_spec);
+            synth = instance ? instance->synth : nullptr;
+            if (!synth) {
+                song = nullptr;
+                return;
+            }
+            Pool::quality(*instance, voices, low_spec);
+        }
         if (!song)
             return;
         if (!song->drums.hits.empty()) {
-            percussion = std::make_unique<Impl>(pool, pool->take());
+            percussion = std::make_unique<Impl>(pool, pool->take(voices, low_spec));
             if (!percussion->synth) {
                 song = nullptr;
                 return;
@@ -756,7 +895,7 @@ struct EnhancedRenderer::Impl {
             const auto &v = song->voices[i];
             if (song->isolated_voices || v.amplitude != 1 || !v.amplitude_sections.empty() ||
                 !v.envelopes.empty()) {
-                amplified[i] = std::make_unique<Impl>(pool, pool->take());
+                amplified[i] = std::make_unique<Impl>(pool, pool->take(voices, low_spec));
                 if (!amplified[i]->synth) {
                     song = nullptr;
                     return;
@@ -782,7 +921,7 @@ struct EnhancedRenderer::Impl {
     Impl(std::shared_ptr<Pool> shared, std::unique_ptr<Pool::Synth> entry)
         : pool(std::move(shared)), instance(std::move(entry)), synth(instance ? instance->synth : nullptr) {}
     explicit Impl(std::shared_ptr<Pool> shared) : pool(std::move(shared)) {
-        if (pool->font) {
+        if (pool->font && !low_spec_music()) {
             std::lock_guard lock(pool->rendering);
             instance = pool->fresh();
             synth = instance ? instance->synth : nullptr;
@@ -794,14 +933,20 @@ EnhancedRenderer::EnhancedRenderer(const std::string &sf)
     : EnhancedRenderer(std::make_shared<Pool>(sf), true) {}
 EnhancedRenderer::EnhancedRenderer(std::shared_ptr<Pool> pool, bool with_cue)
     : impl_(std::make_unique<Impl>(pool)) {
-    if (with_cue && impl_->synth)
+    with_cue_ = with_cue;
+    if (with_cue && impl_->synth && !low_spec_music())
         cue_.reset(new EnhancedRenderer(std::move(pool), false));
 }
 EnhancedRenderer::~EnhancedRenderer() = default;
-bool EnhancedRenderer::available() const { return impl_->synth && (!cue_ || cue_->available()); }
+bool EnhancedRenderer::available() const { return impl_->pool->font && (!cue_ || cue_->available()); }
 EnhancedRenderer::Stats EnhancedRenderer::stats() const { return impl_->stats; }
 EnhancedRenderer::SynthStats EnhancedRenderer::synth_stats() const { return impl_->pool->stats(); }
-EnhancedRenderer::Stats EnhancedRenderer::cue_stats() const { return cue_ ? cue_->stats() : Stats{}; }
+EnhancedRenderer::Stats EnhancedRenderer::cue_stats() const {
+    auto total = retired_cue_stats_;
+    if (cue_)
+        total += cue_->stats();
+    return total;
+}
 int EnhancedRenderer::active_notes() const {
     return int(std::count_if(impl_->playing.begin(), impl_->playing.end(),
                              [](const auto &p) { return p.voice >= 0; })) +
@@ -826,8 +971,28 @@ void EnhancedRenderer::set_amplitude_sink(AmplitudeSink sink) {
 void EnhancedRenderer::mix(EnhancedFrame &f, std::span<const EnhancedFrame> future) {
     if (!available())
         return;
+    const bool cue_running = [&] {
+        for (size_t slot = 0; slot < f.channels.size(); ++slot)
+            if ((f.cue_slots & (1u << slot)) && f.channels[slot].step != 0xFFFF)
+                return true;
+        return false;
+    }();
+    // A cue renderer has no work before a cue starts. In Lo-Spec, also release it
+    // when its tracks and sample releases have ended (there is no reverb tail).
+    if (with_cue_ && !cue_ && enhanced_song(f.cue) && cue_running) {
+        cue_.reset(new EnhancedRenderer(impl_->pool, false));
+        cue_->set_event_sink(impl_->sink);
+        cue_->set_control_sink(impl_->control_sink);
+        cue_->set_amplitude_sink(impl_->amplitude_sink);
+    }
     std::lock_guard lock(impl_->pool->rendering);
+    impl_->pool->reserve(low_spec_music());
     mix_stream(f, future);
+    if (low_spec_music() && cue_ &&
+        (!enhanced_song(f.cue) || (!cue_running && !cue_->active_notes() && !cue_->impl_->sounding()))) {
+        retired_cue_stats_ += cue_->stats();
+        cue_.reset();
+    }
     if (!cue_)
         return;
     const auto cue_frame = [](const EnhancedFrame &source) {
@@ -858,12 +1023,20 @@ void EnhancedRenderer::mix(EnhancedFrame &f, std::span<const EnhancedFrame> futu
 }
 void EnhancedRenderer::mix_stream(EnhancedFrame &f, std::span<const EnhancedFrame> future) {
     auto &p = *impl_;
-    if (!p.synth)
+    if (!p.pool->font)
         return;
     ++p.stats.frames;
     const bool discontinuity = p.sequence != ~uint64_t(0) && f.sequence != p.sequence + 1;
     const bool fresh = f.generation != p.generation || discontinuity;
     p.sequence = f.sequence;
+    if (const auto *score = enhanced_song(f.song);
+        low_spec_music() && score && !p.sounding() &&
+        std::none_of(score->voices.begin(), score->voices.end(),
+                     [&](const auto &voice) { return f.channels[size_t(voice.slot)].step != 0xFFFF; })) {
+        if (p.song)
+            p.select(0, f.generation);
+        return;
+    }
     if (fresh || (p.song ? p.song->id : 0) != (enhanced_song(f.song) ? f.song : 0))
         p.select(f.song, f.generation);
     p.drum_events(f, future);
@@ -1002,6 +1175,7 @@ void EnhancedRenderer::mix_stream(EnhancedFrame &f, std::span<const EnhancedFram
                 const int wsc_pan = left + right ? midi(64 + 63.0 * (right - left) / (left + right)) : 64;
                 const int pan = enhanced_pan(wsc_pan, v.seat);
                 const int ch = p.channel(vi);
+                const auto sounding_before = p.sounding_notes();
                 p.for_voice(vi, [&](auto *target) {
                     if (p.song->layered) {
                         p.api.fluid_synth_cc(target, ch, 0, v.bank);
@@ -1013,7 +1187,8 @@ void EnhancedRenderer::mix_stream(EnhancedFrame &f, std::span<const EnhancedFram
                     p.api.fluid_synth_cc(target, ch, 10, pan);
                     p.api.fluid_synth_cc(target, ch, 11, (f.sfx & (1 << c.hw)) || !c.ceiling ? 0 : 127);
                     p.api.fluid_synth_pitch_bend(target, ch, 8192);
-                    p.api.fluid_synth_noteon(target, ch, key, velocity);
+                    if (p.api.fluid_synth_noteon(target, ch, key, velocity) != 0)
+                        ++p.stats.failed_noteons;
                 });
                 if (p.sink)
                     p.sink({f.sequence, p.song->id, vi, key, velocity});
@@ -1051,6 +1226,7 @@ void EnhancedRenderer::mix_stream(EnhancedFrame &f, std::span<const EnhancedFram
                         f.sequence * 10 + uint64_t(std::max(1.0, std::nearbyint(frames * 10 * v.gate)));
                 }
                 ++p.stats.notes;
+                p.audit_notes(uint16_t(sounding_before | (1u << lane)));
                 continue;
             }
             if (active.voice < 0)
@@ -1087,12 +1263,16 @@ void EnhancedRenderer::mix_stream(EnhancedFrame &f, std::span<const EnhancedFram
                 p.api.fluid_synth_cc(target, p.channel(active.voice), 11, expression);
             });
         }
+    if (p.low_spec && !p.song)
+        return;
     p.pcm.resize(f.samples.size());
     // Absolute observed driver ticks do not restart at the loop boundary.
     // Existing lookahead locates the section's exact frame before its rest ramp.
     if (p.song)
         for (size_t vi = 0; vi < p.song->voices.size(); ++vi) {
             const auto &v = p.song->voices[vi];
+            if (!p.amplified[vi])
+                continue;
             double first = v.amplitude, end = first;
             for (const auto &section : v.amplitude_sections) {
                 if (f.channels[size_t(v.slot)].ticks >= section.tick) {
@@ -1219,14 +1399,15 @@ void EnhancedRenderer::mix_stream(EnhancedFrame &f, std::span<const EnhancedFram
     if (!p.pcm.empty()) {
         const float gain = f.gain * (f.slow_fade ? 1 : f.music_fade) *
                            (p.song ? p.song->gain * p.song->mix_gain : 0) * 32768;
-        for (size_t i = 0; i < f.samples.size(); ++i) {
-            const float envelope = f.slow_fade ? f.music_fade_first + (f.music_fade - f.music_fade_first) *
-                                                                          float(i / 2 + 1) /
-                                                                          float(f.samples.size() / 2)
-                                               : 1;
-            f.samples[i] =
-                int16_t(std::clamp(float(f.samples[i]) + p.pcm[i] * gain * envelope, -32768.0f, 32767.0f));
-        }
+        if (gain != 0)
+            for (size_t i = 0; i < f.samples.size(); ++i) {
+                const float envelope =
+                    f.slow_fade ? f.music_fade_first + (f.music_fade - f.music_fade_first) *
+                                                           float(i / 2 + 1) / float(f.samples.size() / 2)
+                                : 1;
+                f.samples[i] = int16_t(
+                    std::clamp(float(f.samples[i]) + p.pcm[i] * gain * envelope, -32768.0f, 32767.0f));
+            }
     }
 }
 
@@ -1250,6 +1431,15 @@ struct EnhancedAudio::Impl {
               available.store(synth.available());
               ready.store(true);
               ready.notify_all();
+#ifdef __linux__
+              pthread_setname_np(pthread_self(), "sawgod-music");
+              const auto thread_cpu = [] {
+                  timespec t{};
+                  clock_gettime(CLOCK_THREAD_CPUTIME_ID, &t);
+                  return uint64_t(t.tv_sec) * 1'000'000'000 + uint64_t(t.tv_nsec);
+              };
+              const auto cpu_start = thread_cpu();
+#endif
               FastForwardAudio ff;
 
               struct Packet {
@@ -1345,7 +1535,14 @@ struct EnhancedAudio::Impl {
                       std::this_thread::sleep_for(std::chrono::milliseconds(1));
                   }
               }
-          }) {}
+#ifdef __linux__
+              if (std::getenv("SAWGOD_AUDIO_CPU_TIMING"))
+                  std::fprintf(stderr, "audio thread CPU %.6f ms, frames %llu\n",
+                               double(thread_cpu() - cpu_start) / 1e6,
+                               (unsigned long long)rendered_frames.load());
+#endif
+          }) {
+    }
     ~Impl() {
         stopping.store(true);
         if (worker.joinable())
