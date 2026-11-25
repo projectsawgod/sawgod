@@ -1,4 +1,5 @@
 #include "app/enhanced_music.h"
+#include "app/shared_reverb.h"
 #include "engine/startup_timing.h"
 #ifdef __ANDROID__
 #include "engine/data_dir.h"
@@ -383,9 +384,11 @@ bool low_spec_music() {
     return g_low_spec_music.load(std::memory_order_relaxed) ||
            g_music_voices.load(std::memory_order_relaxed) < 32;
 }
+// Every mode: a measured per-song voice budget (no note is stolen in any locked song). An explicit
+// set_enhanced_music_voices below 32 (auditions) overrides it.
 int song_voices(int song) {
-    if (!g_low_spec_music.load(std::memory_order_relaxed))
-        return g_music_voices.load(std::memory_order_relaxed);
+    if (const int explicit_voices = g_music_voices.load(std::memory_order_relaxed); explicit_voices < 32)
+        return explicit_voices;
     switch (song) {
     case 139:
         return 22;
@@ -505,7 +508,8 @@ struct EnhancedRenderer::Pool {
         // One largest replacement for music and one for an overlapping cue. The two persistent
         // base synths retain their original lifetime/controllers/reverb across song boundaries.
         reserve_target = 2 * largest;
-        target = low_spec_music() ? 0 : reserve_target;
+        // Spare synths in every mode: building one on the audio worker at a song change can drop audio.
+        target = reserve_target;
         ready.reserve(target);
         for (size_t i = 0; i < target; ++i) {
             auto entry = fresh();
@@ -561,11 +565,10 @@ struct EnhancedRenderer::Pool {
     }
     // Audio worker never waits for preparation. Exceptional rapid replacements retain the old
     // correct-but-slow behavior using the already loaded font, and expose the shortage in stats.
-    // Lo-Spec keeps only song-owned instances. The helper retires its unused reserve;
-    // leaving Lo-Spec refills it in the background, without changing a playing song.
-    void reserve(bool low) {
+    // Every mode keeps the spare synths (a Lo-Spec song still starts on a fresh one).
+    void reserve(bool) {
         std::lock_guard lock(mutex);
-        const size_t desired = low ? 0 : reserve_target;
+        const size_t desired = reserve_target;
         if (desired == target)
             return;
         target = desired;
@@ -577,9 +580,11 @@ struct EnhancedRenderer::Pool {
     }
     static void quality(Synth &entry, int voices, bool low) {
         entry.api.fluid_synth_set_polyphony(entry.synth, voices);
-        entry.api.fluid_synth_reverb_on(entry.synth, -1, !low);
-        // FLUID_INTERP_NONE = 0; the normal FluidSynth default is fourth order = 4.
-        entry.api.fluid_synth_set_interp_method(entry.synth, -1, low ? 0 : 4);
+        // Every synth renders dry: one SharedReverb on the mix replaces a reverb per synth instance.
+        (void)low;
+        entry.api.fluid_synth_reverb_on(entry.synth, -1, 0);
+        // FluidSynth's default fourth-order interpolation: cutting it saves almost nothing and adds grit.
+        entry.api.fluid_synth_set_interp_method(entry.synth, -1, 4);
     }
     std::unique_ptr<Synth> take(int voices, bool low) {
         std::unique_ptr<Synth> entry;
@@ -640,6 +645,11 @@ struct EnhancedRenderer::Impl {
     Stats stats;
     bool low_spec = false;
     int voices = 32;
+    // Lo-Spec: the synths render dry and this one reverb processes their summed sends (top-level renderer
+    // only).
+    std::unique_ptr<SharedReverb> reverb;
+    std::vector<float> send;
+    float main_send = 0;
     bool measure_notes = std::getenv("SAWGOD_AUDIO_NOTE_AUDIT") != nullptr;
     EventSink sink;
     DrumSink drum_sink;
@@ -715,7 +725,7 @@ struct EnhancedRenderer::Impl {
         }
         drum_tick = tick;
     }
-    void render_drums(float *output, int count, int frame_begin) {
+    void render_drums(float *output, int count, int frame_begin, float *send = nullptr) {
         if (!percussion || !song)
             return;
         percussion->pcm.resize(size_t(count) * 2);
@@ -755,8 +765,13 @@ struct EnhancedRenderer::Impl {
             begin = end;
         }
         const double gain = song->drums.gain / song->gain;
-        for (size_t i = 0; i < percussion->pcm.size(); ++i)
-            output[i] += float(percussion->pcm[i] * gain * drum_amplitude[size_t(frame_begin) + i / 2]);
+        for (size_t i = 0; i < percussion->pcm.size(); ++i) {
+            const float value =
+                float(percussion->pcm[i] * gain * drum_amplitude[size_t(frame_begin) + i / 2]);
+            output[i] += value;
+            if (send)
+                send[i] += value * (25.f / 127); // the kit's CC91
+        }
     }
     ControlSink control_sink;
     AmplitudeSink amplitude_sink;
@@ -858,6 +873,22 @@ struct EnhancedRenderer::Impl {
         low_spec = low_spec_music();
         voices = song_voices(id);
         song = enhanced_song(id);
+        // One reverb for the whole mix in every mode. A song starts it clean, as the fresh synths of a new
+        // song started their own reverbs. Level 0.4 is 1.6x the measured wet loudness of the former
+        // per-synth reverbs (0.25).
+        if (!reverb)
+            reverb = std::make_unique<SharedReverb>(emu::Apu::kSampleRate, 0.55, 0.3, 0.8, 0.4);
+        reverb->reset();
+        // The main synth plays every voice: its send is the voices' CC91, weighted by their CC7.
+        main_send = 0;
+        if (song) {
+            double weighted = 0, total = 0;
+            for (const auto &v : song->voices) {
+                weighted += double(v.volume) * v.reverb / 127;
+                total += v.volume;
+            }
+            main_send = total > 0 ? float(weighted / total) : 0;
+        }
         // A Lo-Spec song starts fresh, including its per-song voice allocation and
         // controllers. Keep no unused base for an isolated score or an empty cue.
         if (low_spec) {
@@ -1266,6 +1297,9 @@ void EnhancedRenderer::mix_stream(EnhancedFrame &f, std::span<const EnhancedFram
     if (p.low_spec && !p.song)
         return;
     p.pcm.resize(f.samples.size());
+    const bool shared_reverb = p.reverb != nullptr;
+    if (shared_reverb)
+        p.send.assign(f.samples.size(), 0.f);
     // Absolute observed driver ticks do not restart at the loop boundary.
     // Existing lookahead locates the section's exact frame before its rest ramp.
     if (p.song)
@@ -1361,10 +1395,14 @@ void EnhancedRenderer::mix_stream(EnhancedFrame &f, std::span<const EnhancedFram
         if (end <= begin)
             return;
         auto *pcm = p.pcm.data() + begin * 2;
+        float *send = shared_reverb ? p.send.data() + begin * 2 : nullptr;
         if (p.song && p.song->isolated_voices)
             std::fill(pcm, pcm + (end - begin) * 2, 0);
         else
             p.api.fluid_synth_write_float(p.synth, end - begin, pcm, 0, 2, pcm, 1, 2);
+        if (send)
+            for (int i = 0; i < (end - begin) * 2; ++i)
+                send[i] = pcm[i] * p.main_send;
         if (p.song)
             for (size_t vi = 0; vi < p.song->voices.size(); ++vi)
                 if (auto &extra = p.amplified[vi]) {
@@ -1372,13 +1410,17 @@ void EnhancedRenderer::mix_stream(EnhancedFrame &f, std::span<const EnhancedFram
                     p.api.fluid_synth_write_float(extra->synth, end - begin, extra->pcm.data(), 0, 2,
                                                   extra->pcm.data(), 1, 2);
 
+                    const float voice_send = float(p.song->voices[vi].reverb) / 127;
                     for (size_t i = 0; i < extra->pcm.size(); ++i) {
                         const double amplitude =
                             p.gain_pcm[vi][size_t(begin) + i / 2] - (p.song->isolated_voices ? 0 : 1);
-                        pcm[i] += float(extra->pcm[i] * amplitude);
+                        const float value = float(extra->pcm[i] * amplitude);
+                        pcm[i] += value;
+                        if (send)
+                            send[i] += value * voice_send;
                     }
                 }
-        p.render_drums(pcm, end - begin, begin);
+        p.render_drums(pcm, end - begin, begin, send);
     };
     // Keep fractional MIDI gates in the PCM as well as the diagnostic stream.
     // Events at the next frame boundary are handled before that frame's controllers.
@@ -1396,6 +1438,8 @@ void EnhancedRenderer::mix_stream(EnhancedFrame &f, std::span<const EnhancedFram
                 p.stop(voice, subframe);
     }
     render_segment(begin, int(f.samples.size() / 2));
+    if (shared_reverb)
+        p.reverb->process(p.send.data(), p.pcm.data(), int(f.samples.size() / 2));
     if (!p.pcm.empty()) {
         const float gain = f.gain * (f.slow_fade ? 1 : f.music_fade) *
                            (p.song ? p.song->gain * p.song->mix_gain : 0) * 32768;

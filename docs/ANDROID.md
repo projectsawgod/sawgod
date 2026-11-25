@@ -147,7 +147,8 @@ MidiShare, network, OSS, DirectSound, WASAPI, WaveOut, WinMIDI, SDL audio, Pulse
 OpenMP, systemd, native DLS, Signalsmith, PortAudio, OpenSL ES and Oboe. SDL motion sensors are disabled for this gamepad build; miniz uses memory IO only. Private desktop
 GPU timestamp instrumentation is omitted from Android; rendering/effects are unchanged.
 The app sends the existing mixer
-samples to SDL. Chorus is disabled; Lo-Spec also disables reverb and selects the cheapest interpolation.
+samples to SDL. Chorus is disabled. In every mode the synths render dry with fourth-order interpolation and one shared
+reverb (src/app/shared_reverb.h) processes their summed sends; per-song voice limits (8–22) steal no notes.
 The authored score and its gain envelopes are retained.
 
 The APK includes exact FluidSynth/GCEM source archives and a rebuild script in `assets/source/`, plus
@@ -175,9 +176,8 @@ Lo-Spec presents at half refresh through 120 Hz: 30 FPS on 60 Hz panels, 45 FPS 
 60 FPS on 120 Hz, including Options. Faster panels use the smallest whole divisor that stays at or
 below 60 FPS (144 Hz: 48 FPS; 165 Hz: 55 FPS; 240 Hz: 60 FPS). Without vsync or a known refresh rate it uses timed
 30 FPS. It retains Smooth's native motion history and latest-two-step interpolation.
-Enhanced scenes cap at 672×432. Enhanced music uses measured per-song voice limits (8–22, instead of
-32), no reverb, and nearest-sample interpolation at 24 kHz; this takes effect with the next song.
-Lo-Spec removes the idle synth reserve and creates cue synths only while needed. Host UI, text,
+Enhanced scenes cap at 672×432. Lo-Spec plays the same music as the other modes, but renders only the
+synths that are sounding and creates cue synths only while needed. Host UI, text,
 minimap and touch controls stay at output resolution. Input service, every 75.471698 Hz native tick,
 RNG, battle speed and audio buffers remain unchanged. Scene descriptions/world inputs are reused
 on refreshes with no new native picture; camera projection remains per presentation.
