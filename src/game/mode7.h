@@ -120,12 +120,7 @@ class Mode7UiMask {
     uint64_t rebuilds = 0;
 
   private:
-    std::unique_ptr<emu::FrameLayers> layers_;
-    std::array<uint8_t, emu::FrameLayers::Pixels> coverage_{};
     std::array<uint32_t, emu::FrameLayers::Pixels> mask_{};
-    std::array<uint32_t, 128> actor_slots_{};
-    bool valid_ = false, battle_ = false, scene_ = false, host_only_ = false, has_coverage_ = false,
-         world_sprites_ = true;
 };
 struct Mode7Picture {
     std::vector<uint32_t> pixels;

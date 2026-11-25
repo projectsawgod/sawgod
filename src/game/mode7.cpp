@@ -508,41 +508,10 @@ std::array<uint32_t, emu::FrameLayers::Pixels> mode7_ui_mask(const emu::Wsc &w, 
 }
 const std::array<uint32_t, emu::FrameLayers::Pixels> &
 Mode7UiMask::get(const emu::Wsc &w, bool battle, bool scene, bool host_only, bool world_sprites) {
-    const auto *layers = w.frame_layers(false, scene);
-    const auto actors = field_actor_records(w);
-    bool same = !presentation_diagnostics::fresh() && valid_ && battle == battle_ && scene == scene_ &&
-                host_only == host_only_ && world_sprites == world_sprites_ && bool(layers) == bool(layers_) &&
-                bool(w.ui_coverage) == has_coverage_ && actors == actor_slots_;
-    if (same && w.ui_coverage)
-        same = coverage_ == *w.ui_coverage;
-    if (same && layers) {
-        same = layers->valid == layers_->valid;
-        // Backdrop and registers cannot contribute UI. Compare the remaining contiguous planes in
-        // bulk; colors may cause extra rebuilds, but no relevant provenance change can be missed.
-        for (size_t layer = 1; same && layer < emu::FrameLayers::Count; ++layer)
-            same = std::memcmp(layers->planes[layer].data(), layers_->planes[layer].data(),
-                               sizeof(layers->planes[layer])) == 0;
-    }
-    if (!same) {
-        mask_ = mode7_ui_mask(w, battle, scene, host_only, world_sprites);
-        actor_slots_ = actors;
-        ++rebuilds;
-        valid_ = true;
-        battle_ = battle;
-        scene_ = scene;
-        host_only_ = host_only;
-        world_sprites_ = world_sprites;
-        has_coverage_ = w.ui_coverage != nullptr;
-        if (w.ui_coverage)
-            coverage_ = *w.ui_coverage;
-        if (layers) {
-            if (!layers_)
-                layers_ = std::make_unique<emu::FrameLayers>();
-            *layers_ = *layers;
-        } else {
-            layers_.reset();
-        }
-    }
+    // Built every call: a rebuild (~0.08 ms) costs less than comparing and copying the 2.7 MB of layer
+    // planes a cache needs to prove its inputs unchanged.
+    mask_ = mode7_ui_mask(w, battle, scene, host_only, world_sprites);
+    ++rebuilds;
     return mask_;
 }
 static Mode7Picture render_world(emu::Wsc &w, const PresentationScene &flat, const LightTags &tags,
