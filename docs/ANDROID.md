@@ -84,7 +84,9 @@ Enhanced's GPU setup (focus, world and flat scene passes) runs during the splash
 per frame, with the splash's clock paused for each step; whatever is left when the splash ends or is skipped
 finishes before the first game frame (src/app/main.cpp, `enhanced_setup`). The splash appears as soon as the
 base renderer is ready. `-PsawgodProfile` builds an optimized release APK that `run-as` can read (startup logs,
-caches) for profiling; never ship it.
+caches) for profiling; never ship it. In such a debuggable build, an empty `files/frame-timing` file
+(`adb shell run-as org.sawgod.app.test touch files/frame-timing`) passes `--frame-timing-log`
+(CONFIG.md) as `files/logs/frames-TIME.csv` for each launch; release builds ignore it.
 Flat and world Enhanced passes share their identical shader handle on the same renderer, so SDL reuses
 the compiled pipelines across target sizes. Bindings, textures and uniforms remain per pass. Renderer
 recovery and world-target resizing preserve this reuse; a new device creates a fresh shader.

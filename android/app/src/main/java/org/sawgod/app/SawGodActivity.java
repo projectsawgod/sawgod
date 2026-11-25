@@ -41,6 +41,18 @@ public class SawGodActivity extends SDLActivity {
         immersive();
     }
 
+    /** Debuggable (test/profile) builds only: a files/frame-timing marker passes --frame-timing-log
+     *  (docs/CONFIG.md) as files/logs/frames-TIME.csv, readable with adb run-as. */
+    @Override protected String[] getArguments() {
+        if ((getApplicationInfo().flags & android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE) == 0
+                || !new File(getFilesDir(), "frame-timing").isFile())
+            return super.getArguments();
+        File logs = new File(getFilesDir(), "logs");
+        logs.mkdirs();
+        String name = new java.text.SimpleDateFormat("yyyyMMdd-HHmmss", java.util.Locale.ROOT).format(new java.util.Date());
+        return new String[] { "--frame-timing-log", new File(logs, "frames-" + name + ".csv").getPath() };
+    }
+
     @Override public void onWindowFocusChanged(boolean focused) {
         super.onWindowFocusChanged(focused);
         if (focused) immersive();

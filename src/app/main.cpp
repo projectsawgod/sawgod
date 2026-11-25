@@ -63,6 +63,7 @@
 #include <SDL3/SDL.h>
 
 #include <algorithm>
+#include <cerrno>
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
@@ -230,7 +231,11 @@ int main(int argc, char **argv) {
             timing_path = path;
     if (!timing_log.open(timing_path)) {
         std::fprintf(stderr, "sawgod: cannot open frame timing log %s\n", timing_path.c_str());
+#ifdef __ANDROID__ // a test build's log (files/frame-timing): play on without it
+        SDL_Log("frame timing log %s: %s", timing_path.c_str(), std::strerror(errno));
+#else
         return 1;
+#endif
     }
     if (const int code = sawgod::app::check_shot_args(args))
         return code;
