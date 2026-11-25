@@ -3,6 +3,8 @@
 #include "engine/cpu_scope.h"
 
 #include <algorithm>
+#include <cstdio>
+#include <cstdlib>
 #include <cstring>
 
 namespace sawgod::emu {
@@ -432,6 +434,50 @@ void Wsc::run_frame() {
         return;
     frame_in_progress_ = false;
     ++frame_count;
+    static std::FILE *hash_log = [] {
+        const char *path = std::getenv("SAWGOD_RASTER_HASH");
+        return path && *path ? std::fopen(path, "w") : nullptr;
+    }();
+    if (hash_log) [[unlikely]] {
+        std::fprintf(hash_log, "%llu %016llx\n", (unsigned long long)frame_count,
+                     (unsigned long long)raster_hash());
+        std::fflush(hash_log);
+    }
+}
+
+uint64_t Wsc::raster_hash() const {
+    uint64_t h = 1469598103934665603ull;
+    const auto bytes = [&](const void *data, size_t size) {
+        const auto *p = static_cast<const uint8_t *>(data);
+        for (size_t i = 0; i < size; ++i)
+            h = (h ^ p[i]) * 1099511628211ull;
+    };
+    const auto value = [&](const auto &v) { bytes(&v, sizeof v); };
+    static_assert(sizeof(RasterPixel) == 14, "RasterPixel must have no padding to hash its bytes");
+    bytes(fb_.data(), sizeof fb_);
+    bytes(screen2_underlay_.data(), sizeof screen2_underlay_);
+    bytes(scene_fb_.data(), sizeof scene_fb_);
+    for (const auto &layers : layers_) {
+        value(uint8_t(layers ? 1 : 0));
+        if (layers) {
+            bytes(layers->planes.data(), sizeof layers->planes);
+            bytes(layers->registers.data(), sizeof layers->registers);
+            bytes(layers->valid.data(), sizeof layers->valid);
+        }
+    }
+    value(uint8_t(second_ ? 1 : 0));
+    if (second_)
+        bytes(second_->fb.data(), sizeof second_->fb);
+    value(uint8_t(raster_text_ ? 1 : 0));
+    if (raster_text_)
+        for (const auto &p : raster_text_->pixels) {
+            value(p.kind), value(p.color), value(p.beneath), value(p.casts_shadow), value(p.shadow_color);
+            value(p.corner), value(p.corner_scene);
+        }
+    bytes(scene_text_.data(), scene_text_.size());
+    bytes(ram.data(), ram.size());
+    bytes(io.data(), io.size());
+    return h;
 }
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -911,8 +957,11 @@ void Wsc::render_pass(int y, const uint8_t *mem, uint16_t *fb, const uint8_t *sp
     uint16_t *out = &fb[y * kWidth];
     auto *layers = layers_[size_t((second ? 2 : 0) + (pass_scene_ ? 1 : 0))].get();
     if (layers) {
-        for (auto &plane : layers->planes)
-            std::fill_n(plane.begin() + y * kWidth, kWidth, RasterPixel{});
+        // The backdrop line is rewritten in full below; the other planes start empty: one block copy of a
+        // prepared empty line each (RasterPixel{} is not all-zero bytes: sprite = 255).
+        static const std::array<RasterPixel, kWidth> empty_line{};
+        for (size_t plane = FrameLayers::Backdrop + 1; plane < FrameLayers::Count; ++plane)
+            std::memcpy(&layers->planes[plane][size_t(y * kWidth)], empty_line.data(), sizeof empty_line);
         std::copy_n(io.begin(), 24, layers->registers[size_t(y)].begin());
         layers->valid[size_t(y)] = 1;
     }
@@ -930,8 +979,10 @@ void Wsc::render_pass(int y, const uint8_t *mem, uint16_t *fb, const uint8_t *sp
     auto *text = !second && !pass_scene_ && raster_text_ ? raster_text_.get() : nullptr;
     // scene_text_ follows the ordinary record, then the clean-scene pass (drawn after it) rewrites the line.
     uint8_t *scene_text = !second && raster_text_ ? scene_text_.data() + y * kWidth : nullptr;
-    if (text)
-        std::fill_n(text->pixels.begin() + y * kWidth, kWidth, UiText::Pixel{});
+    if (text) {
+        static const std::array<UiText::Pixel, kWidth> empty_text{};
+        std::copy_n(empty_text.begin(), kWidth, text->pixels.begin() + y * kWidth);
+    }
     if (scene_text)
         std::fill_n(scene_text, kWidth, uint8_t(0));
     // Native tile rows repeat across the scanline (empty/window/ground tiles in
@@ -939,7 +990,8 @@ void Wsc::render_pass(int y, const uint8_t *mem, uint16_t *fb, const uint8_t *sp
     // and the separate GB memory always take effect immediately.
     uint8_t rows[8192][8];
     uint64_t row_valid[128]{};
-    const auto pixel = [&](int tile, int x, int row, bool hflip, bool vflip) {
+    // One tile row's eight decoded indices (unflipped), decoding it on first use this pass.
+    const auto tile_row = [&](int tile, int row, bool vflip) -> const uint8_t * {
         if (vflip)
             row = 7 - row;
         const size_t key = size_t(tile * 8 + row);
@@ -966,7 +1018,10 @@ void Wsc::render_pass(int y, const uint8_t *mem, uint16_t *fb, const uint8_t *sp
                     rows[key][size_t(i)] = uint8_t(tile_pixel(tile, i, row, false, false));
             }
         }
-        return int(rows[key][size_t(hflip ? 7 - x : x)]);
+        return rows[key];
+    };
+    const auto pixel = [&](int tile, int x, int row, bool hflip, bool vflip) {
+        return int(tile_row(tile, row, vflip)[size_t(hflip ? 7 - x : x)]);
     };
     const bool color4 = color_mode() && (io[0x60] & 0x40);
     auto transparent = [&](int pal, int idx) { return idx == 0 && (color4 || (pal & 4)); };
@@ -989,8 +1044,10 @@ void Wsc::render_pass(int y, const uint8_t *mem, uint16_t *fb, const uint8_t *sp
     else
         bg = grey12((io[0x1C + (io[0x01] & 7) / 2] >> ((io[0x01] & 1) * 4)) & 15);
     std::fill(out, out + kWidth, bg);
-    for (int x = 0; layers && x < kWidth; ++x)
-        record(FrameLayers::Backdrop, x, bg, 0, io[1] >> 4, io[1] & 15, 0, 255, 0);
+    if (layers) // the whole backdrop line at once, as record() would write each pixel
+        std::fill_n(
+            layers->planes[FrameLayers::Backdrop].begin() + y * kWidth, kWidth,
+            RasterPixel{bg, 0, 0, uint8_t(io[1] >> 4), uint8_t(io[1] & 15), 255, RasterPixel::Present});
 
     int image_palette = -1; // screen 1 as a picture (screen1_image), faded like the palette bound to it
     if (second && screen1_image_swap >= 0 && !palette_swaps.empty() &&
@@ -1015,6 +1072,9 @@ void Wsc::render_pass(int y, const uint8_t *mem, uint16_t *fb, const uint8_t *sp
         int column = -1, tile = 0, pal = 0;
         uint16_t a = 0, cell = 0;
         const CellPixels *host = nullptr;
+        // The current cell's tile row, looked up once per cell rather than per pixel.
+        const uint8_t *cell_row = nullptr;
+        int cell_row_tile = -1, cell_row_cell = -1;
         for (int x = 0; x < kWidth; ++x) {
             if (use_window) {
                 bool inside = in_y && x >= io[0x08] && x <= io[0x0A];
@@ -1058,8 +1118,14 @@ void Wsc::render_pass(int y, const uint8_t *mem, uint16_t *fb, const uint8_t *sp
             if (host) [[unlikely]] {
                 const int i = (py & 7) * 8 + (px & 7);
                 idx = host->over[i] ? host->over[i] : host->px[i];
-            } else
-                idx = pixel(tile, px & 7, py & 7, cell & 0x4000, cell & 0x8000);
+            } else {
+                if (tile != cell_row_tile || cell != cell_row_cell) {
+                    cell_row = tile_row(tile, py & 7, cell & 0x8000);
+                    cell_row_tile = tile;
+                    cell_row_cell = cell;
+                }
+                idx = cell_row[size_t(cell & 0x4000 ? 7 - (px & 7) : px & 7)];
+            }
             if (transparent(pal, idx) ||
                 (n == 1 && image_palette >= 0 && (screen2_hidden_palettes >> pal & 1)))
                 continue;

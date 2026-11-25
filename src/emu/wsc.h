@@ -95,6 +95,10 @@ class Wsc : public Bus {
     // scene passes are captured independently, and the second picture's too unless `second` is false
     // (the app reads only the first picture's layers; recording the second's costs ~0.4 ms a frame).
     void capture_layers(bool on, bool second = true);
+    // Diagnostic: one hash of every raster output (both pictures, scene passes, all captured layer planes and
+    // register lines, raster text, scene text) plus RAM and I/O. With SAWGOD_RASTER_HASH=FILE set, run_frame
+    // appends "frame hash" per frame: the identity check for renderer changes.
+    uint64_t raster_hash() const;
     // Deterministic function-only runs may freeze LCD pixels while keeping CPU, timers, IRQs,
     // keypad and audio timing unchanged. Presentation control; not part of a machine snapshot.
     bool render_lcd = true;
