@@ -49,6 +49,10 @@
 // PNG and exits; --shot-keys presses menu keys first, one per menu frame (u d l r: directions, a: A, b: B).
 // Works without a display (SDL_VIDEODRIVER=dummy). --inputs FILE plays "FRAME buttons" changes
 // (sawgod-headless --inputs format) instead of live input, e.g. to put a real game scene behind the menu.
+// --live-picture-log CSV --shot-display-hz HZ --frames N [--live-warmup TICKS]: run the ordinary
+// main loop on a fixed clock, hash every final RGB picture (including startup), and time CPU work.
+// Warmup advances native ticks before presenting; audio submission and late-frame catch-up are disabled.
+// Existing --inputs/--shot-store/--shot-poke fixtures apply; --shot-step uses live presentation indices.
 // --shot-map-batch FILE: one map,x,y,output.png per line; paths relative to FILE.
 // Reuses one ROM/session/renderer for every halted field view. Blank/# lines ignored.
 // Uses --shot-size, --shot-effect-frame and the same settings as --shot-map; no menu.
@@ -95,6 +99,7 @@
 #include "app/host_settings.h"
 #include "app/input_movie.h"
 #include "app/launch_args.h"
+#include "app/live_picture_check.h"
 #include "app/minimap.h"
 #include "app/mode7_renderer.h"
 #include "app/picture_draw.h"
@@ -239,6 +244,13 @@ int main(int argc, char **argv) {
     }
     if (const int code = sawgod::app::check_shot_args(args))
         return code;
+    const bool live_check = !args.live_picture_log.empty();
+    if (live_check && (!args.shot.empty() || !args.frames || !args.shot_display_hz)) {
+        std::fprintf(stderr,
+                     "--live-picture-log requires --frames and --shot-display-hz, without --shot-overlay\n");
+        return 2;
+    }
+    sawgod::app::LivePictureCheck live_pictures(args.live_picture_log);
     using sawgod::Pacing;
 
     // The ROM, if any; its footer says how much battery RAM the cartridge has.
@@ -328,7 +340,7 @@ int main(int argc, char **argv) {
         sawgod::app::load_settings(args, config_path, config, settings);
     }
     auto save_config = [&] {
-        if (!config.dirty() || config_path.empty() || !args.shot.empty())
+        if (!config.dirty() || config_path.empty() || !args.shot.empty() || live_check)
             return;
         std::string error;
         if (!config.save(config_path, &error))
@@ -487,7 +499,10 @@ int main(int argc, char **argv) {
     uint64_t battle_light_generation = ~0ull;
     float ips_amount = 1 - 0.5f * fidelity.graphics_weights(SDL_GetTicksNS())[2];
     // The picture to show: the WSC's, the GB's, or the two blended mid-fade.
+    // Changes only when the CPU picture/provenance producers run, never for display interpolation.
+    uint64_t picture_revision = 0;
     auto game_rgb = [&] {
+        ++picture_revision;
         if (args.shot.empty())
             sawgod::presentation_diagnostics::trace().begin(wsc->frame_count);
         sawgod::CpuScope cpu_scope("game_rgb", wsc->frame_count);
@@ -1290,6 +1305,8 @@ int main(int argc, char **argv) {
             sawgod::debug_log::errorf("gpu", "Minimap draw failed: %s", SDL_GetError());
     };
     auto draw_badges = [&](const Rect &g) {
+        if (!args.shot_mask.empty())
+            ++picture_revision;
         std::vector<std::pair<std::string, float>> lines; // text, opacity
         const uint64_t t = SDL_GetTicksNS();
         if (t < encounters_badge_until)
@@ -1977,35 +1994,45 @@ int main(int argc, char **argv) {
     // A wipe owns the last complete field, at every Graphics endpoint. Its Enhanced endpoint is
     // derived on entry from retained field inputs, never from a partially faded presentation texture.
     // Reuse the ordinary render passes once, then restore their live inputs before drawing the wipe.
+    const auto picture_buffers = [&] {
+        return std::tie(cur_rgb, enhanced_wsc, enhanced_gb, enhanced_scene, host_ui, mode7_ui, menu_fills,
+                        menu_text);
+    };
+    const auto picture_values = [&] {
+        // Only projected lights are consumed from mode7_view by upload_game. Its 224x144 mask,
+        // background and actor records are not presentation inputs; do not retain that empty raster.
+        return std::tie(fidelity, presented_frame, mode7_amount, mode7_camera, mode7_view.lights,
+                        mode7_opacity, enhanced_frame, enhanced_effect_weight, enhanced_gb_weight,
+                        menu_fill_weight, ips_amount);
+    };
     const auto picture_state = [&] {
-        using State =
-            std::tuple<decltype(fidelity), decltype(cur_rgb), decltype(enhanced_wsc), decltype(enhanced_gb),
-                       decltype(enhanced_scene), decltype(host_ui), decltype(mode7_ui), decltype(menu_fills),
-                       decltype(menu_text), decltype(presented_frame), decltype(mode7_amount),
-                       decltype(mode7_camera), decltype(mode7_view), decltype(mode7_opacity),
+        using Buffers = std::tuple<decltype(cur_rgb), decltype(enhanced_wsc), decltype(enhanced_gb),
+                                   decltype(enhanced_scene), decltype(host_ui), decltype(mode7_ui),
+                                   decltype(menu_fills), decltype(menu_text)>;
+        using Values =
+            std::tuple<decltype(fidelity), decltype(presented_frame), decltype(mode7_amount),
+                       decltype(mode7_camera), decltype(mode7_view.lights), decltype(mode7_opacity),
                        decltype(enhanced_frame), decltype(enhanced_effect_weight),
                        decltype(enhanced_gb_weight), decltype(menu_fill_weight), decltype(ips_amount)>;
-        return std::make_unique<State>(
-            fidelity, cur_rgb, enhanced_wsc, enhanced_gb, enhanced_scene, host_ui, mode7_ui, menu_fills,
-            menu_text, presented_frame, mode7_amount, mode7_camera, mode7_view, mode7_opacity, enhanced_frame,
-            enhanced_effect_weight, enhanced_gb_weight, menu_fill_weight, ips_amount);
+        return std::make_unique<std::pair<Buffers, Values>>(picture_buffers(), picture_values());
     };
     const auto restore_picture = [&](const auto &state) {
-        std::tie(fidelity, cur_rgb, enhanced_wsc, enhanced_gb, enhanced_scene, host_ui, mode7_ui, menu_fills,
-                 menu_text, presented_frame, mode7_amount, mode7_camera, mode7_view, mode7_opacity,
-                 enhanced_frame, enhanced_effect_weight, enhanced_gb_weight, menu_fill_weight, ips_amount) =
-            *state;
+        picture_buffers() = state->first;
+        picture_values() = state->second;
     };
+    uint64_t wipe_picture_revision = ~uint64_t(0);
+    uint64_t bulk_retains = 0;
     const auto retain_picture = [&](auto &state) {
+        if (!state || wipe_picture_revision != picture_revision)
+            ++bulk_retains;
         if (!state)
             state = picture_state();
-        else
-            // Reuse the large pixel/provenance buffers on every refresh instead of allocating
-            // another complete snapshot before destroying the preceding one.
-            *state = std::tie(fidelity, cur_rgb, enhanced_wsc, enhanced_gb, enhanced_scene, host_ui, mode7_ui,
-                              menu_fills, menu_text, presented_frame, mode7_amount, mode7_camera, mode7_view,
-                              mode7_opacity, enhanced_frame, enhanced_effect_weight, enhanced_gb_weight,
-                              menu_fill_weight, ips_amount);
+        else {
+            if (wipe_picture_revision != picture_revision)
+                state->first = picture_buffers();
+            state->second = picture_values();
+        }
+        wipe_picture_revision = picture_revision;
     };
     decltype(picture_state()) wipe_field;
     bool was_wiping = false;
@@ -2016,8 +2043,12 @@ int main(int argc, char **argv) {
                    overlay.is_open());
         touch.layout(window, renderer, float(width), float(height), GameRect(width, height).w);
     };
+    uint64_t retain_ns = 0, retain_cpu_ns = 0;
+    bool retained_picture = false;
     auto draw_frame = [&](int out_w, int out_h, bool fullscreen) {
         sawgod::CpuScope cpu_scope("draw_frame");
+        retain_ns = retain_cpu_ns = 0;
+        retained_picture = false;
         update_touch(out_w, out_h);
         const bool wiping = wsc && sawgod::game::presented_battle_entry_wipe(*wsc);
         if (wiping && !options_canvas_submitted && !was_wiping && wipe_field &&
@@ -2055,7 +2086,14 @@ int main(int argc, char **argv) {
         draw_scene(out_w, out_h, fullscreen);
         if (wsc && !wiping && !options_canvas_submitted && !host_picture.holding() &&
             enhanced_scene.kind == sawgod::game::PresentationScene::Kind::Field) {
+            const auto retain_cpu_start = live_check ? sawgod::app::LivePictureCheck::cpu_time() : 0;
+            const auto retain_start = live_check ? SDL_GetTicksNS() : 0;
             retain_picture(wipe_field);
+            retained_picture = true;
+            if (live_check) {
+                retain_ns = SDL_GetTicksNS() - retain_start;
+                retain_cpu_ns = sawgod::app::LivePictureCheck::cpu_time() - retain_cpu_start;
+            }
             wipe_field_map = enhanced_scene.map;
             wipe_field_camera = sawgod::game::field_zoom_allowed(
                                     wipe_field_map, sawgod::FidelityMode::Enhanced, true, false) ||
@@ -2666,6 +2704,13 @@ int main(int argc, char **argv) {
     }
     finish_enhanced_setup(); // a skipped or short splash: the rest now, before the first game frame
 
+    if (wsc && live_check) {
+        world_card_overlay.wait_for_decode();
+        for (int i = 0; i < args.live_warmup; ++i) {
+            shot_fidelity_time = 1'000'000'000 + movie_frame * frame_ns;
+            tick(false);
+        }
+    }
     if (wsc) {
         // Loading the soundfont must finish before game packets can accumulate in the worker.
         enhanced_audio.wait_initialized();
@@ -2697,6 +2742,10 @@ int main(int argc, char **argv) {
             }
         }
         draw_frame(ow, oh, (SDL_GetWindowFlags(window) & SDL_WINDOW_FULLSCREEN) != 0);
+        if (live_check)
+            live_pictures.record(renderer, -1, movie_frame, enhanced_scene.map, int(enhanced_scene.kind),
+                                 sawgod::game::presented_battle_entry_wipe(*wsc), retained_picture, retain_ns,
+                                 0, 0, retain_cpu_ns, 0);
         SDL_RenderPresent(renderer);
         sawgod::startup::finish();
         presentation.persist_startup_cache();
@@ -2709,13 +2758,15 @@ int main(int argc, char **argv) {
             enhanced_audio.set_output_sink(
                 [&](std::vector<int16_t> samples) { audio.submit(samples, SDL_GetTicksNS()); });
         }
-        next_frame = SDL_GetTicksNS();
+        next_frame = live_check ? 1'000'000'000 + movie_frame * frame_ns : SDL_GetTicksNS();
     }
+    const uint64_t live_origin = next_frame;
     int frame_count = 0;
     uint64_t last_present = SDL_GetTicksNS();
     sawgod::app::LoSpecCadence lospec_cadence;
     sawgod::app::PresentClock present_clock; // Enhanced Smooth's steady refresh clock
     while (running) {
+        const auto work_cpu_start = live_check ? sawgod::app::LivePictureCheck::cpu_time() : 0;
         uint64_t t_tick = 0, t_upload = 0, t_draw = 0, t_present = 0;
         int log_speed = 1;
         bool clock_reset = false;
@@ -2798,7 +2849,13 @@ int main(int argc, char **argv) {
         if (!running)
             break; // recovery can leave no renderer; do not tick or submit another frame
 
-        const uint64_t now = SDL_GetTicksNS();
+        const uint64_t now =
+            live_check ? live_origin + uint64_t(frame_count) * 1'000'000'000 / unsigned(args.shot_display_hz)
+                       : SDL_GetTicksNS();
+        if (live_check) {
+            simulated_present_time = now;
+            shot_fidelity_time = now;
+        }
         if (touch.take_options())
             input.press_options();
         sawgod::ui::MenuActions actions = input.take_menu_actions(double(now) / 1e9);
@@ -2833,6 +2890,10 @@ int main(int argc, char **argv) {
         }
         minimap_was_held = minimap_held;
         fidelity.settings(settings.gfx(), settings.music(), now);
+        if (live_check)
+            for (const auto &[view, direction] : args.shot_steps)
+                if (view == uint64_t(frame_count))
+                    fidelity.step(direction, now);
         if (!overlay.is_open() && touch.take_mode()) {
             fidelity.cycle(now);
             motion_history.reset();
@@ -2887,7 +2948,7 @@ int main(int argc, char **argv) {
             const bool smooth = pacing == sawgod::Pacing::Smooth &&
                                 fidelity.graphics() == sawgod::FidelityMode::Enhanced && speed == 1;
             uint64_t refresh_ns = 0;
-            if (smooth) {
+            if (smooth && !live_check) {
                 int vsync = 0;
                 SDL_GetRenderVSync(renderer, &vsync);
                 const SDL_DisplayMode *mode = SDL_GetCurrentDisplayMode(SDL_GetDisplayForWindow(window));
@@ -2911,14 +2972,14 @@ int main(int argc, char **argv) {
             audio_speed = frame_speed.audio_speed();
             while (next_frame <= clock_now && ran < 4) {
                 // (a fresh clock: the earlier ticks of this pass count; vsync jitter stays under two ticks)
-                const bool late = SDL_GetTicksNS() > next_frame + 2 * frame_ns;
+                const bool late = !live_check && SDL_GetTicksNS() > next_frame + 2 * frame_ns;
                 for (int k = 0; k < frame_speed.steps(late); ++k)
-                    tick(frame_speed.audio_tick(k, late));
+                    tick(!live_check && frame_speed.audio_tick(k, late));
                 next_frame += frame_ns;
                 ++ran;
             }
             t_tick = SDL_GetTicksNS() - tick_start;
-            if (!lospec && ran == 0 &&
+            if (!live_check && !lospec && ran == 0 &&
                 !(pacing == sawgod::Pacing::Smooth &&
                   fidelity.graphics() == sawgod::FidelityMode::Enhanced)) {
                 // Nothing due: wait for the next tick rather than present the same picture again, so a
@@ -2967,6 +3028,12 @@ int main(int argc, char **argv) {
         const uint64_t draw_start = SDL_GetTicksNS();
         draw_frame(ow, oh, (SDL_GetWindowFlags(window) & SDL_WINDOW_FULLSCREEN) != 0);
         t_draw = SDL_GetTicksNS() - draw_start;
+        if (live_check)
+            live_pictures.record(renderer, frame_count, movie_frame, enhanced_scene.map,
+                                 int(enhanced_scene.kind),
+                                 wsc && sawgod::game::presented_battle_entry_wipe(*wsc), retained_picture,
+                                 retain_ns, t_draw, t_tick + t_upload + t_draw, retain_cpu_ns,
+                                 live_check ? sawgod::app::LivePictureCheck::cpu_time() - work_cpu_start : 0);
         measure_picture(ow, oh);
         if (wsc && sawgod::debug_log::active()) {
             static constexpr const char *kScreens[] = {"field",   "battle",   "item",     "save",
@@ -3029,6 +3096,8 @@ int main(int argc, char **argv) {
         }
     }
 
+    if (live_check)
+        std::fprintf(stderr, "live snapshot bulk retains: %llu\n", (unsigned long long)bulk_retains);
     save_config();
     saves.finish(wsc.get());
 
