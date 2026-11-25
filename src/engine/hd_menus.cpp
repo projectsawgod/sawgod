@@ -1,8 +1,8 @@
-#include "engine/startup_timing.h"
 #include "engine/hd_menus.h"
 #include "engine/cpu_scope.h"
 #include "engine/presentation_blend.h"
 #include "engine/presentation_diagnostics.h"
+#include "engine/startup_timing.h"
 #include <algorithm>
 #include <cmath>
 #include <cstring>

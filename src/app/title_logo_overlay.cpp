@@ -1,7 +1,7 @@
-#include "engine/startup_timing.h"
 #include "app/title_logo_overlay.h"
 #include "engine/cpu_scope.h"
 #include "engine/presentation_diagnostics.h"
+#include "engine/startup_timing.h"
 #include "game/title_logo.h"
 #include <algorithm>
 

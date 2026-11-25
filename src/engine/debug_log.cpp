@@ -238,7 +238,8 @@ bool start(const fs::path &folder, std::string_view version, const Limits &limit
 
 void info(std::string_view message) {
     std::lock_guard lock(g.mutex);
-    if (g.file) write_line(std::string(message) + "\n");
+    if (g.file)
+        write_line(std::string(message) + "\n");
 }
 
 void stop() {

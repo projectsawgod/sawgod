@@ -1,4 +1,3 @@
-#include "engine/startup_timing.h"
 #include "app/mode7_renderer.h"
 #include "engine/cpu_scope.h"
 #include "engine/gpu_pass_timer.h"
@@ -7,6 +6,7 @@
 #include "engine/presentation_diagnostics.h"
 #include "engine/screen.h"
 #include "engine/shaders/mode7.generated.h"
+#include "engine/startup_timing.h"
 #include <algorithm>
 #include <cmath>
 #include <set>
