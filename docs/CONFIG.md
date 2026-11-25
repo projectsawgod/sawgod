@@ -414,7 +414,7 @@ GB retains its numbers alone, without bars or edges.
 distance, independent of `enhanced.mode7`. At 100% the field uses its ordinary framing. The opening's demo (the
 tower climb before a game starts) keeps its ordinary framing at every level.
 `enhanced.mode7` is **Mode 7 World Map** (On/Off), controlling only the world map tilt. Video has Graphics, Fullscreen,
-Borderless, Frame Pacing (Smooth / Exact / Lo-Spec), Screen Mode, then an Enhanced header and Mode 7 World Map,
+Borderless, Performance (Smooth / Exact / Lo-Spec), Screen Mode, then an Enhanced header and Mode 7 World Map,
 Field Zoom, Tilt-Shift, HD Battles, Bloom FX, Lighting FX and Water FX. Its 13 rows fit one screen.
 Enhanced rows dim and cannot be selected in GB/WSC; they remain available in Enhanced/Swap.
 Bloom FX On is 40% strength; Lighting FX and Water FX On are 100%.
@@ -652,7 +652,7 @@ wall-clock cadence. Input is pumped between presentations, and native ticks and 
 resolution. Enhanced music uses 16 voices per synth instead of 32 (from the next song); audio buffers
 do not change.
 
-Smooth is the default on every platform. Existing saved values are kept. Select Smooth under Options → Video → Frame Pacing or set `video.pacing = "smooth"`.
+Smooth is the default on every platform. Existing saved values are kept. Select Smooth under Options → Video → Performance or set `video.pacing = "smooth"`.
 
 The native clock remains 3,072,000 / (159 × 256) = 75.471698 Hz. Smooth removes the game-tick wait
 from Enhanced presentation: vsync controls submissions; without vsync, each render samples elapsed

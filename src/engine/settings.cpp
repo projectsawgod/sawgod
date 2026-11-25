@@ -13,7 +13,7 @@ void Settings::register_all(Config &c, bool debug_touch) {
     fullscreen =
         &c.add_bool("video.fullscreen", "Video", "Fullscreen", "Fill the display ({Fullscreen})", false);
     borderless = &c.add_bool("video.borderless", "Video", "Borderless", "No title bar or border", false);
-    pacing = &c.add_enum("video.pacing", "Video", "Frame Pacing", "", {"exact", "smooth", "lospec"},
+    pacing = &c.add_enum("video.pacing", "Video", "Performance", "", {"exact", "smooth", "lospec"},
                          {"Exact", "Smooth", "Lo-Spec"}, int(Pacing::Smooth));
     pacing->choice_order = {int(Pacing::Smooth), int(Pacing::Exact), int(Pacing::LoSpec)};
     pacing->choice_help = {

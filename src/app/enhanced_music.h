@@ -136,7 +136,7 @@ class EnhancedObserver {
 
 // Synchronous renderer is also used by the worker and accelerated review/tests. Owns all FluidSynth state.
 // A small lookahead keeps the offline spike's next-frame velocity and tick-based articulation exact.
-// FluidSynth voices per synth for songs started from now on: 32, or 16 in Frame Pacing Lo-Spec.
+// FluidSynth voices per synth for songs started from now on: 32, or 16 in Performance Lo-Spec.
 void set_enhanced_music_voices(int voices);
 int enhanced_music_voices();
 

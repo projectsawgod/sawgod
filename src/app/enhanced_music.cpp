@@ -528,7 +528,7 @@ struct EnhancedRenderer::Pool {
             ++inline_created;
             entry = fresh();
         }
-        // Voices per synth (Frame Pacing Lo-Spec: 16), set before the synth renders anything.
+        // Voices per synth (Performance Lo-Spec: 16), set before the synth renders anything.
         if (entry && entry->synth)
             entry->api.fluid_synth_set_polyphony(entry->synth, enhanced_music_voices());
         return entry;

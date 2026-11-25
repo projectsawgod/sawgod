@@ -4,7 +4,7 @@
     {"ui_options_fill_the_display_fullscreen", "がめんいっぱいに　ひろげる（{Fullscreen}）", "Fill the display ({Fullscreen})", "Options: Fill the display ({Fullscreen})"},
     {"ui_options_borderless", "わくなし", "Borderless", "Options: Borderless"},
     {"ui_options_no_title_bar_or_border", "ウィンドウの　わくと　タイトルバーをけす", "No title bar or border", "Options: No title bar or border"},
-    {"ui_options_frame_pacing", "ひょうじタイミング", "Frame Pacing", "Options: Frame Pacing"},
+    {"ui_options_performance", "パフォーマンス", "Performance", "Options: Performance (frame pacing: Smooth / Exact / Lo-Spec)"},
     {"ui_options_exact", "げんさくどおり", "Exact", "Options: Exact"},
     {"ui_options_lo_spec", "ロー スペック", "Lo-Spec", "Options: Lo-Spec"},
     {"ui_options_30_fps_lighter_enhanced_graphics", "30 FPS　かるい　きょうかグラフィック", "30 FPS; lighter Enhanced graphics", "Options: Lo-Spec help"},
