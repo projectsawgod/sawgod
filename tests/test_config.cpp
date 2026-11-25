@@ -4,11 +4,14 @@
 #include <string>
 #include <vector>
 
+#include "app/present_clock.h"
+#include "emu/wsc.h"
 #include "engine/config.h"
 #include "engine/input.h"
 #include "engine/options_text.h"
 #include "engine/overlay.h"
 #include "engine/settings.h"
+#include "game/setup.h"
 
 TEST_CASE("settings default to the WSC behaviour and an empty file changes nothing") {
     sawgod::Config c;
@@ -571,4 +574,51 @@ TEST_CASE("Options gamepad actions follow effective buttons and consume overlapp
     key.key.scancode = SDL_SCANCODE_X;
     input.handle_event(key);
     CHECK(input.take_menu_actions(0).accept);
+}
+
+TEST_CASE("Lo-Spec parsing preserves saved pacing; Smooth is the default everywhere") {
+    using namespace sawgod;
+    Config config;
+    Settings settings;
+    settings.register_all(config);
+    CHECK(settings.pacing->choice_labels == std::vector<std::string>{"Exact", "Smooth", "Lo-Spec"});
+    CHECK(settings.pacing->choice_order == std::vector<int>{1, 0, 2});
+    for (auto [name, value] :
+         {std::pair{"lospec", Pacing::LoSpec}, {"exact", Pacing::Exact}, {"smooth", Pacing::Smooth}}) {
+        std::vector<std::string> warnings;
+        config.from_toml(std::string("[video]\npacing=\"") + name + "\"\n", &warnings);
+        CHECK(warnings.empty());
+        CHECK(settings.pacing_mode() == value);
+        Config saved;
+        Settings restored;
+        restored.register_all(saved);
+        saved.from_toml(config.to_toml());
+        CHECK(restored.pacing_mode() == value);
+    }
+}
+
+TEST_CASE("Lo-Spec preserves menu key events that begin and end between presentations") {
+    using namespace sawgod;
+    ui::Input input;
+    auto map = ui::InputMap::defaults();
+    input.set_map(&map);
+    app::LoSpecCadence cadence;
+    int presented = 0, accepted = 0;
+    bool carry = false;
+    for (uint64_t now = 0; now < 35'000'000; now += 1'000'000) {
+        if (now == 10'000'000 || now == 20'000'000) {
+            SDL_Event event{};
+            event.type = now == 10'000'000 ? SDL_EVENT_KEY_DOWN : SDL_EVENT_KEY_UP;
+            event.key.scancode = SDL_SCANCODE_X;
+            input.handle_event(event);
+        }
+        carry = input.take_menu_actions(double(now) / 1e9).accept || carry;
+        if (cadence.due(now)) {
+            ++presented;
+            accepted += carry;
+            carry = false;
+        }
+    }
+    CHECK(presented == 2);
+    CHECK(accepted == 1);
 }

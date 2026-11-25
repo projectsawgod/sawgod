@@ -363,6 +363,7 @@ TEST_CASE("World-card app textures keep WSC pixels, smooth Enhanced pixels and o
         game::hooks::emit(game::hooks::Event::IntroPresentation, m,
                           {int(game::IntroStage::WorldCardRow), row, 224});
     app::WorldCardOverlay overlay;
+    overlay.wait_for_decode();
     const SDL_FRect dest{0, 0, 1792, 1152};
     for (int edge : {48, 72, 96, 128, 160, 224})
         for (int mode = 0; mode < 3; ++mode) {
@@ -436,4 +437,25 @@ TEST_CASE("World lettering composes after the host handoff without accumulating 
     game::Session::of(w).text().clear();
     CHECK(host.picture(w, emu::Wsc::ColorMode::Raw) == native);
     CHECK(w.framebuffer_rgb(emu::Wsc::ColorMode::Raw) == native);
+}
+
+TEST_CASE("World-card cold startup never waits when the first frame immediately demands lettering") {
+    REQUIRE(SDL_Init(SDL_INIT_VIDEO));
+    auto *surface = SDL_CreateSurface(224, 144, SDL_PIXELFORMAT_XRGB8888);
+    REQUIRE(surface);
+    auto *renderer = SDL_CreateSoftwareRenderer(surface);
+    REQUIRE(renderer);
+    app::WorldCardOverlay overlay;
+    // No splash, preload or other lettering accessor has run in this test process.
+    const auto start = SDL_GetTicksNS();
+    const bool ready = overlay.prepare(renderer, 1);
+    CHECK(SDL_GetTicksNS() - start < 100'000'000); // old static-guard join took about 400 ms
+    (void)ready;
+    overlay.wait_for_decode();
+    REQUIRE(overlay.prepare(renderer, 1));
+    CHECK_FALSE(game::WorldCardLettering::part(1, false, 0).image.pixels.empty());
+    overlay.shutdown();
+    SDL_DestroyRenderer(renderer);
+    SDL_DestroySurface(surface);
+    SDL_Quit();
 }

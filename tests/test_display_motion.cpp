@@ -1,6 +1,9 @@
 #include "app/display_motion.h"
 #include "app/picture_draw.h"
+#include "app/present_clock.h"
+#include "engine/settings.h"
 #include "game/mode7.h"
+#include "game/setup.h"
 #include <cstdio>
 #include <doctest/doctest.h>
 #include <vector>
@@ -497,4 +500,59 @@ TEST_CASE("Enhanced scene cap preserves small outputs and fits larger outputs at
     CHECK(enhanced_scene_size(2240, 1440) == std::array<int, 2>{1120, 720});
     CHECK(enhanced_scene_size(1344, 864) == std::array<int, 2>{1120, 720});
     CHECK(enhanced_scene_size(3360, 2160) == std::array<int, 2>{1120, 720});
+}
+
+TEST_CASE("Lo-Spec presents 30 times a second independently of native ticks and input") {
+    constexpr uint64_t second = 1'000'000'000;
+    for (int refresh : {0, 60, 90, 120, 144}) {
+        CAPTURE(refresh);
+        LoSpecCadence cadence;
+        int presents = 0, native = 0, serviced = 0;
+        uint64_t next_tick = 0;
+        // The live loop pumps every millisecond between pictures. A key is pressed/released entirely
+        // between the first and second presentation, but spans a native input service.
+        for (uint64_t now = 0; now < second * 10; now += 1'000'000) {
+            const bool held = now >= 10'000'000 && now < 20'000'000;
+            while (next_tick <= now) {
+                ++native;
+                if (held)
+                    ++serviced;
+                next_tick += game::kWscFrameNs;
+            }
+            presents += cadence.due(now, refresh);
+        }
+        CHECK(presents == 300);
+        CHECK(native == 755);
+        CHECK(serviced == 1);
+        if (refresh == 60 || refresh == 90 || refresh == 120) {
+            CHECK(double(LoSpecCadence::period(refresh)) * refresh / second == doctest::Approx(refresh / 30));
+        }
+    }
+    CHECK(enhanced_scene_size(2240, 1440, true) == std::array<int, 2>{672, 432});
+    CHECK(enhanced_scene_size(448, 288, true) == std::array<int, 2>{448, 288});
+    CHECK(interpolated_pacing(Pacing::LoSpec));
+}
+
+TEST_CASE("Lo-Spec selects whole display refreshes and drops missed presentation deadlines") {
+    for (int refresh : {60, 90, 120, 144}) {
+        LoSpecCadence cadence;
+        int count = 0, previous = -1;
+        for (int frame = 0; frame < refresh * 10; ++frame) {
+            if (cadence.due(uint64_t(1e9 * frame / refresh), refresh)) {
+                if (previous >= 0 && refresh != 144)
+                    CHECK(frame - previous == refresh / 30);
+                previous = frame;
+                ++count;
+            }
+        }
+        CHECK(count == 300);
+    }
+    LoSpecCadence cadence;
+    CHECK(cadence.due(1));
+    CHECK(cadence.remaining(2) == LoSpecCadence::period() - 1);
+    CHECK(cadence.remaining(100'000'001) == 0);
+    CHECK(cadence.due(100'000'001));
+    CHECK_FALSE(cadence.due(101'000'001));
+    cadence.reset();
+    CHECK(cadence.due(101'000'001));
 }

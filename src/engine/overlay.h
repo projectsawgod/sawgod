@@ -91,7 +91,9 @@ class Overlay {
     void frame(const MenuActions &actions, float dt);
     // Draws it into the current render target, `scale` output pixels per menu unit; the target's origin is
     // kPadLeft units left of the menu's left edge.
-    void render(SDL_Renderer *renderer, float scale);
+    void render(SDL_Renderer *renderer, float scale, bool retain_canvas = false);
+    void invalidate_canvas() { canvas_snapshot_.clear(); }
+    uint64_t canvas_renders = 0;
 
     // The menu as built and where its cursor is, for tests and tools (the UI test pilot generates its
     // element inventory from this). Read-only.
@@ -123,6 +125,7 @@ class Overlay {
     static constexpr double kCaptureSeconds = 5; // waiting for a key to bind gives up after this
 
   private:
+    std::vector<unsigned char> canvas_snapshot_, canvas_scratch_;
     std::string localize(std::string_view text) const;
     float text_width(std::string_view text, float scale = 1.0f) const;
     void draw_text(ImDrawList *dl, float x, float y, std::string_view text, ImU32 tint = IM_COL32_WHITE,

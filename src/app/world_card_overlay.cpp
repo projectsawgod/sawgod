@@ -3,15 +3,30 @@
 #include "engine/presentation_diagnostics.h"
 #include "engine/startup_timing.h"
 #include "game/world_card_lettering.h"
+#include <chrono>
 namespace sawgod::app {
 WorldCardOverlay::~WorldCardOverlay() { shutdown(); }
 void WorldCardOverlay::preload() {
     if (!preloading_.valid())
         preloading_ = std::async(std::launch::async, [] {
-            startup::Stage timing("world card decode (background)");
-            // part() initializes immutable shared images once; a foreground caller joins its static guard.
-            (void)game::WorldCardLettering::part(1, false, 0);
-        });
+                          startup::Stage timing("world card decode (background)");
+                          // Publish immutable parts only after the worker has left the static initializer.
+                          (void)game::WorldCardLettering::part(1, false, 0);
+                      }).share();
+}
+bool WorldCardOverlay::decoded() const {
+    if (!preloading_.valid() || preloading_.wait_for(std::chrono::seconds(0)) != std::future_status::ready)
+        return false;
+    try {
+        preloading_.get(); // already ready; a failed initializer must never retry on the foreground
+        return true;
+    } catch (...) {
+        return false;
+    }
+}
+void WorldCardOverlay::wait_for_decode() {
+    preload();
+    preloading_.wait();
 }
 void WorldCardOverlay::shutdown() {
     for (auto &texture : textures_) {
@@ -22,6 +37,9 @@ void WorldCardOverlay::shutdown() {
 bool WorldCardOverlay::prepare(SDL_Renderer *renderer, int requested_card) {
     if (requested_card < 1 || requested_card > 4)
         return true;
+    preload();
+    if (!decoded())
+        return false; // never join the decoder/static initializer from a frame
     const int card = requested_card;
     // Defer decoding/upload until a card is visible; only this card needs GPU textures.
     for (int resolution = 0; resolution < 2; ++resolution)

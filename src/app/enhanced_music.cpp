@@ -1,5 +1,5 @@
-#include "engine/startup_timing.h"
 #include "app/enhanced_music.h"
+#include "engine/startup_timing.h"
 #ifdef __ANDROID__
 #include "engine/data_dir.h"
 #endif
@@ -57,6 +57,7 @@ struct Fluid {
     int (*fluid_synth_sfload)(fluid_synth_t *, const char *, int) = nullptr;
     fluid_sfont_t *(*fluid_synth_get_sfont)(fluid_synth_t *, unsigned int) = nullptr;
     int (*fluid_synth_add_sfont)(fluid_synth_t *, fluid_sfont_t *) = nullptr;
+    int (*fluid_synth_set_polyphony)(fluid_synth_t *, int) = nullptr;
     int (*fluid_synth_remove_sfont)(fluid_synth_t *, fluid_sfont_t *) = nullptr;
     int (*fluid_synth_noteon)(fluid_synth_t *, int, int, int) = nullptr;
     int (*fluid_synth_noteoff)(fluid_synth_t *, int, int) = nullptr;
@@ -97,6 +98,7 @@ struct Fluid {
         LOAD(fluid_synth_sfload);
         LOAD(fluid_synth_get_sfont);
         LOAD(fluid_synth_add_sfont);
+        LOAD(fluid_synth_set_polyphony);
         LOAD(fluid_synth_remove_sfont);
         LOAD(fluid_synth_noteon);
         LOAD(fluid_synth_noteoff);
@@ -355,6 +357,12 @@ EnhancedFrame EnhancedObserver::frame(const emu::Wsc &w) {
     return out;
 }
 
+namespace {
+std::atomic<int> g_music_voices{32};
+} // namespace
+void set_enhanced_music_voices(int voices) { g_music_voices.store(voices, std::memory_order_relaxed); }
+int enhanced_music_voices() { return g_music_voices.load(std::memory_order_relaxed); }
+
 // A prepared entry is never rendered or reset before use. Resetting a used FluidSynth instance
 // leaves block/reverb timing state and does not reproduce a fresh instance's PCM.
 struct EnhancedRenderer::Pool {
@@ -507,17 +515,23 @@ struct EnhancedRenderer::Pool {
     // Audio worker never waits for preparation. Exceptional rapid replacements retain the old
     // correct-but-slow behavior using the already loaded font, and expose the shortage in stats.
     std::unique_ptr<Synth> take() {
+        std::unique_ptr<Synth> entry;
         {
             std::lock_guard lock(mutex);
             if (!ready.empty()) {
-                auto entry = std::move(ready.back());
+                entry = std::move(ready.back());
                 ready.pop_back();
                 wake.notify_one();
-                return entry;
             }
         }
-        ++inline_created;
-        return fresh();
+        if (!entry) {
+            ++inline_created;
+            entry = fresh();
+        }
+        // Voices per synth (Frame Pacing Lo-Spec: 16), set before the synth renders anything.
+        if (entry && entry->synth)
+            entry->api.fluid_synth_set_polyphony(entry->synth, enhanced_music_voices());
+        return entry;
     }
     void retire(std::unique_ptr<Synth> entry) {
         if (!entry)

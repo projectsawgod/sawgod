@@ -13,12 +13,13 @@ void Settings::register_all(Config &c, bool debug_touch) {
     fullscreen =
         &c.add_bool("video.fullscreen", "Video", "Fullscreen", "Fill the display ({Fullscreen})", false);
     borderless = &c.add_bool("video.borderless", "Video", "Borderless", "No title bar or border", false);
-    pacing = &c.add_enum("video.pacing", "Video", "Frame Pacing", "", {"exact", "smooth"},
-                         {"Exact", "Smooth"}, int(Pacing::Smooth));
-    pacing->choice_order = {int(Pacing::Smooth), int(Pacing::Exact)};
+    pacing = &c.add_enum("video.pacing", "Video", "Frame Pacing", "", {"exact", "smooth", "lospec"},
+                         {"Exact", "Smooth", "Lo-Spec"}, int(Pacing::Smooth));
+    pacing->choice_order = {int(Pacing::Smooth), int(Pacing::Exact), int(Pacing::LoSpec)};
     pacing->choice_help = {
         "Exact WSC 75.47 Hz; 60 Hz skips 1 in 5",
         "Smooth motion at native refresh rate",
+        "30 FPS; lighter Enhanced graphics",
     };
     // Screen Mode: LCD is the stock screen's look (engine/screen.h), IPS the subpixel grid of an
     // IPS-modded unit.
