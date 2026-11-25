@@ -62,6 +62,8 @@ struct LaunchArgs {
     bool touch_controls = false;  // Desktop debug access to Android touch controls.
     bool identity_shader = false; // --identity-shader: diagnostic shader, session-only
     int shot_gb_weight = -1;      // --shot-gb-weight 0..256: fixed live-picture crossfade for readback
+    std::string live_picture_log; // final RGB hashes from the ordinary main loop
+    int live_warmup = 0;          // native ticks before the first live-loop picture
     int shot_display_hz = 0;      // simulated presentation clock, only for accelerated captures
     bool shot_ff_review = false;  // simulated hold at 0.60..3.20 s; real host speed and VFX paths
     std::string shot_soak;        // per-view RGB/state hashes and camera diagnostics; skips PNGs

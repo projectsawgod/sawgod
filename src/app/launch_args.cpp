@@ -58,6 +58,10 @@ LaunchArgs parse_launch_args(int argc, char **argv) {
             args.no_save = true;
         } else if (std::strcmp(argv[i], "--shot-ff-review") == 0) {
             args.shot_ff_review = true;
+        } else if (std::strcmp(argv[i], "--live-picture-log") == 0 && i + 1 < argc) {
+            args.live_picture_log = argv[++i];
+        } else if (std::strcmp(argv[i], "--live-warmup") == 0 && i + 1 < argc) {
+            args.live_warmup = std::max(0, std::atoi(argv[++i]));
         } else if (std::strcmp(argv[i], "--shot-display-hz") == 0 && i + 1 < argc) {
             args.shot_display_hz = std::clamp(std::atoi(argv[++i]), 1, 1000);
         } else if (std::strcmp(argv[i], "--frame-picture-log") == 0 && i + 1 < argc) {
@@ -246,7 +250,7 @@ int check_shot_args(LaunchArgs &args) {
         std::fprintf(stderr, "sawgod: --renderer must be gpu or legacy\n");
         return 1;
     }
-    if (args.shot.empty() &&
+    if (args.shot.empty() && args.live_picture_log.empty() &&
         (args.shot_gb_weight >= 0 || !args.shot_store.empty() || !args.shot_pokes.empty())) {
         std::fprintf(stderr, "sawgod: --shot-gb-weight/--shot-store/--shot-poke require --shot-overlay\n");
         return 1;
