@@ -17,12 +17,34 @@
 #pragma once
 
 #include <cstdint>
+#include <functional>
 #include <string>
 #include <string_view>
 #include <utility>
 #include <vector>
 
 namespace sawgod::game {
+
+// Key-item presentation is shared by item rows, dialogue tokens and fit checks.
+constexpr bool is_marked_key_item(int id) { return (id >= 20 && id <= 26) || id == 30 || id == 31; }
+inline constexpr std::string_view kKeyItemArt = "..HGG..."
+                                                ".HG#GS.."
+                                                ".GGGSS.."
+                                                "...G...."
+                                                "..LG...."
+                                                "...G...."
+                                                "..LG....";
+inline constexpr char32_t kInlineKeyItem = 0xF0200, kItemNameEnd = 0xF0300;
+// A nonempty display view overrides the resource name; otherwise the token uses item_N.
+int key_item_token(std::u32string_view text, size_t *length = nullptr,
+                   std::u32string_view *display = nullptr);
+// Preserve literal opening delimiters through dialogue/value/raw-code decoding.
+inline constexpr char32_t kLiteralBrace = 0xF0301, kLiteralBracket = 0xF0302;
+constexpr char32_t literal_glyph(char32_t c) {
+    return c == kLiteralBrace ? U'{' : c == kLiteralBracket ? U'[' : c;
+}
+std::u32string marked_item_run(int id, std::u32string_view name);
+std::u32string expand_key_items(std::u32string_view text, const std::function<std::u32string(int)> &name);
 
 class Machine;
 struct TextMessage;

@@ -657,3 +657,117 @@ TEST_CASE("battle popup clock counts original fragments names and digits before 
     queue(0xD60F, {0xA1 * 2}, true);
     CHECK(s.apply_message_template(m) == 1); // BX=0 discards the previous clock as well as its text
 }
+
+#include "game/text_wrap.h"
+#include "game/ui_chrome.h"
+TEST_CASE("key item marker: one ID predicate, explicit resource token and measured runs") {
+    const std::vector<int> marked_ids{20, 21, 22, 23, 24, 25, 26, 30, 31};
+    for (int id = -1; id <= 256; ++id)
+        CHECK(is_marked_key_item(id) ==
+              (std::find(marked_ids.begin(), marked_ids.end(), id) != marked_ids.end()));
+    size_t length = 0;
+    CHECK(key_item_token(U"{key:item_20}!", &length) == 20);
+    CHECK(length == 13);
+    CHECK(key_item_token(U"{key:item_255}") == 255);
+    std::u32string_view display;
+    CHECK(key_item_token(U"{key:item_20:Air Seeds}!", &length, &display) == 20);
+    CHECK(length == 23);
+    CHECK(display == U"Air Seeds");
+    CHECK(key_item_token(U"{key:item_20}", &length, &display) == 20);
+    CHECK(display.empty());
+    CHECK(key_item_token(U"{key:item_31:Board's: [D1] {literal}", &length, &display) == 31);
+    CHECK(display == U"Board's: [D1] {literal");
+    for (auto invalid : {U"{key:item_256}", U"{key:item_-1}", U"{key:item_020}", U"{key:item_}",
+                         U"{key:item_20x}", U"{key:item_20", U"{key:item_20:}", U"{key:item_20:Air Seeds",
+                         U"{key:item_256:Air Seeds}", U"{key:item_020:Seeds}"})
+        CHECK(key_item_token(invalid) == -1);
+    const auto resolve = [](int id) { return id == 20 ? U"Air Seed" : U"King's Sword"; };
+    const auto marked = expand_key_items(U"{key:item_20}", resolve);
+    CHECK(marked == marked_item_run(20, U"Air Seed"));
+    CHECK(text_width(marked) == 5 + text_width(U"Air Seed"));
+    CHECK(Chrome::text_width(marked) == 5 + Chrome::text_width(U"Air Seed"));
+    CHECK(Chrome::text_width(Chrome::item_run(20, U"Air Seed", true)) ==
+          10 + Chrome::text_width(U"Air Seed"));
+    const auto plain = expand_key_items(U"{key:item_17}", resolve);
+    CHECK(plain == U"King's Sword");
+    CHECK(text_width(plain) == text_width(U"King's Sword"));
+    CHECK(Chrome::item_symbol(17, 29) == 1);
+    CHECK(Chrome::item_symbol(18, 29) == 8);
+    CHECK(Chrome::item_symbol(19, 29) == 9);
+    CHECK(Chrome::item_symbol(32, 1) == 1);
+    const auto wrapped = wrap_text(U"Dip an " + marked + U" in ocean water.", 70);
+    CHECK(std::any_of(wrapped.lines.begin(), wrapped.lines.end(),
+                      [&](const auto &line) { return line.text.find(marked) != std::u32string::npos; }));
+}
+
+TEST_CASE("key item display text is literal, measured and wrapped as one run without a name lookup") {
+    const auto no_lookup = [](int) -> std::u32string {
+        FAIL("display-text tokens must not resolve an item name");
+        return {};
+    };
+    const auto marked = expand_key_items(U"{key:item_20:Air Seeds}", no_lookup);
+    CHECK(marked == marked_item_run(20, U"Air Seeds"));
+    CHECK(text_width(marked) == 5 + text_width(U"Air Seeds"));
+    CHECK(Chrome::text_width(marked) == 5 + Chrome::text_width(U"Air Seeds"));
+    const auto wrapped = wrap_text(U"Many " + marked + U" grow on the palm tree.", 60);
+    REQUIRE(wrapped.lines.size() > 1);
+    CHECK(std::any_of(wrapped.lines.begin(), wrapped.lines.end(),
+                      [&](const auto &line) { return line.text.find(marked) != std::u32string::npos; }));
+    const auto plain = expand_key_items(U"{key:item_17:King's Swords}", no_lookup);
+    CHECK(plain == U"King's Swords");
+    CHECK(text_width(plain) == text_width(U"King's Swords"));
+    const auto literal = expand_key_items(U"{key:item_20:[D1] {key:literal}", no_lookup);
+    const auto label = std::u32string(1, kLiteralBracket) + U"D1] " + kLiteralBrace + U"key:literal";
+    CHECK(literal == marked_item_run(20, label));
+    CHECK(text_width(literal) == 5 + text_width(U"[D1] {key:literal"));
+    CHECK(font_glyph(kLiteralBrace).rows == font_glyph(U'{').rows);
+    CHECK(font_glyph(kLiteralBracket).rows == font_glyph(U'[').rows);
+
+    TextTable t;
+    std::string error;
+    std::vector<std::string> warnings;
+    REQUIRE(t.load("key,text\nui_battle_fight,{key:item_20:Air Seeds}\n"
+                   "ui_battle_run,{key:item_17:Swords}\n"
+                   "dlg_355550,{key:item_20:[D1] {key:literal}\n",
+                   Charset::system(), &error, &warnings, nullptr, true));
+    CHECK(warnings.empty());
+    REQUIRE(t.host("ui_battle_fight"));
+    REQUIRE(t.host("ui_battle_run"));
+    CHECK(*t.host("ui_battle_fight") == marked);
+    CHECK(*t.host("ui_battle_run") == U"Swords");
+    REQUIRE(t.load("key,text\nitem_20,Renamed Seed\n", Charset::system(), &error, &warnings, nullptr, true,
+                   true));
+    CHECK(*t.host("ui_battle_fight") == marked);
+    for (const auto &token : {"{key:item_20:}", "{key:item_20:Air Seeds"}) {
+        warnings.clear();
+        REQUIRE(t.load(std::string("key,text\nui_battle_fight,") + token + "\n", Charset::system(), &error,
+                       &warnings, nullptr, true, true));
+        CHECK_FALSE(warnings.empty());
+        CHECK(warnings.back().find("invalid or missing") != std::string::npos);
+    }
+}
+
+TEST_CASE("key item resource references resolve names regardless of CSV order, including layered names") {
+    TextTable t;
+    std::string error;
+    std::vector<std::string> warnings;
+    REQUIRE(t.load("key,text\nui_battle_fight,{key:item_20}!\n"
+                   "dlg_355423,Dip an {key:item_20} in water.\nitem_20,Air Seed\nitem_17,King's Sword\n"
+                   "ui_battle_run,{key:item_17}\n",
+                   Charset::system(), &error, &warnings, nullptr, true));
+    CHECK(warnings.empty());
+    REQUIRE(t.host("ui_battle_fight"));
+    CHECK(*t.host("ui_battle_fight") == marked_item_run(20, U"Air Seed") + U"!");
+    REQUIRE(t.host("ui_battle_run"));
+    CHECK(*t.host("ui_battle_run") == U"King's Sword");
+    REQUIRE(t.load("key,text\nui_battle_fight,{key:item_20}\nitem_20,Changed Seed\n", Charset::system(),
+                   &error, &warnings, nullptr, true, true));
+    CHECK(*t.host("ui_battle_fight") == marked_item_run(20, U"Changed Seed"));
+    REQUIRE(
+        t.load("key,text\nitem_20,Modded Seed\n", Charset::system(), &error, &warnings, nullptr, true, true));
+    CHECK(*t.host("ui_battle_fight") == marked_item_run(20, U"Modded Seed"));
+    REQUIRE(t.load("key,text\nui_battle_fight,{key:item_256}\n", Charset::system(), &error, &warnings,
+                   nullptr, true, true));
+    REQUIRE_FALSE(warnings.empty());
+    CHECK(warnings.back().find("invalid or missing") != std::string::npos);
+}

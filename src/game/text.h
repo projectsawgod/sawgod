@@ -221,6 +221,8 @@ class TextTable {
     std::unordered_map<uint8_t, int> original_records_;
     std::unordered_map<std::string, std::vector<uint16_t>> templates_;
     std::unordered_map<std::string, std::u32string> host_;
+    // Original reference-bearing rows, so a later name-only mod refreshes their displayed names.
+    std::unordered_map<std::string, std::string> key_item_sources_;
     std::unordered_map<uint16_t, TextLayout> layouts_;
     std::unordered_map<uint16_t, std::u32string> icon_chars_;
     bool proportional_ = false;

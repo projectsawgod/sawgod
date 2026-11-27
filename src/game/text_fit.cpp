@@ -98,6 +98,8 @@ std::vector<std::string> codes(const std::string &s, bool breaks) {
     std::vector<std::string> out;
     for (auto it = std::sregex_iterator(s.begin(), s.end(), code); it != std::sregex_iterator(); ++it) {
         const std::string c = it->str();
+        if (key_item_token(utf8_to_u32(c)) >= 0)
+            continue;
         if (breaks || (c != "{n}" && c != "{lf}"))
             out.push_back(c);
     }
@@ -608,6 +610,10 @@ struct Expansion {
             for (size_t i = 0; i < args.size() && i < names.size(); ++i)
                 replace("{" + names[i] + "}", args[i]);
         }
+        value = name_utf8(expand_key_items(utf8_to_u32(value), [&](int id) {
+            const auto it = text.find("item_" + std::to_string(id));
+            return it == text.end() ? std::u32string() : utf8_to_u32(it->second);
+        }));
         // the menus' value tokens at their widest, layout tokens without width of their own
         replace("{hp}", "999");
         replace("{maxhp}", "999");
@@ -890,6 +896,19 @@ std::vector<FitIssue> check_fit(std::string_view base_csv, std::string_view lang
             issue(r, "", "unknown key (not in the base language)");
             continue;
         }
+        const auto source = utf8_to_u32(r.text);
+        for (size_t at = 0; (at = source.find(U"{key:", at)) != std::u32string::npos;) {
+            size_t length = 0;
+            std::u32string_view display;
+            const int id = key_item_token(std::u32string_view(source).substr(at), &length, &display);
+            if (id < 0)
+                issue(r, "",
+                      "invalid {key:item_N} / {key:item_N:Text}: canonical item id (0-255), nonempty Text "
+                      "and closing } required");
+            else if (display.empty() && !expansion.text.contains("item_" + std::to_string(id)))
+                issue(r, "", "missing item_" + std::to_string(id) + " name for {key:item_N}");
+            at += length ? length : 1;
+        }
         const Row &jp = *b->second;
         const auto surfaces = fit_surfaces(r.key, jp.text);
         const FitBudget budget = fit_budget(r.key, jp.text);
@@ -906,11 +925,13 @@ std::vector<FitIssue> check_fit(std::string_view base_csv, std::string_view lang
             }
         };
         // Characters the font can't draw (codes in braces aside).
-        const std::u32string chars = utf8_to_u32(std::regex_replace(r.text, std::regex(R"(\{[^}]*\})"), ""));
+        const auto literal = name_utf8(expand_key_items(source, [](int) { return std::u32string(); }));
+        const std::u32string chars = utf8_to_u32(std::regex_replace(literal, std::regex(R"(\{[^}]*\})"), ""));
         std::u32string missing;
         for (char32_t c : chars)
-            if (!Chrome::can_draw(c) && std::find(missing.begin(), missing.end(), c) == missing.end())
-                missing += c;
+            if (c != kItemNameEnd && !(c >= kInlineKeyItem && c < kInlineKeyItem + 256))
+                if (!Chrome::can_draw(c) && std::find(missing.begin(), missing.end(), c) == missing.end())
+                    missing += c;
         if (!missing.empty())
             issue(r, budget.surface, "not in the font: " + name_utf8(missing));
 

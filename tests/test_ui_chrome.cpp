@@ -705,3 +705,74 @@ TEST_CASE("GB HP labels fade their black ink into the picture beneath them") {
             CHECK(std::all_of(px.begin(), px.end(), [](auto pixel) { return pixel == 0xFFFFFF; }));
     }
 }
+
+#include "game/text_tokens.h"
+TEST_CASE("key A matches the locked bitmap, text shadow, inline placement and scoped name ink") {
+    Wsc w(std::vector<uint8_t>(0x400000), 0);
+    fx::install(w);
+    w.set_second(true);
+    // Independent transcription of the locked seven-row sprite.
+    constexpr std::string_view art = "..HGG..."
+                                     ".HG#GS.."
+                                     ".GGGSS.."
+                                     "...G...."
+                                     "..LG...."
+                                     "...G...."
+                                     "..LG....";
+    const auto shade = [](char v, bool gb) -> uint32_t {
+        if (gb)
+            return v == '#' ? 0xF0F0F0 : 0xA0A0A0;
+        return v == 'H'   ? 0xFFEC96
+               : v == 'G' ? 0xFCC438
+               : v == 'S' ? 0xD0881C
+               : v == 'L' ? 0xFFD664
+                          : 0x100A06;
+    };
+    for (bool gb : {false, true}) {
+        std::vector<uint32_t> px(224 * 144, 0x123456), expected = px;
+        Chrome c(w, px, Wsc::ColorMode::Raw, gb);
+        std::vector<Chrome::Draw> inline_draws;
+        Chrome::observe = [&](const auto &d) { inline_draws.push_back(d); };
+        c.text(Chrome::item_run(20, U"Air Seed") + U"!", 20, 30);
+        Chrome::observe = {};
+        CHECK(std::any_of(inline_draws.begin(), inline_draws.end(), [](const auto &d) {
+            return d.kind == Chrome::Draw::Kind::ItemIcon && d.item == 20 && d.x == 18 && d.y == 30;
+        }));
+        // Trimmed key starts at pen-1, so source cell column 1 sits at x=19.
+        for (int pass = gb ? 1 : 0; pass < 2; ++pass)
+            for (int y = 0; y < 7; ++y)
+                for (int x = 1; x <= 5; ++x)
+                    if (art[y * 8 + x] != '.') {
+                        const int at = (30 + y) * 224 + 18 + x;
+                        if (!pass) {
+                            expected[size_t(at + 1)] = 0x101010;
+                            expected[size_t(at + 224)] = 0x101010;
+                        } else
+                            expected[size_t(at)] = shade(art[y * 8 + x], gb);
+                    }
+        for (int y = 29; y < 39; ++y)
+            for (int x = 18; x < 25; ++x)
+                CHECK(at(px, x, y) == at(expected, x, y));
+        CHECK(at(px, 26, 31) == (gb ? 0x505050 : 0xFFD664)); // first A stroke
+        std::vector<Chrome::Draw> draws;
+        Chrome::observe = [&](const auto &d) { draws.push_back(d); };
+        c.item(20, U"Air Seed", 17, 50);
+        c.item(20, U"Air Seed", 17, 70, Chrome::Ink::Muted);
+        Chrome::observe = {};
+        const auto name = std::find_if(draws.begin(), draws.end(),
+                                       [](const auto &d) { return d.text == U"Air Seed" && d.y == 50; });
+        REQUIRE(name != draws.end());
+        CHECK(name->x == 27);
+        CHECK(at(px, 28, 51) == (gb ? 0x505050 : 0xFFD664));
+        CHECK(at(px, 28, 71) == c.color(Chrome::Ink::Muted));
+        // Following punctuation is ordinary text, including its original shadow policy.
+        std::vector<uint32_t> plain(224 * 144, 0x123456);
+        Chrome p(w, plain, Wsc::ColorMode::Raw, gb);
+        const int bang = 20 + 5 + Chrome::text_width(U"Air Seed") - 2;
+        p.text(U"!", bang, 30);
+        for (int y = 30; y < 40; ++y)
+            for (int x = bang + 1; x < bang + Chrome::text_width(U"!"); ++x)
+                if (at(plain, x, y) != 0x123456)
+                    CHECK(at(px, x, y) == at(plain, x, y));
+    }
+}

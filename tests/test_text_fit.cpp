@@ -267,3 +267,31 @@ TEST_CASE("text fit: narration colons retain the full body width and never creat
     CHECK(report[1][2] == "214");
     CHECK(report[1][7].find("speaker tab") == std::string::npos);
 }
+
+TEST_CASE("text fit: key item references validate IDs and measure the current name plus five pixels") {
+    const auto base = "key,text\nitem_20,たね\nitem_17,つるぎ\ndlg_1,たね\n";
+    const auto valid = check_fit(base, "key,text\nitem_20,Air Seed\nitem_17,Sword\n"
+                                       "dlg_1,{key:item_20} and {key:item_17}\n");
+    CHECK(std::none_of(valid.begin(), valid.end(), [](const auto &i) { return i.error; }));
+    CHECK(has(check_fit(base, "key,text\ndlg_1,{key:item_256}\n"), "dlg_1", "invalid {key:item_N}"));
+    CHECK(has(check_fit(base, "key,text\ndlg_1,{key:item_21}\n"), "dlg_1", "missing item_21"));
+    const std::string wide(40, 'W');
+    const auto over = check_fit(base, "key,text\nitem_20," + wide + "\ndlg_1,{key:item_20}\n");
+    CHECK(has(over, "dlg_1", "too wide"));
+}
+
+TEST_CASE("text fit: key display text validates literal labels without requiring stored names") {
+    const auto base = "key,text\ndlg_1,たね\n";
+    for (const auto &token :
+         {"{key:item_20:Air Seeds}", "{key:item_17:King's Swords}", "{key:item_31:Board's: [D1] {literal}"}) {
+        const auto valid = check_fit(base, std::string("key,text\ndlg_1,") + token + "\n");
+        CHECK(std::none_of(valid.begin(), valid.end(), [](const auto &i) { return i.error; }));
+    }
+    for (const auto &token : {"{key:item_20:}", "{key:item_20:Air Seeds", "{key:item_256:Seeds}"})
+        CHECK(has(check_fit(base, std::string("key,text\ndlg_1,") + token + "\n"), "dlg_1",
+                  "invalid {key:item_N}"));
+    const std::string wide(40, 'W');
+    const auto over = check_fit(base, "key,text\ndlg_1,{key:item_20:" + wide + "}\n");
+    CHECK(has(over, "dlg_1", "too wide"));
+    CHECK(has(check_fit(base, "key,text\ndlg_1,{key:item_20:🦊}\n"), "dlg_1", "not in the font"));
+}

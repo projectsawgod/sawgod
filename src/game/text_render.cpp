@@ -12,6 +12,7 @@
 #include "game/machine.h"
 #include "game/text.h"
 #include "game/text_tokens.h"
+#include "game/ui_chrome.h"
 
 namespace sawgod::game {
 
@@ -34,6 +35,7 @@ constexpr Glyph kGlyphs[] = {
 };
 
 const Glyph &glyph(char32_t c) {
+    c = literal_glyph(c);
     for (const Glyph &g : kGlyphs)
         if (g.cp == c)
             return g;
@@ -128,6 +130,21 @@ std::vector<uint8_t> render(Machine &m, std::u32string_view text, int cells,
     size_t tab = 0;
     for (size_t i = 0; i < text.size(); ++i) {
         const char32_t c = text[i];
+        if (c == kItemNameEnd)
+            continue;
+        if (c >= kInlineKeyItem && c < kInlineKeyItem + 256) {
+            constexpr auto art = kKeyItemArt;
+            for (int r = 0; r < 7; ++r)
+                for (int b = 1; b <= 5; ++b)
+                    if (const int column = x + b - 2; art[r * 8 + b] != '.' && column >= 0 && column < w)
+                        px[size_t(r * w + column)] = art[r * 8 + b] == '#' ? kShadow : kStroke;
+            x += 5;
+            continue;
+        }
+        if (Chrome::is_item_token(c)) {
+            x += Chrome::kItemAdvance;
+            continue;
+        }
         if (const DrawnToken t = drawn_token(text, i); t.len) {
             i += t.len - 1;
             if (t.tab) {
@@ -263,6 +280,7 @@ void place(Machine &m, uint16_t map, uint16_t attr, const std::vector<uint8_t> &
 } // namespace
 
 bool font_has(char32_t c) {
+    c = literal_glyph(c);
     if (c == U'　' || c == U'\u00A0' || (c >= U'！' && c <= U'～'))
         return true;
     for (const Glyph &g : kGlyphs)
@@ -345,6 +363,16 @@ int text_width(std::u32string_view text) {
             continue;
         }
         const char32_t c = text[i];
+        if (c == kItemNameEnd)
+            continue;
+        if (c >= kInlineKeyItem && c < kInlineKeyItem + 256) {
+            w += 5;
+            continue;
+        }
+        if (Chrome::is_item_token(c)) {
+            w += Chrome::kItemAdvance;
+            continue;
+        }
         w += c >= kWscGlyph && c < kWscGlyph + 0x100 ? 8 : glyph(c).advance;
     }
     return text.empty() ? 0 : w + kM5x7Left + 1; // (+ the shadow column)

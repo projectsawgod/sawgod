@@ -54,7 +54,8 @@ class Chrome {
         // green and the enemy HP bar's red, each raised to text brightness. A mark beside it (trend_mark)
         // carries the meaning; the GB picture has no color and draws Text.
         Higher,
-        Lower
+        Lower,
+        KeyItem
     };
 
     // How much of the title's white TitleHint (and its edge) has, in percent; the rest is the title page:
@@ -133,12 +134,13 @@ class Chrome {
     static constexpr int kItemAdvance = 10;
     static constexpr char32_t kItemToken = 0xF0000; // presentation-only item argument, never a resource glyph
     static bool is_item_token(char32_t c) { return c >= kItemToken && c <= kItemToken + 256; }
-    static std::u32string item_run(int id, std::u32string_view name);
+    static std::u32string item_run(int id, std::u32string_view name, bool list = false);
     static int item_width(std::u32string_view name) { return kItemAdvance + text_width(name); }
     void item(int id, std::u32string_view name, int x, int y, Ink ink = Ink::Text,
               int total_width = emu::Wsc::kWidth, Window style = Window::Normal);
     // GB style: the 8x8 four-gray icon of a WSC item symbol (64 characters, see ui_chrome.cpp); null = none.
     static const char *gb_item_icon(int symbol);
+    static int item_symbol(int id, int native_symbol);
     static int text_width(std::u32string_view s);
     // A button icon (engine/button_icons.h) with its 9-pixel box's top-left at (x, y), in the text's ink.
     void button_icon(const ButtonIcon &icon, int x, int y, Ink ink, Window style, bool with_shadow);
@@ -201,6 +203,7 @@ class Chrome {
     // on request; its pixels into draw.ink.
     void gb_pattern(const char *const *rows, int height, int x, int y, bool flip, Draw &draw);
     void item_icon(int id, int x, int y);
+    void key_icon(int x, int y);
     std::vector<uint32_t> sprite_ink(int tile, int x, int y) const; // a sprite tile's opaque pixels
     int opacity_ = 100; // scoped coverage fade for the GB HP label's black ink
     void pixel(int x, int y, uint32_t color, int alpha = 100);

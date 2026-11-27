@@ -1,5 +1,6 @@
 // Draws shared host UI frames, text, and cursors in the active graphics style.
 #include "game/ui_chrome.h"
+#include "game/text_tokens.h"
 
 #include <algorithm>
 #include <array>
@@ -141,6 +142,8 @@ uint32_t Chrome::title_hint_faded(uint32_t full) const {
 }
 
 uint32_t Chrome::color(Ink ink, Window style) const {
+    if (ink == Ink::KeyItem)
+        return second_ ? 0x505050 : 0xFFD664;
     // The title's picture lettering uses palette 14: white strokes and a dark edge.
     // GB keeps its native black lettering on the light title page.
     if (ink == Ink::Title || ink == Ink::TitleShadow)
@@ -708,8 +711,11 @@ void Chrome::thin_window(int x, int y, int width, int height, const std::functio
                 pixel(x + xx, y + yy, kind == 1 || kind == 3 ? line : kind == 2 ? band : light);
 }
 
-std::u32string Chrome::item_run(int id, std::u32string_view name) {
-    return std::u32string(1, kItemToken + (id >= 0 && id < 256 ? id : 256)) + std::u32string(name);
+std::u32string Chrome::item_run(int id, std::u32string_view name, bool list) {
+    if (!list && is_marked_key_item(id))
+        return marked_item_run(id, name);
+    return std::u32string(1, kItemToken + (id >= 0 && id < 256 ? id : 256)) + std::u32string(name) +
+           kItemNameEnd;
 }
 void Chrome::button_icon(const ButtonIcon &icon, int x, int y, Ink ink, Window style, bool with_shadow) {
     // the Icon Type's colors in the WSC picture (and so Enhanced); the GB picture keeps its greys
@@ -785,18 +791,10 @@ int Chrome::text_width(std::u32string_view s) {
         if (any)
             return w + 2;
     }
-    auto plain = normalized(s);
-    int cells = 0;
-    std::erase_if(plain, [&](char32_t ch) {
-        if (!is_item_token(ch))
-            return false;
-        ++cells;
-        return true;
-    });
-    return cells * kItemAdvance + sawgod::game::text_width(plain);
+    return sawgod::game::text_width(normalized(s));
 }
 void Chrome::item(int id, std::u32string_view name, int x, int y, Ink ink, int total_width, Window style) {
-    text(item_run(id, name), x, y, ink, total_width, style);
+    text(item_run(id, name, true), x, y, ink, total_width, style);
 }
 
 // GB style item icons, one per WSC item symbol (9000:6EE0), rows of eight: '#' black, '+' dark gray,
@@ -843,9 +841,51 @@ constexpr const char *kGbItemIcons[32] = {
 const char *Chrome::gb_item_icon(int symbol) {
     return symbol >= 0 && symbol < 32 ? kGbItemIcons[symbol] : nullptr;
 }
+int Chrome::item_symbol(int id, int native_symbol) {
+    return id == 17 ? 1 : id == 18 ? 8 : id == 19 ? 9 : native_symbol;
+}
+void Chrome::key_icon(int x, int y) {
+    constexpr auto art = kKeyItemArt;
+    // Fixed bitmap pixels follow ordinary item icons into Enhanced, retaining the WSC shadow.
+    for (int pass = second_ ? 1 : 0; pass < 2; ++pass)
+        for (int r = 0; r < 7; ++r)
+            for (int c = 1; c <= 5; ++c) {
+                const char v = art[r * 8 + c];
+                if (v == '.')
+                    continue;
+                const uint32_t color = !pass      ? 0x101010
+                                       : second_  ? (v == '#' ? 0xF0F0F0 : 0xA0A0A0)
+                                       : v == 'H' ? 0xFFEC96
+                                       : v == 'G' ? 0xFCC438
+                                       : v == 'S' ? 0xD0881C
+                                       : v == 'L' ? 0xFFD664
+                                                  : 0x100A06;
+                if (!pass) {
+                    pixel(x + c + 1, y + r, color);
+                    pixel(x + c, y + r + 1, color);
+                } else
+                    pixel(x + c, y + r, color);
+            }
+}
 void Chrome::item_icon(int id, int x, int y) {
+    if (is_marked_key_item(id)) {
+        key_icon(x, y);
+        if (observe) {
+            Draw draw{Draw::Kind::ItemIcon, x, y, 8, 8, 8, false, {}};
+            constexpr auto art = kKeyItemArt;
+            for (int r = 0; r < 7; ++r)
+                for (int c = 1; c <= 5; ++c)
+                    if (art[r * 8 + c] != '.' && x + c >= clip_left_ && x + c < clip_right_ &&
+                        y + r >= clip_top_ && y + r < clip_bottom_)
+                        draw.ink.push_back(uint32_t((y + r) * kWidth + x + c));
+            draw.item = id;
+            draw.has_icon = true;
+            observe(draw);
+        }
+        return;
+    }
     Machine m(w_);
-    const int symbol = id < 0 ? 255 : m.rd8(0x9000, uint16_t(0x6EE0 + id));
+    const int symbol = item_symbol(id, id < 0 ? 255 : m.rd8(0x9000, uint16_t(0x6EE0 + id)));
     const bool present = symbol != 255;
     std::vector<uint32_t> pixels;
     if (present) {
@@ -964,28 +1004,47 @@ void Chrome::text(std::u32string_view s, int x, int y, Ink ink, int max_width, W
         if (any)
             return;
     }
-    // Item-name arguments carry a private presentation token. Expand at the pen, before drawing
-    // the following name, so translated templates can reorder/repeat arguments without string edits.
-    if (std::any_of(s.begin(), s.end(), is_item_token)) {
+    // Scope the name ink to its argument; punctuation and following text retain their own ink.
+    const auto marker = [](char32_t c) {
+        return is_item_token(c) || (c >= kInlineKeyItem && c < kInlineKeyItem + 256) || c == kItemNameEnd;
+    };
+    if (std::any_of(s.begin(), s.end(), marker)) {
         size_t begin = 0;
         int pen = 0;
+        Ink run_ink = ink;
         for (size_t i = 0; i <= s.size(); ++i) {
-            if (i != s.size() && !is_item_token(s[i]))
+            if (i != s.size() && !marker(s[i]))
                 continue;
             const auto run = s.substr(begin, i - begin);
-            text(run, x + pen, y, ink, std::max(0, max_width - pen), style, cast_shadow);
-            const int run_width = text_width(run);
-            pen +=
-                run.empty() ? 0 : run_width - 2; // shared text metrics include the pen inset and end shadow
+            text(run, x + pen, y, run_ink, std::max(0, max_width - pen), style, cast_shadow);
+            pen += run.empty() ? 0 : text_width(run) - 2;
             if (i < s.size()) {
-                if (observe) {
-                    Draw draw{Draw::Kind::ItemRun, x + pen, y, kItemAdvance, 8, max_width - pen, false, {}};
-                    draw.item = s[i] == kItemToken + 256 ? -1 : int(s[i] - kItemToken);
-                    observe(draw);
+                if (s[i] == kItemNameEnd) {
+                    run_ink = ink;
+                } else {
+                    const bool list = is_item_token(s[i]);
+                    const int id = list ? (s[i] == kItemToken + 256 ? -1 : int(s[i] - kItemToken))
+                                        : int(s[i] - kInlineKeyItem);
+                    const int advance = list ? kItemAdvance : 5;
+                    if (observe && list) {
+                        Draw draw{Draw::Kind::ItemRun, x + pen, y, advance, 8, max_width - pen, false, {}};
+                        draw.item = id;
+                        observe(draw);
+                    }
+                    if (pen + advance <= max_width) {
+                        if (list)
+                            item_icon(id, x + pen, y);
+                        else
+                            item_icon(id, x + pen - 2,
+                                      y); // trimmed art starts at pen - 1; retain icon observations
+                    }
+                    pen += advance;
+                    // Muted/secondary/disabled rows keep their existing state. Normal and selected
+                    // names use the key-item ink; the pointer continues to identify selection.
+                    run_ink = is_marked_key_item(id) && (ink == Ink::Text || ink == Ink::Accent)
+                                  ? Ink::KeyItem
+                                  : ink;
                 }
-                if (pen + kItemAdvance <= max_width)
-                    item_icon(s[i] == kItemToken + 256 ? -1 : int(s[i] - kItemToken), x + pen, y);
-                pen += kItemAdvance;
             }
             begin = i + 1;
         }
