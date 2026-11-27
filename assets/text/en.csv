@@ -183,7 +183,7 @@ dlg_3553A4,Seiryū sent our Dragon King into exile.
 dlg_3553C2,The brothers live in a town on an island to the northeast...
 dlg_3553DD,Those caves'll take you to all kinds of islands.
 dlg_3553FD,A whirlpool swallowed me up and brought me to a castle at the bottom of the ocean! Honest.
-dlg_355423,Dip an Air Seed in ocean water and it gives off oxygen.
+dlg_355423,Dip an {key:item_20} in ocean water and it gives off oxygen.
 dlg_355440,Stay away from that geezer in the hut on the island to the south!
 dlg_35545E,You'll find Seiryū in the Dragon Palace.
 dlg_355479,I wonder where His Majesty the Dragon King is now? Is he well?
@@ -192,7 +192,7 @@ dlg_3554BD,His Majesty the Dragon King had a blue jewel.
 dlg_3554D9,Seiryū has a red jewel he's obsessed with.
 dlg_3554FA,"Heh heh. It's where the lines cross, pal. Where they make out a cross... heh heh... 'make out'. Heh heh."
 dlg_35553D,Dip it in the ocean and out comes air!
-dlg_355550,Air Seeds grow on the central palm tree.
+dlg_355550,{key:item_20:Air Seeds} grow on the central palm tree.
 dlg_35556A,A riddle for you.{wait}
 dlg_355582,"What hurts the healthy, but soothes the stiffened?"
 dlg_3555AB,"What costs as much as two Long Swords, three Golden Helmets, and four Potions?"
@@ -207,13 +207,13 @@ dlg_3556BE,"{name:0}: ""Youch!"""
 dlg_3556C6,{box}. Right you are.
 dlg_3556EA,"Here, take this.{wait}"
 dlg_3556F8,It will open the door in the Tower.{wait}
-dlg_355713,Blue Orb
+dlg_355713,{key:item_22}
 dlg_35571B,"Here, take... Ah, you already took it."
 dlg_355745,You're unable to breathe!{wait}
-dlg_355758,"You can breathe, thanks to the Air Seed!{wait}"
+dlg_355758,"You can breathe, thanks to the {key:item_20}!{wait}"
 dlg_35577E,This isn't it! This one's a fake!{wait}
 dlg_355796,This is it! It's the real one!{wait}
-dlg_3557A7,Red Orb
+dlg_3557A7,{key:item_21}
 dlg_3557CB,"Seiryū: ""Who goes there? Who has stolen my orb?""{wait}"
 dlg_3557F1,"{name:3}: ""What's with these stone statues?"""
 dlg_355807,Hi-Potion
@@ -305,15 +305,15 @@ dlg_356641,"{clear}Sayaka: ""Oh! How unexpected!""{wait}{clear}""Brother, here's
 dlg_356670,"{name:255}: ""...and that's how we ended up here.""{wait}{clear}Boss: ""Yeah, I get the picture.""{wait}{clear}""So y'all are gonna take on Suzaku too, huh?""{wait}"
 dlg_3566BB,"Biker: ""Nothing we've got can put a dent in Suzaku's barrier...""{wait}{clear}Sayaka: ""Right. But we're building a device to cancel it out!""{wait}{clear}Boss: ""We just need two or three more parts to finish it...""{wait}{clear}{name:0}: ""Haven't found 'em yet?""{wait}{clear}Boss: ""There's a place they used to call 'Akiba' that should have 'em.""{wait}{clear}Sayaka: ""The library might tell us where to find Akiba!""{wait}{clear}{name:2}: ""Okay! We'll go hunt down those parts!""{wait}{clear}Boss: ""I'm counting on you, then! Use the bike out front.""{wait}"
 dlg_3567B4,Riding a bike means Suzaku's less likely to jump you.
-dlg_3567D3,A shady shop in Ameyoko should be selling Circuit Boards.
+dlg_3567D3,A shady shop in Ameyoko should be selling {key:item_31:Circuit Boards}.
 dlg_3567F6,All right! Let's start looking!{wait}
 dlg_35681E,Nothing here!{wait}
 dlg_356840,"Here it is! Akiba's 14 to the east, 15 to the north!{wait}"
-dlg_356869,"Shopkeeper: ""Need a board? For what kind of ROM Chip?""{wait}"
-dlg_35688C,"{clear}""Come back once you've got a ROM Chip!"""
+dlg_356869,"Shopkeeper: ""Need a board? For what kind of {key:item_30}?""{wait}"
+dlg_35688C,"{clear}""Come back once you've got a {key:item_30}!"""
 dlg_35689A,"Shopkeeper: ""'Need a board'? You already got one!"""
-dlg_3568B5,"{clear}""This is the board you'll want for that sort of ROM Chip.""{wait}"
-dlg_3568C9,{clear}Circuit Board
+dlg_3568B5,"{clear}""This is the board you'll want for that sort of {key:item_30}.""{wait}"
+dlg_3568C9,{clear}{key:item_31}
 dlg_3568D5,"{name:2}: ""Fall from here and it's all over..."""
 dlg_3568E6,The library's north of the radio tower.
 dlg_3568F9,"Come back safe, okay?"
@@ -330,7 +330,7 @@ dlg_356AEC,"Boss: ""Leave this to me!""{wait}"
 dlg_356B0C,"{name:255}: ""Boss!""{wait}"
 dlg_356B20,"""Hold on!""{wait}{clear}Boss: ""Heh. How 'bout that? That's how a real man does it!""{wait}{clear}{name:255}: ""A real idiot, maybe.""{wait}{clear}Boss: ""Here... take this bandana...""{wait}"
 dlg_356B72,"Got the Gang Bandana.{wait}{clear}""You gotta... look after my sister...""{wait}"
-dlg_356B9B,"{name:1}: ""Here's the plutonium!""{wait}{clear}{name:0}: ""Okay, careful now... There! ERASER 99 is ready to erase Suzaku's barrier!""{wait}"
+dlg_356B9B,"{name:1}: ""Here's the plutonium!""{wait}{clear}{name:0}: ""Okay, careful now... There! {key:item_23} is ready to erase Suzaku's barrier!""{wait}"
 dlg_356BE9,WARNING! WARNING!{wait}{clear}INTRUDER! INTRUDER!{wait}{clear}EXTERMINATE! EXTERMINATE!{wait}
 dlg_356C37,Suzaku sent his forces and everyone was killed. I'm the only one left.
 dlg_356C66,"{name:0}: ""Stay with me!""{wait}{clear}Biker: ""...Sayaka... she's in a building... in Shinjuku..."""
@@ -408,7 +408,7 @@ dlg_357A0C,"Everyone: ""Go where?""{wait}"
 dlg_357A1D,Back to our world!{wait}
 dlg_354E80,"{clear}{name:3}: ""Forget about the thanks. What about our reward?""{wait}{clear}King: ""Ah, yes. What would you have of me?""{wait}{clear}{name:3}: ""Well, um... that armor of yours...""{wait}{clear}King: ""I see. Very well!""{wait}"
 dlg_354ED2,King's Armor
-dlg_355534,Air Seed
+dlg_355534,{key:item_20}
 dlg_3559C5,This turf belongs to Byakko's Elite Guard. Get out while you're still breathing!{wait}
 dlg_3559FB,"{name:0}: ""Pipe down. You're ruining my drink.""{wait}{clear}Soldier: ""Why, you little punk!""{wait}"
 dlg_355A31,"Captain: ""Hey, you there. How'd you like to work for Lord Byakko?""{wait}"
