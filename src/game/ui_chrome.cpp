@@ -1025,7 +1025,7 @@ void Chrome::text(std::u32string_view s, int x, int y, Ink ink, int max_width, W
                     const bool list = is_item_token(s[i]);
                     const int id = list ? (s[i] == kItemToken + 256 ? -1 : int(s[i] - kItemToken))
                                         : int(s[i] - kInlineKeyItem);
-                    const int advance = list ? kItemAdvance : 5;
+                    const int advance = list ? kItemAdvance : inline_item_advance(id);
                     if (observe && list) {
                         Draw draw{Draw::Kind::ItemRun, x + pen, y, advance, 8, max_width - pen, false, {}};
                         draw.item = id;
@@ -1035,13 +1035,14 @@ void Chrome::text(std::u32string_view s, int x, int y, Ink ink, int max_width, W
                         if (list)
                             item_icon(id, x + pen, y);
                         else
-                            item_icon(id, x + pen - 2,
-                                      y); // trimmed art starts at pen - 1; retain icon observations
+                            item_icon(id, x + pen - (is_kings_gear(id) && !(second_ && id == 19) ? 1 : 2),
+                                      y); // visible columns start at pen - 1, at the cap top
                     }
                     pen += advance;
                     // Muted/secondary/disabled rows keep their existing state. Normal and selected
                     // names use the key-item ink; the pointer continues to identify selection.
-                    run_ink = is_marked_key_item(id) && (ink == Ink::Text || ink == Ink::Accent)
+                    run_ink = (is_marked_key_item(id) || (!list && is_kings_gear(id))) &&
+                                      (ink == Ink::Text || ink == Ink::Accent)
                                   ? Ink::KeyItem
                                   : ink;
                 }

@@ -344,6 +344,8 @@ inline constexpr HostTextInfo kHostText[] = {
     {"ui_inventory_power", "こうか　{amount}", "Power {amount}",
      "inventory: item's numeric effect power (not final damage)"},
     {"ui_inventory_defense", "ぼうぎょ　{amount}", "Defense {amount}", "inventory: gear defense"},
+    {"ui_orb_pair_missing", "{key:item_22:なにも　おきなかった}", "{key:item_22:Nothing happened.}",
+     "item use: one Orb used without its partner"},
     {"ui_item_target", "だれに　つかう？", "Use on whom?", "item use: title over the party target rows"},
     {"ui_item_refill_hint", "アイテムを　えらんでください", "Select an item to refill.",
      "item refill: hint below the item list"},

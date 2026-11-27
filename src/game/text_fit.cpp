@@ -280,6 +280,7 @@ std::vector<FitBudget> fit_surfaces(std::string_view key, std::string_view base_
         {"ui_inventory_mana", "inventory: magic scaling stat", 48},
         {"ui_inventory_power", "inventory: item's numeric effect power (not final damage)", 212},
         {"ui_inventory_defense", "inventory: gear defense", 212},
+        {"ui_orb_pair_missing", "item use: one Orb used without its partner", 212},
         {"ui_item_target", "item use: title over the party target rows", 212},
         {"ui_item_refill_hint", "item refill: hint below the item list", 212},
         {"ui_item_floor", "item travel: the tower floor being chosen", 68},

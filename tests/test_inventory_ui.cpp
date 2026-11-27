@@ -255,3 +255,92 @@ TEST_CASE("chrome audit observes visible ink and leaves the inventory picture un
     CHECK(text_seen);
     CHECK(cursor_seen);
 }
+
+TEST_CASE("King's inventory names are key ink only in the Items menu Key Items tab") {
+    sawgod::emu::Wsc w(std::vector<uint8_t>(0x400000), 0);
+    fx::install(w);
+    w.set_second(true);
+    for (bool gb : {false, true})
+        for (int id : {17, 18, 19})
+            for (int tab : {0, 1}) {
+                InventoryUi::View view;
+                view.tab = tab;
+                view.rows[0].id = id;
+                view.rows[0].name = U"A";
+                std::vector<uint32_t> pixels(224 * 144);
+                Chrome chrome(w, pixels, Mode::Raw, gb);
+                InventoryUi::draw_list(chrome, w, view);
+                CHECK(pixels[27 * 224 + 28] == chrome.color(tab ? Chrome::Ink::KeyItem : Chrome::Ink::Text));
+                // Equipment, including Equip's Key Items tab and item dialogs, uses this ordinary list path.
+                chrome.item(id, U"A", 17, 50);
+                CHECK(pixels[51 * 224 + 28] == chrome.color(Chrome::Ink::Text));
+                chrome.item(id, U"A", 17, 70, Chrome::Ink::Muted);
+                CHECK(pixels[71 * 224 + 28] == chrome.color(Chrome::Ink::Muted));
+            }
+}
+
+#include "game/battle_ui.h"
+#include "game/item_dialog_ui.h"
+#include "game/party_ui.h"
+#include "game/service_ui.h"
+#include "game/ui_scene.h"
+TEST_CASE("King's gear stays ordinary in Status, Equip including Key Items, battle, shops and item dialogs") {
+    sawgod::emu::Wsc w(std::vector<uint8_t>(0x400000), 0);
+    fx::install(w);
+    w.set_second(true);
+    Machine m(w);
+    std::string error;
+    REQUIRE(Session::of(w).text().load("key,text\nitem_17,A\nitem_18,A\nitem_19,A\n", Charset::system(),
+                                       &error, nullptr, nullptr, true));
+    PartyUi party;
+    ItemDialogUi dialog;
+    BattleUi battle;
+    ServiceUi shop;
+    party.install(w);
+    dialog.install(w);
+    battle.install(w);
+    shop.install(w);
+    for (bool gb : {false, true})
+        for (int id : {17, 18, 19}) {
+            const auto check = [&](auto &ui) {
+                std::vector<Chrome::Draw> draws;
+                Chrome::observe = [&](const auto &d) {
+                    if (d.text == U"A")
+                        draws.push_back(d);
+                };
+                const auto px = ui.picture(w, Mode::Raw, gb);
+                Chrome::observe = {};
+                REQUIRE_FALSE(draws.empty());
+                for (const auto &d : draws) {
+                    REQUIRE_FALSE(d.strokes.empty());
+                    CHECK(px[d.strokes.front()] != (gb ? 0x505050 : 0xFFD664));
+                }
+            };
+            w.ram[0xD00F] = w.ram[0xD07C] = w.ram[0xD08C] = uint8_t(id);
+            w.ram[0xD010] = w.ram[0xD07D] = w.ram[0xD08D] = 254;
+            w.ram[0xD852] = w.ram[0xD853] = w.ram[0xD842] = w.ram[0xD843] = 0;
+            for (int scene : {3, 5, 6}) {
+                hooks::emit(hooks::Event::PartyMenu, m, {scene});
+                check(party);
+                if (scene != 3) {
+                    w.ram[0xD852] = w.ram[0xD855] = 1;
+                    check(party);
+                    w.ram[0xD852] = 0;
+                }
+            }
+            hooks::emit(hooks::Event::InventoryMenu, m, {1});
+            hooks::emit(hooks::Event::ItemMessage, m, {1});
+            check(dialog);
+            hooks::emit(hooks::Event::ItemMessage, m, {0});
+            w.ram[0xD728] = uint8_t(id);
+            w.ram[0xD729] = 254;
+            w.ram[0xD6E2] = 1;
+            hooks::emit(hooks::Event::BattleStart, m);
+            hooks::emit(hooks::Event::BattleMenu, m);
+            check(battle);
+            {
+                UiSceneScope selling(m, hooks::Event::ServiceMenu, 3);
+                check(shop);
+            }
+        }
+}

@@ -1,5 +1,6 @@
 // Inventory snapshots, item selection, and host-drawn item lists.
 #include "game/inventory_ui.h"
+#include "game/text_tokens.h"
 
 #include <algorithm>
 
@@ -111,9 +112,11 @@ void InventoryUi::draw_list(Chrome &c, emu::Wsc &w, const View &snapshot, bool p
         const auto &r = snapshot.rows[size_t(i)];
         const int slot = snapshot.first + i;
         c.item(r.id, r.name, 17, 26 + i * 12,
-               slot == snapshot.selected && !snapshot.tabs_focused ? Ink::Text
-               : slot == snapshot.source                           ? Ink::Accent
-                                                                   : Ink::Muted,
+               slot == snapshot.selected && !snapshot.tabs_focused
+                   ? (snapshot.tab == 1 && is_kings_gear(r.id) ? Ink::KeyItem : Ink::Text)
+               : slot == snapshot.source
+                   ? (snapshot.tab == 1 && is_kings_gear(r.id) ? Ink::KeyItem : Ink::Accent)
+                   : Ink::Muted,
                170);
         if (pointers && slot == snapshot.source && slot != snapshot.selected)
             c.cursor(6, 26 + i * 12, true, 8);

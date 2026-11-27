@@ -133,6 +133,23 @@ std::vector<uint8_t> render(Machine &m, std::u32string_view text, int cells,
         if (c == kItemNameEnd)
             continue;
         if (c >= kInlineKeyItem && c < kInlineKeyItem + 256) {
+            const int id = int(c - kInlineKeyItem);
+            if (is_kings_gear(id)) {
+                const int symbol = Chrome::item_symbol(id, 255);
+                const uint16_t entry = m.rd16(0x4000, uint16_t(0xC0E7 + symbol * 2));
+                const int tile = (entry & 0x1FF) - 0x80;
+                for (int r = 0; r < 8; ++r)
+                    for (int b = 0; b < 8; ++b) {
+                        const int tx = entry & 0x4000 ? 7 - b : b, ty = entry & 0x8000 ? 7 - r : r;
+                        const uint8_t source = m.rd8(0x9000, uint16_t(0x2480 + tile * 32 + ty * 4 + tx / 2));
+                        const int value = tx & 1 ? source & 15 : source >> 4;
+                        const int column = x + b - 1;
+                        if (column >= 0 && column < w && value)
+                            px[size_t(r * w + column)] = value == kShadow ? kShadow : kStroke;
+                    }
+                x += inline_item_advance(id);
+                continue;
+            }
             constexpr auto art = kKeyItemArt;
             for (int r = 0; r < 7; ++r)
                 for (int b = 1; b <= 5; ++b)
@@ -366,7 +383,7 @@ int text_width(std::u32string_view text) {
         if (c == kItemNameEnd)
             continue;
         if (c >= kInlineKeyItem && c < kInlineKeyItem + 256) {
-            w += 5;
+            w += inline_item_advance(int(c - kInlineKeyItem));
             continue;
         }
         if (Chrome::is_item_token(c)) {

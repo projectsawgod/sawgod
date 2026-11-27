@@ -412,3 +412,46 @@ TEST_CASE("stat item notices show the native gain in both languages and clear on
         }
     }
 }
+
+#include "game/bank34.h"
+#include "game/bank35_world.h"
+#include "game/text_tokens.h"
+TEST_CASE("only the Orb combine failure selects the required hint and all other refusals stay shared") {
+    Wsc w(std::vector<uint8_t>(0x400000), 0);
+    fx::install(w);
+    load_names(w);
+    Machine m(w);
+    m.ss() = m.ds() = 0;
+    m.sp() = 0xC000;
+    ItemDialogUi ui;
+    ui.install(w);
+    hooks::emit(hooks::Event::InventoryMenu, m, {1});
+    struct ReachedWait {};
+    int reason = -1;
+    auto subscription =
+        Session::of(w).hooks().subscribe(hooks::Event::ItemMessage, [&](Machine &, const hooks::Args &args) {
+            if (args.a == 1) {
+                reason = args.b;
+                throw ReachedWait{};
+            }
+        });
+    for (int item : {21, 22, 0, 17, 20, 23, 31}) {
+        // Real failure and shared entry points, stopped at the presentation hook before the key wait.
+        std::fill(w.ram.begin() + 0xD000, w.ram.begin() + 0xD0A0, 255);
+        w.ram[0xD08C] = uint8_t(item);
+        try {
+            if (item == 21 || item == 22)
+                combine_progression_items_core(m);
+            else
+                wait_unusable_item_message_core(m);
+            FAIL("refusal did not reach its wait");
+        } catch (const ReachedWait &) {
+        }
+        CHECK(reason == (item == 21 || item == 22 ? 1 : 0));
+        CHECK(ui.view(w).notice == (reason ? marked_item_run(22, U"Nothing happened.") : U"No effect"));
+    }
+    // Built-in Japanese uses exactly the original words and supports the same literal token.
+    Session::of(w).text().clear();
+    CHECK(host_text(w, "ui_orb_pair_missing") ==
+          with_wsc_glyphs(marked_item_run(22, U"なにも　おきなかった")));
+}

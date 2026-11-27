@@ -689,8 +689,8 @@ TEST_CASE("key item marker: one ID predicate, explicit resource token and measur
     CHECK(Chrome::text_width(Chrome::item_run(20, U"Air Seed", true)) ==
           10 + Chrome::text_width(U"Air Seed"));
     const auto plain = expand_key_items(U"{key:item_17}", resolve);
-    CHECK(plain == U"King's Sword");
-    CHECK(text_width(plain) == text_width(U"King's Sword"));
+    CHECK(plain == marked_item_run(17, U"King's Sword"));
+    CHECK(text_width(plain) == 8 + text_width(U"King's Sword"));
     CHECK(Chrome::item_symbol(17, 29) == 1);
     CHECK(Chrome::item_symbol(18, 29) == 8);
     CHECK(Chrome::item_symbol(19, 29) == 9);
@@ -714,8 +714,8 @@ TEST_CASE("key item display text is literal, measured and wrapped as one run wit
     CHECK(std::any_of(wrapped.lines.begin(), wrapped.lines.end(),
                       [&](const auto &line) { return line.text.find(marked) != std::u32string::npos; }));
     const auto plain = expand_key_items(U"{key:item_17:King's Swords}", no_lookup);
-    CHECK(plain == U"King's Swords");
-    CHECK(text_width(plain) == text_width(U"King's Swords"));
+    CHECK(plain == marked_item_run(20, U"King's Swords"));
+    CHECK(text_width(plain) == 5 + text_width(U"King's Swords"));
     const auto literal = expand_key_items(U"{key:item_20:[D1] {key:literal}", no_lookup);
     const auto label = std::u32string(1, kLiteralBracket) + U"D1] " + kLiteralBrace + U"key:literal";
     CHECK(literal == marked_item_run(20, label));
@@ -734,7 +734,7 @@ TEST_CASE("key item display text is literal, measured and wrapped as one run wit
     REQUIRE(t.host("ui_battle_fight"));
     REQUIRE(t.host("ui_battle_run"));
     CHECK(*t.host("ui_battle_fight") == marked);
-    CHECK(*t.host("ui_battle_run") == U"Swords");
+    CHECK(*t.host("ui_battle_run") == marked_item_run(20, U"Swords"));
     REQUIRE(t.load("key,text\nitem_20,Renamed Seed\n", Charset::system(), &error, &warnings, nullptr, true,
                    true));
     CHECK(*t.host("ui_battle_fight") == marked);
@@ -759,7 +759,7 @@ TEST_CASE("key item resource references resolve names regardless of CSV order, i
     REQUIRE(t.host("ui_battle_fight"));
     CHECK(*t.host("ui_battle_fight") == marked_item_run(20, U"Air Seed") + U"!");
     REQUIRE(t.host("ui_battle_run"));
-    CHECK(*t.host("ui_battle_run") == U"King's Sword");
+    CHECK(*t.host("ui_battle_run") == marked_item_run(17, U"King's Sword"));
     REQUIRE(t.load("key,text\nui_battle_fight,{key:item_20}\nitem_20,Changed Seed\n", Charset::system(),
                    &error, &warnings, nullptr, true, true));
     CHECK(*t.host("ui_battle_fight") == marked_item_run(20, U"Changed Seed"));
@@ -770,4 +770,23 @@ TEST_CASE("key item resource references resolve names regardless of CSV order, i
                    nullptr, true, true));
     REQUIRE_FALSE(warnings.empty());
     CHECK(warnings.back().find("invalid or missing") != std::string::npos);
+}
+
+TEST_CASE("key token forms distinguish all item ID classes and preserve ordinary equipment arguments") {
+    for (int id = 0; id < 256; ++id) {
+        const auto name =
+            expand_key_items(utf8_to_u32("{key:item_" + std::to_string(id) + "}"), [](int) { return U"A"; });
+        const auto hint = expand_key_items(utf8_to_u32("{key:item_" + std::to_string(id) + ":A}"),
+                                           [](int) -> std::u32string {
+                                               FAIL("literal looked up");
+                                               return {};
+                                           });
+        const bool marked = is_marked_key_item(id) || is_kings_gear(id);
+        CHECK(name == (marked ? marked_item_run(id, U"A") : U"A"));
+        CHECK(hint == (marked ? marked_item_run(is_kings_gear(id) ? 20 : id, U"A") : U"A"));
+        CHECK(text_width(name) == text_width(U"A") + (marked ? inline_item_advance(id) : 0));
+        CHECK(Chrome::text_width(hint) == text_width(U"A") + (marked ? 5 : 0));
+        if (is_kings_gear(id))
+            CHECK(Chrome::item_run(id, U"A").front() == Chrome::kItemToken + id);
+    }
 }
