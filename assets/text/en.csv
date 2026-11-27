@@ -374,12 +374,12 @@ dlg_3572F0,"Mireille: ""I'm the worst, aren't I? I share Jeanne's face, but my h
 dlg_357356,"Sayaka: ""When you leave this world behind, don't forget about us, okay? ...I know you won't lose. I believe in you.""{wait}{clear}{name:2}: ""You bet! No matter what, we're not gonna lose!"""
 dlg_3573A8,"Man: ""Beyond that door lies the road to Paradise.""{wait}{clear}{name:3}: ""Just who are you...?"""
 dlg_3573DD,"Maiden: ""I'm so happy. I'm going to have his child.""{wait}{clear}{name:255}: ""Hey, congrats!"""
-dlg_357419,A black 
-dlg_357426,A blue 
-dlg_357433,A white 
-dlg_357440,A red 
-dlg_35744D,A fourfold 
-dlg_357454,{box}seal protects the door.
+dlg_357419,A {seal:black}black 
+dlg_357426,A {seal:blue}blue 
+dlg_357433,A {seal:white}white 
+dlg_357440,A {seal:red}red 
+dlg_35744D,A {seal:fourfold}fourfold 
+dlg_357454,{box}seal{/seal} protects the door.
 dlg_357465,"{name:2}: ""The seal's been broken!""{wait}"
 dlg_357483,The key to the locked door was hidden inside the Hero's Statue by a monster called Genbu.
 dlg_3574B4,Seek out the old man!
