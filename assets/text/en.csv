@@ -120,7 +120,7 @@ dlg_351E3C,0ヒび
 dlg_354AAD,"{name:2}: ""They're dead."""
 dlg_354ABE,{clear}Got the Crystal.{pause:32}
 dlg_354AD6,{box} obtained.{pause:32}
-dlg_354AFF,It's locked.
+dlg_354AFF,It's {key:item_24:locked}.
 dlg_354B0C,Unlocked.{wait}
 dlg_354B2A,Leave town and you're in lawless country.
 dlg_354B3D,Head southeast and you'll hit another town.
@@ -142,7 +142,7 @@ dlg_354E02,"Bandit Chief: ""Enough, enough! Have mercy!""{wait}{clear}{name:3}: 
 dlg_354E33,"Thank you so very much.{n}Now, at last, I can be happy."
 dlg_354E57,"""Thank you."""
 dlg_354EDE,"Sword King: ""You want this sword? Then come and take it!""{wait}"
-dlg_354F4E,King's Sword
+dlg_354F4E,{key:item_17}
 dlg_354F59,Hey! You look like trouble. Get out!{wait}
 dlg_354F75,"Shield King: ""I... wwwon't... ggive you... the shhhiellld."""
 dlg_354F95,"Minister: ""You wish to see the shield, do you? That treasure belongs to His Majesty! Now, off with you!"""
@@ -152,8 +152,8 @@ dlg_355023,"Minister: ""Eeeek!""{wait}"
 dlg_35503A,"{name:0}: ""What a pitiful end for a king. Betrayed by one of his own."""
 dlg_35505E,"W-wait! Wait, please! Wh-what do you want? Money? Name your price, I'll pay it!{wait}{clear}You can have this shield too! N-no, stop! Eeeek!{wait}"
 dlg_3550A9,"{name:1}: ""Scum like you are the worst!""{wait}"
-dlg_3550D5,King's Shield
-dlg_3550EC,"{name:0}: ""This statue's missing something..."""
+dlg_3550D5,{key:item_19}
+dlg_3550EC,"{name:0}: ""This statue's {key:item_17:missing something...}"""
 dlg_355107,A resplendent sight.
 dlg_355113,"This is the Hero's Town. You can't miss his statue, right in the middle!"
 dlg_35513C,The three kings of this world are at each other's throats. We've had nothing but war.
@@ -209,7 +209,7 @@ dlg_3556EA,"Here, take this.{wait}"
 dlg_3556F8,It will open the door in the Tower.{wait}
 dlg_355713,{key:item_22}
 dlg_35571B,"Here, take... Ah, you already took it."
-dlg_355745,You're unable to breathe!{wait}
+dlg_355745,You're {key:item_20:unable to breathe!}{wait}
 dlg_355758,"You can breathe, thanks to the {key:item_20}!{wait}"
 dlg_35577E,This isn't it! This one's a fake!{wait}
 dlg_355796,This is it! It's the real one!{wait}
@@ -337,7 +337,7 @@ dlg_356C66,"{name:0}: ""Stay with me!""{wait}{clear}Biker: ""...Sayaka... she's 
 dlg_356C99,"{name:3}: ""Hey! Where's Suzaku?!""{wait}{clear}Passenger: ""Over to the left."""
 dlg_356CB7,"{name:255}: ""Give us the girl. Now!""{wait}"
 dlg_356CDD,"{name:1}: ""Where'd that creep run off to?!""{wait}{clear}{name:2}: ""Up there!""{wait}"
-dlg_356D02,"Suzaku: ""Nowhere to run, nowhere to hide! Time for your last rites!""{wait}{clear}{name:255}: ""Now! Use it now!"""
+dlg_356D02,"Suzaku: ""Nowhere to run, nowhere to hide! Time for your last rites!""{wait}{clear}{name:255}: ""Now! Use the {key:item_23} now!"""
 dlg_356D3C,"Suzaku: ""What are you waiting for? Come at me!"""
 dlg_356D4E,"Sayaka: ""{name:255}, run!"""
 dlg_356D61,"{name:3}: ""Moron! That barrier of yours is useless now!""{wait}"
@@ -407,7 +407,7 @@ dlg_3579D8,"{name:2}: ""Absolutely. 'Cause we took out every last bad guy!""{wai
 dlg_357A0C,"Everyone: ""Go where?""{wait}"
 dlg_357A1D,Back to our world!{wait}
 dlg_354E80,"{clear}{name:3}: ""Forget about the thanks. What about our reward?""{wait}{clear}King: ""Ah, yes. What would you have of me?""{wait}{clear}{name:3}: ""Well, um... that armor of yours...""{wait}{clear}King: ""I see. Very well!""{wait}"
-dlg_354ED2,King's Armor
+dlg_354ED2,{key:item_18}
 dlg_355534,{key:item_20}
 dlg_3559C5,This turf belongs to Byakko's Elite Guard. Get out while you're still breathing!{wait}
 dlg_3559FB,"{name:0}: ""Pipe down. You're ruining my drink.""{wait}{clear}Soldier: ""Why, you little punk!""{wait}"
@@ -1642,3 +1642,4 @@ ui_battle_esper_allow,Allow it?
 ui_battle_esper_yes,Yes
 ui_battle_esper_no,No
 ui_battle_esper_kept,No change.
+ui_orb_pair_missing,{key:item_22:Nothing happened.}
