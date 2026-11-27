@@ -23,7 +23,7 @@ TouchLayout TouchLayout::make(float width, float height, float picture_width, SD
     const float bar = std::max(0.0f, (width - picture_width) / 2);
     const float gap = 16 * s;
     const float right_edge = safe.x + safe.w;
-    const float pad = std::max(320 * s, 120 * minimum);
+    float pad = std::max(320 * s, 120 * minimum);
     const float button = std::max(172 * s, 120 * minimum);
     const float top = std::max(120 * s, 120 * minimum * 48 / 57);
     const float spacing = std::max(160 * s, top * 1.2f);
@@ -51,23 +51,85 @@ TouchLayout TouchLayout::make(float width, float height, float picture_width, SD
     // The right edge wins when the minimum cluster is wider than its bar.
     auto &start_area = l.areas[size_t(TouchControl::Start)];
     start_area.x = std::min(start_area.x, right_edge - start * 1.1f);
-    // Pads retain their height-based reference size even when the bar is narrow.
-    // Translate inward only far enough to keep the full hit target inside the safe edge.
-    const float pad_radius = pad * .6f;
-    const float left = center(bar / 2, safe.x + pad_radius, bar - gap - pad_radius);
-    float y_pad = safe.y + 415 * s;
-    for (auto c : {TouchControl::Options, TouchControl::Mode}) {
-        const auto a = l.areas[size_t(c)];
-        const float dx = left - a.x, radii = pad_radius + a.hit_radius;
-        if (std::abs(dx) < radii)
-            y_pad = std::max(y_pad, a.y + std::sqrt(radii * radii - dx * dx));
-    }
-    put(TouchControl::Y, left, y_pad, pad, pad);
-    put(TouchControl::X, left, std::max(safe.y + 800 * s, y_pad + 2 * pad_radius), pad, pad);
     const float right = std::min(right_edge - button * .6f,
                                  std::max(width - bar / 2 + 92 * s, width - bar + gap + dx + button * .6f));
     put(TouchControl::A, right, safe.y + 700 * s, button, button);
     put(TouchControl::B, right - dx, safe.y + 700 * s + std::max(170 * s, dx * 170 / 172), button, button);
+    // A very short safe area can clamp both buttons onto the same row.
+    auto &a = l.areas[size_t(TouchControl::A)];
+    auto &b = l.areas[size_t(TouchControl::B)];
+    const float button_radii = button * 1.2f;
+    if (dx < button_radii) {
+        const float separation = std::sqrt(button_radii * button_radii - dx * dx);
+        if (b.y - a.y < separation) {
+            const float start_dx = std::max(0.f, std::abs(a.x - start_area.x) - start / 2);
+            const float start_radii = (button + start) * .6f;
+            const float raised_y = b.y - separation;
+            if (raised_y >= safe.y + button * .6f &&
+                std::hypot(start_dx, raised_y - start_area.y) >= start_radii) {
+                a.y = raised_y;
+            } else {
+                // If raising A would hit Start or leave the safe top, use horizontal room.
+                const float start_dy = a.y - start_area.y;
+                if (std::hypot(start_dx, start_dy) < start_radii)
+                    a.x =
+                        start_area.x - start / 2 - std::sqrt(start_radii * start_radii - start_dy * start_dy);
+                const float dy = b.y - a.y;
+                b.x = std::min(b.x, a.x - std::sqrt(button_radii * button_radii - dy * dy));
+            }
+        }
+    }
+    // Pads retain their reference positions whenever the stack already fits.
+    // Translate inward only far enough to keep the full hit target inside the safe edge.
+    float left = 0, y_pad = 0, x_pad = 0;
+    auto pad_position = [&](float size, bool fit) {
+        const float r = size * .6f;
+        left = center(bar / 2, safe.x + r, bar - gap - r);
+        float minimum_y = safe.y + r;
+        for (auto c : {TouchControl::Options, TouchControl::Mode}) {
+            const auto &area = l.areas[size_t(c)];
+            const float distance = left - area.x, radii = r + area.hit_radius;
+            if (std::abs(distance) < radii)
+                minimum_y = std::max(minimum_y, area.y + std::sqrt(radii * radii - distance * distance));
+        }
+        y_pad = std::max(safe.y + 415 * s, minimum_y);
+        x_pad = std::max(safe.y + 800 * s, y_pad + 2 * r);
+        const float bottom = safe.y + safe.h - r;
+        if (fit) {
+            // Move Y up only as far as needed before considering smaller pads.
+            y_pad = std::max(minimum_y, std::min(y_pad, bottom - 2 * r));
+            x_pad = std::min(std::max(safe.y + 800 * s, y_pad + 2 * r), bottom);
+        }
+        if (y_pad + 2 * r > x_pad || x_pad > bottom || left + r > right_edge)
+            return false;
+        for (auto c : {TouchControl::Options, TouchControl::Mode, TouchControl::Start, TouchControl::A,
+                       TouchControl::B}) {
+            const auto &area = l.areas[size_t(c)];
+            const float distance = std::max(0.f, std::abs(left - area.x) - (area.w - area.h) / 2);
+            const float radii = r + (area.hit_radius > 0 ? area.hit_radius : area.h * .6f);
+            for (float y : {y_pad, x_pad})
+                if (std::hypot(distance, y - area.y) < radii - .001f)
+                    return false;
+        }
+        return true;
+    };
+    pad_position(pad, false);
+    if (x_pad > safe.y + safe.h - pad * .6f && !pad_position(pad, true)) {
+        // The top row and both pad hit circles must fit together. Physical floors
+        // yield to disjoint targets on unusually short safe areas; shrink both equally.
+        float low = 0, high = pad;
+        for (int i = 0; i < 32; ++i) {
+            const float mid = (low + high) / 2;
+            if (pad_position(mid, true))
+                low = mid;
+            else
+                high = mid;
+        }
+        pad = low;
+        pad_position(pad, true);
+    }
+    put(TouchControl::Y, left, y_pad, pad, pad);
+    put(TouchControl::X, left, x_pad, pad, pad);
     return l;
 }
 int TouchState::direction(float dx, float dy, float radius) {
