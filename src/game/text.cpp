@@ -545,6 +545,7 @@ bool TextTable::load(std::string_view csv, const Charset &charset, std::string *
             cell = name_utf8(expand_key_items(source, [&](int id) { return item_names.at(id); }));
         } else
             key_item_sources.erase(row[key_col]);
+        cell = name_utf8(expand_seals(utf8_to_u32(cell)));
         if (host_text_info(row[key_col])) { // a host string: kept as characters
             host[row[key_col]] = utf8_to_u32(row[text_col]);
             ++count;

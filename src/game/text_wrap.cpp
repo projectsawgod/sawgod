@@ -7,6 +7,29 @@
 #include <algorithm>
 namespace sawgod::game {
 namespace {
+// Each returned row can be drawn independently without losing an open seal's ink or repeating its orb.
+WrapResult seal_rows(WrapResult result, std::u32string_view source) {
+    if (source.find(U"{seal:") == source.npos && source.find(U"{/seal}") == source.npos &&
+        std::none_of(source.begin(), source.end(), is_seal_marker))
+        return result;
+    int seal = -1;
+    size_t previous = 0;
+    for (auto &line : result.lines) {
+        const auto gap = source.substr(previous, line.begin - previous);
+        if (gap.find(U"{clear}") != gap.npos || gap.find(U"{box}") != gap.npos)
+            seal = -1;
+        line.text = expand_seals(line.text);
+        if (seal >= 0)
+            line.text.insert(line.text.begin(), kSealInk + seal);
+        for (char32_t c : line.text)
+            if (c >= kInlineSeal && c < kInlineSeal + 5)
+                seal = int(c - kInlineSeal);
+            else if (c == kSealEnd)
+                seal = -1;
+        previous = line.end;
+    }
+    return result;
+}
 char32_t kana(char32_t c) {
     if (c >= 0xE000 && c < 0xE100) {
         static const auto charset = Charset::system();
@@ -153,7 +176,7 @@ WrapResult wrap_text(std::u32string_view source, int width, bool battle, bool ja
         return (c >= 0x3040 && c <= 0x30FF) || (c >= 0xE000 && c < 0xE0A0);
     });
     if (japanese || kana_text)
-        return wrap_japanese(source, width);
+        return seal_rows(wrap_japanese(source, width), source);
     struct Word {
         std::u32string text;
         size_t begin, end;
@@ -291,6 +314,6 @@ WrapResult wrap_text(std::u32string_view source, int width, bool battle, bool ja
     }
     if (!words.empty() || result.lines.empty() || boundary)
         flush(source.size());
-    return result;
+    return seal_rows(std::move(result), source);
 }
 } // namespace sawgod::game

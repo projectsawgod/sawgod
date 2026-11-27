@@ -130,8 +130,17 @@ std::vector<uint8_t> render(Machine &m, std::u32string_view text, int cells,
     size_t tab = 0;
     for (size_t i = 0; i < text.size(); ++i) {
         const char32_t c = text[i];
-        if (c == kItemNameEnd)
+        if (c == kItemNameEnd || c == kSealEnd || (c >= kSealInk && c < kSealInk + 5))
             continue;
+        if (c >= kInlineSeal && c < kInlineSeal + 5) {
+            // Native tile fallback uses the text palette, like key A. Host chrome owns the seal RGB inks.
+            for (int r = 0; r < 7; ++r)
+                for (int b = 0; b < 7 && x + kM5x7Left + b < w; ++b)
+                    if (kSealOrbArt[r * 7 + b] != '.')
+                        px[size_t(r * w + x + kM5x7Left + b)] = kStroke;
+            x += kSealAdvance;
+            continue;
+        }
         if (c >= kInlineKeyItem && c < kInlineKeyItem + 256) {
             const int id = int(c - kInlineKeyItem);
             if (is_kings_gear(id)) {
@@ -369,6 +378,9 @@ std::u32string utf8_to_u32(std::string_view s) {
 }
 
 int text_width(std::u32string_view text) {
+    if (text.find(U"{seal:") != text.npos || text.find(U"{/seal}") != text.npos)
+        if (const auto expanded = expand_seals(text); expanded != text)
+            return text_width(expanded);
     int w = 0;
     for (size_t i = 0; i < text.size(); ++i) {
         if (const DrawnToken t = drawn_token(text, i); t.len) {
@@ -380,8 +392,12 @@ int text_width(std::u32string_view text) {
             continue;
         }
         const char32_t c = text[i];
-        if (c == kItemNameEnd)
+        if (c == kItemNameEnd || c == kSealEnd || (c >= kSealInk && c < kSealInk + 5))
             continue;
+        if (c >= kInlineSeal && c < kInlineSeal + 5) {
+            w += kSealAdvance;
+            continue;
+        }
         if (c >= kInlineKeyItem && c < kInlineKeyItem + 256) {
             w += inline_item_advance(int(c - kInlineKeyItem));
             continue;

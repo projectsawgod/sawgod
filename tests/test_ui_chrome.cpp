@@ -807,3 +807,44 @@ TEST_CASE("King's named tokens keep equipment icons at cap top and eight pixel a
             CHECK(hint == key);
         }
 }
+
+TEST_CASE("seal chrome uses a seven-pixel orb, per-row ink and four GB grays") {
+    const uint32_t inks[] = {0x9696A8, 0x78B8FF, 0xFFEEC8, 0xE83830};
+    const uint32_t ramp[] = {0xFFF6C4, 0xFBE8AA, 0xF7D990, 0xF4CB76, 0xF0BD5C, 0xECAE42, 0xE8A028};
+    const uint32_t bodies[] = {0x9696A8, 0x78B8FF, 0xE6D6B4, 0xE83830, 0xFCC438};
+    const uint32_t shades[] = {0x5D5D68, 0x4A729E, 0x8F8570, 0x90231E, 0xD0881C};
+    const uint32_t lights[] = {0xCACAD4, 0xBCDCFF, 0xF2EADA, 0xF49C98, 0xFFEC96};
+    for (bool second : {false, true}) {
+        Wsc w(std::vector<uint8_t>(0x400000), 0);
+        fx::install(w);
+        w.set_second(second);
+        for (int seal = 0; seal < 5; ++seal) {
+            std::vector<uint32_t> pixels(224 * 144);
+            Chrome chrome(w, pixels, Wsc::ColorMode::Lcd, second);
+            chrome.text(std::u32string(1, kInlineSeal + seal) + U"H" + kSealEnd, 10, 20);
+            for (int row = 0; row < 7; ++row) {
+                for (int col = 0; col < 7; ++col) {
+                    const char c = kSealOrbArt[row * 7 + col];
+                    if (c != '.') {
+                        const auto expected = second     ? (c == 'S'   ? 0x505050
+                                                            : c == 'W' ? 0xA0A0A0
+                                                                       : 0xF0F0F0)
+                                              : c == 'W' ? bodies[seal]
+                                              : c == 'S' ? shades[seal]
+                                              : c == 'L' ? lights[seal]
+                                                         : 0xFFFFFF;
+                        CHECK(pixels[(20 + row) * 224 + 11 + col] == expected);
+                    }
+                }
+                // H's left stroke is present on every cap-to-baseline row, 10 px after the orb pen.
+                CHECK(pixels[(20 + row) * 224 + 21] == (second      ? 0xA0A0A0
+                                                        : seal == 4 ? ramp[row]
+                                                                    : inks[seal]));
+            }
+            CHECK(pixels[27 * 224 + 14] == (second ? 0 : 0x101010));
+            if (second)
+                for (auto pixel : pixels)
+                    CHECK((pixel == 0 || pixel == 0x505050 || pixel == 0xA0A0A0 || pixel == 0xF0F0F0));
+        }
+    }
+}

@@ -10,6 +10,61 @@
 #include "game/text_render.h"
 
 namespace sawgod::game {
+int seal_token(std::u32string_view text, size_t *length) {
+    if (length)
+        *length = 0;
+    constexpr std::u32string_view tokens[] = {U"{seal:black}", U"{seal:blue}",     U"{seal:white}",
+                                              U"{seal:red}",   U"{seal:fourfold}", U"{/seal}"};
+    for (int i = 0; i < 6; ++i)
+        if (text.starts_with(tokens[i])) {
+            if (length)
+                *length = tokens[i].size();
+            return i;
+        }
+    return -1;
+}
+std::u32string expand_seals(std::u32string_view text) {
+    std::u32string out;
+    for (size_t i = 0; i < text.size();) {
+        size_t length = 0;
+        const int seal = seal_token(text.substr(i), &length);
+        if (seal >= 0) {
+            out += kInlineSeal + seal;
+            i += length;
+        } else
+            out += text[i++];
+    }
+    return out;
+}
+int validate_seals(std::u32string_view text, std::vector<std::string> &errors, int open) {
+    for (size_t i = 0; i < text.size(); ++i) {
+        size_t key_length = 0;
+        if (key_item_token(text.substr(i), &key_length) >= 0) {
+            i += key_length - 1; // A key token's display text is literal, including opening braces.
+            continue;
+        }
+        if (!text.substr(i).starts_with(U"{seal:") && !text.substr(i).starts_with(U"{/seal"))
+            continue;
+        size_t length = 0;
+        const int seal = seal_token(text.substr(i), &length);
+        if (seal < 0)
+            errors.emplace_back(
+                "invalid seal token: expected black, blue, white, red or fourfold and closing }");
+        else if (seal == 5) {
+            if (open < 0)
+                errors.emplace_back("{/seal} with no open seal");
+            open = -1;
+        } else {
+            if (open >= 0)
+                errors.emplace_back("nested seal span");
+            open = seal;
+        }
+        if (length)
+            i += length - 1;
+    }
+    return open;
+}
+
 int key_item_token(std::u32string_view text, size_t *length, std::u32string_view *display) {
     if (length)
         *length = 0;

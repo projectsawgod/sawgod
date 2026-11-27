@@ -295,3 +295,21 @@ TEST_CASE("text fit: key display text validates literal labels without requiring
     CHECK(has(over, "dlg_1", "too wide"));
     CHECK(has(check_fit(base, "key,text\ndlg_1,{key:item_20:🦊}\n"), "dlg_1", "not in the font"));
 }
+
+TEST_CASE("text fit validates seal tokens and the five native continuation paths") {
+    const auto base = "key,text\ndlg_1,seal\nui_battle_fight,Fight\n";
+    CHECK(check_fit(base, "key,text\ndlg_1,{seal:blue}blue seal{/seal}\n").empty());
+    CHECK(check_fit(base, "key,text\nui_battle_fight,{seal:blue}seal{/seal}\n").empty());
+    for (const auto token :
+         {"{seal:green}seal{/seal}", "{/seal}", "{seal:black}{seal:blue}seal{/seal}", "{seal:red}seal"}) {
+        const auto issues = check_fit(base, "key,text\ndlg_1," + std::string(token) + "\n");
+        CHECK(std::any_of(issues.begin(), issues.end(), [](const auto &i) { return i.error; }));
+    }
+    const auto cross = "key,text\ndlg_357419,A {seal:black}black \n"
+                       "dlg_357426,A {seal:blue}blue \ndlg_357433,A {seal:white}white \n"
+                       "dlg_357440,A {seal:red}red \ndlg_35744D,A {seal:fourfold}fourfold \n"
+                       "dlg_357454,{box}seal{/seal} protects the door.\n";
+    CHECK(check_fit(cross, cross).empty());
+    const std::string wide(43, 'W');
+    CHECK(has(check_fit(base, "key,text\ndlg_1,{seal:black}" + wide + "{/seal}\n"), "dlg_1", "too wide"));
+}
