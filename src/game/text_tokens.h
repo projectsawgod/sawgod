@@ -26,6 +26,9 @@
 namespace sawgod::game {
 
 // Key-item presentation is shared by item rows, dialogue tokens and fit checks.
+constexpr bool is_kings_gear(int id) { return id >= 17 && id <= 19; }
+// Equipment keeps an eight-column reservation in both graphics styles; key A uses five.
+constexpr int inline_item_advance(int id) { return is_kings_gear(id) ? 8 : 5; }
 constexpr bool is_marked_key_item(int id) { return (id >= 20 && id <= 26) || id == 30 || id == 31; }
 inline constexpr std::string_view kKeyItemArt = "..HGG..."
                                                 ".HG#GS.."

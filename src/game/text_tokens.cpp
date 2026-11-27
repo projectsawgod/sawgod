@@ -44,7 +44,7 @@ int key_item_token(std::u32string_view text, size_t *length, std::u32string_view
     return id;
 }
 std::u32string marked_item_run(int id, std::u32string_view name) {
-    if (!is_marked_key_item(id))
+    if (!is_marked_key_item(id) && !is_kings_gear(id))
         return std::u32string(name);
     return std::u32string(1, kInlineKeyItem + id) + std::u32string(name) + kItemNameEnd;
 }
@@ -58,7 +58,8 @@ std::u32string expand_key_items(std::u32string_view text, const std::function<st
             if (!display.empty())
                 for (auto &c : label)
                     c = c == U'{' ? kLiteralBrace : c == U'[' ? kLiteralBracket : c;
-            out += marked_item_run(id, label);
+            // A requirement marks the words with key A, even when it requires equipment.
+            out += marked_item_run(!display.empty() && is_kings_gear(id) ? 20 : id, label);
             i += length;
         } else
             out += text[i++];

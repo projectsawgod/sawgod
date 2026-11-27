@@ -776,3 +776,34 @@ TEST_CASE("key A matches the locked bitmap, text shadow, inline placement and sc
                     CHECK(at(px, x, y) == at(plain, x, y));
     }
 }
+
+TEST_CASE("King's named tokens keep equipment icons at cap top and eight pixel advance while hints use key A") {
+    std::vector<uint8_t> rom(0x400000);
+    for (int symbol : {1, 8, 9}) {
+        rom[0x34C0E7 + symbol * 2] = uint8_t(0x80 + symbol);
+        rom[0x34C0E8 + symbol * 2] = 0x1E;
+        for (int y = 0; y < 8; ++y)
+            rom[0x392480 + symbol * 32 + y * 4] = 0x22;
+    }
+    Wsc w(rom, 0);
+    w.io[0xC0] = 3;
+    fx::install(w);
+    w.set_second(true);
+    for (bool gb : {false, true})
+        for (int id : {17, 18, 19}) {
+            std::vector<uint32_t> named(224 * 144, 0x123456), ordinary = named, hint = named, key = named;
+            Chrome n(w, named, Wsc::ColorMode::Raw, gb), o(w, ordinary, Wsc::ColorMode::Raw, gb),
+                h(w, hint, Wsc::ColorMode::Raw, gb), k(w, key, Wsc::ColorMode::Raw, gb);
+            n.text(marked_item_run(id, U"A") + U"!", 20, 30);
+            o.item(id, U"", gb && id == 19 ? 18 : 19, 30);
+            for (int y = 30; y < 38; ++y)
+                for (int x = 19; x < 27; ++x)
+                    CHECK(named[y * 224 + x] == ordinary[y * 224 + x]);
+            CHECK(named[31 * 224 + 29] == n.color(Chrome::Ink::KeyItem));
+            h.text(expand_key_items(utf8_to_u32("{key:item_" + std::to_string(id) + ":A}"),
+                                    [](int) { return U"unused"; }),
+                   20, 30);
+            k.text(marked_item_run(20, U"A"), 20, 30);
+            CHECK(hint == key);
+        }
+}

@@ -802,6 +802,12 @@ std::u32string host_text(emu::Wsc &w, std::string_view key, std::u32string_view 
             at += arg.size();
         }
     }
+    // Built-in host defaults can contain the same explicit references as loaded strings.
+    if (text.find(U"{key:") != std::u32string::npos)
+        text = expand_key_items(text, [&](int id) {
+            Machine m(w);
+            return name_text(m, NameTable::Item, uint8_t(id));
+        });
     return with_wsc_glyphs(text);
 }
 

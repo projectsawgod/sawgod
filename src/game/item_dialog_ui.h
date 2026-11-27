@@ -57,6 +57,7 @@ class ItemDialogUi {
     Context context_ = Context::Unknown;
     uint64_t generation_ = 0;
     int first_ = 0, gain_key_ = 0, gain_ = 0;
+    bool orb_pair_missing_ = false;
     DetailLine detail_;
     InventoryUi::View crystal_inventory_;
 };

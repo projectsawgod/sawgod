@@ -2779,7 +2779,7 @@ void combine_progression_items_core(Machine &m) {
         {
             const uint16_t caller_cs = m.cs();
             m.cs() = 0x4000;
-            wait_unusable_item_message_core(m);
+            wait_orb_pair_missing_message_core(m);
             m.cs() = caller_cs;
         };
     }

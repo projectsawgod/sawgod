@@ -331,7 +331,8 @@ void select_inventory_item_target_core(Machine &m);
 
 namespace sawgod::game {
 void wait_unusable_item_message_core(Machine &m);
-}
+void wait_orb_pair_missing_message_core(Machine &m);
+} // namespace sawgod::game
 
 namespace sawgod::game {
 void run_equipment_item_menu_core(Machine &m);

@@ -74,8 +74,9 @@ enum class Event : uint8_t {
     // D840 its slot), 2 an item granted in the field.
     ItemDialog,
     // A native item message: a = 0 dismissed, 1 unusable/no effect
-    // (wait_unusable_item_message), 2 already wearing equipment (wait_equipment_transfer_error),
-    // 3 stat gain (b = existing localized TextKey, c = actual amount); replaced on the next item use or exit.
+    // (wait_unusable_item_message; b = 1 only for the missing Orb pair), 2 already wearing equipment
+    // (wait_equipment_transfer_error), 3 stat gain (b = existing localized TextKey, c = actual amount);
+    // replaced on the next item use or exit.
     ItemMessage,
     // The meat reward menu (run_transformation_menu): a = 0 closed, 1 the drop announcement (waits for A),
     // 2 Eat/Don't (0xD714), 3 eater selection (0xD713; the native preview fills 0xD715/0xD716 and its stat
