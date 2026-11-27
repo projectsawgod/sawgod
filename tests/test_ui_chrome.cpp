@@ -777,7 +777,8 @@ TEST_CASE("key A matches the locked bitmap, text shadow, inline placement and sc
     }
 }
 
-TEST_CASE("King's named tokens keep equipment icons at cap top and eight pixel advance while hints use key A") {
+TEST_CASE(
+    "King's named tokens keep equipment icons at cap top and eight pixel advance while hints use key A") {
     std::vector<uint8_t> rom(0x400000);
     for (int symbol : {1, 8, 9}) {
         rom[0x34C0E7 + symbol * 2] = uint8_t(0x80 + symbol);

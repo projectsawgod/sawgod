@@ -1095,7 +1095,8 @@ void Chrome::text(std::u32string_view s, int x, int y, Ink ink, int max_width, W
                         run_ink = Ink(int(Ink::SealBlack) + seal);
                         if (orb) {
                             if (pen + kSealAdvance <= max_width)
-                                // Share the text pen's one-pixel ink inset: three clear pixels to the next glyph.
+                                // Share the text pen's one-pixel ink inset: three clear pixels to the next
+                                // glyph.
                                 seal_orb(seal, x + pen + kM5x7Left, y);
                             pen += kSealAdvance;
                         }
