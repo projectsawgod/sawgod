@@ -55,7 +55,6 @@ void ItemDialogUi::install(emu::Wsc &w, InventoryUi *inventory) {
         h.subscribe(hooks::Event::ItemMessage, [this, &w](Machine &, const hooks::Args &a) {
             frame(w);
             message_ = Message(std::clamp(a.a, 0, 3));
-            orb_pair_missing_ = message_ == Message::Unusable && a.b == 1;
             if (message_ == Message::Gain) {
                 gain_key_ = a.b;
                 gain_ = a.c;
@@ -96,9 +95,6 @@ ItemDialogUi::View ItemDialogUi::view(emu::Wsc &w) {
     View v;
     v.dialog = dialog_;
     v.message = message_;
-    if (message_ == Message::Unusable)
-        v.notice = orb_pair_missing_ ? host_text(w, "ui_orb_pair_missing")
-                                     : key_text(w, TextKey::wait_unusable_item_message_1);
     if (message_ == Message::Gain) {
         const auto key = TextKey(gain_key_);
         const auto raw = menu_text(w, key);
@@ -228,7 +224,7 @@ std::vector<uint32_t> ItemDialogUi::picture(emu::Wsc &w, emu::Wsc::ColorMode mod
         detail_.draw(c);
         return px;
     }
-    const auto message = v.message == Message::Unusable ? v.notice
+    const auto message = v.message == Message::Unusable ? key_text(w, TextKey::wait_unusable_item_message_1)
                          : v.message == Message::Wearing
                              ? key_text(w, TextKey::wait_equipment_transfer_error_1)
                              : v.notice;

@@ -209,7 +209,7 @@ dlg_3556EA,"Here, take this.{wait}"
 dlg_3556F8,It will open the door in the Tower.{wait}
 dlg_355713,{key:item_22}
 dlg_35571B,"Here, take... Ah, you already took it."
-dlg_355745,You're {key:item_20:unable to breathe!}{wait}
+dlg_355745,You're unable to {key:item_20:breathe!}{wait}
 dlg_355758,"You can breathe, thanks to the {key:item_20}!{wait}"
 dlg_35577E,This isn't it! This one's a fake!{wait}
 dlg_355796,This is it! It's the real one!{wait}
@@ -1642,4 +1642,3 @@ ui_battle_esper_allow,Allow it?
 ui_battle_esper_yes,Yes
 ui_battle_esper_no,No
 ui_battle_esper_kept,No change.
-ui_orb_pair_missing,{key:item_22:Nothing happened.}

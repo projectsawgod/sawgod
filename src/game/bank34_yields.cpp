@@ -1360,7 +1360,7 @@ void select_inventory_item_target(Machine &m) {
 }
 // Shared body of ROM 0x34281F
 // Display the unusable-item message and wait for any newly pressed key; registers preserved.
-static void wait_item_refusal_message(Machine &m, bool orb_pair_missing) {
+void wait_unusable_item_message_core(Machine &m) {
     menu_save(m);
     m.ax() = 0;
     m.bx() = 0x0E09;
@@ -1376,7 +1376,7 @@ static void wait_item_refusal_message(Machine &m, bool orb_pair_missing) {
     text_done(m, TextKey::wait_unusable_item_message_1);
     menu_sound(m, 0x2A);
     {
-        hooks::EventScope presentation(m, hooks::Event::ItemMessage, {1, orb_pair_missing ? 1 : 0});
+        hooks::EventScope presentation(m, hooks::Event::ItemMessage, {1});
         wait_menu_key(m);
     }
     m.ax() = 1;
@@ -1387,9 +1387,6 @@ static void wait_item_refusal_message(Machine &m, bool orb_pair_missing) {
     menu_restore(m);
     return;
 }
-
-void wait_unusable_item_message_core(Machine &m) { wait_item_refusal_message(m, false); }
-void wait_orb_pair_missing_message_core(Machine &m) { wait_item_refusal_message(m, true); }
 
 // rom: 0x34281F
 // Display the unusable-item message and wait for any newly pressed key; registers preserved.
