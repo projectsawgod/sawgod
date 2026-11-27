@@ -3,6 +3,7 @@
 #include "game/player_names.h"
 #include "game/session.h"
 #include "game/text_render.h"
+#include "game/text_tokens.h"
 #include "game/text_wrap.h"
 #include "game/ui_items.h"
 #include <algorithm>
@@ -10,6 +11,7 @@
 
 namespace sawgod::game {
 void DialogueUi::clear() {
+    seal_ = -1;
     lines_.assign(1, {});
     speaker_.clear();
     wrap_line_.clear();
@@ -56,6 +58,8 @@ void DialogueUi::next_line(Machine &m) {
         lines_.erase(lines_.begin());
     }
     lines_.emplace_back();
+    if (seal_ >= 0)
+        lines_.back() += kSealInk + seal_;
     wrap_line_.clear();
 }
 void DialogueUi::typed(Machine &m, char32_t code, std::u32string_view tail) {
@@ -102,6 +106,10 @@ void DialogueUi::typed(Machine &m, char32_t code, std::u32string_view tail) {
     if ((code == U' ' || code == U'\n') &&
         (lines_.back().empty() || (!wrap_line_.empty() && wrap_line_.back() == U' ')))
         return;
+    if (code >= kInlineSeal && code < kInlineSeal + 5)
+        seal_ = int(code - kInlineSeal);
+    else if (code == kSealEnd)
+        seal_ = -1;
     wrap_line_ += code;
     glyph(code == U'~' || code == U'\n' ? U' ' : code);
 }

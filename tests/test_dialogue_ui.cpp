@@ -249,3 +249,59 @@ TEST_CASE("dialogue predicts every speaker from the live stream before typing, i
         CHECK(clears == 2);
     }
 }
+
+#include "game/text_tokens.h"
+TEST_CASE("seal ink crosses native runs, follows wrapped lines and resets with its message or clear") {
+    Wsc w(std::vector<uint8_t>(0x400000), 0);
+    chrome_fixture::install(w);
+    Machine m(w);
+    auto &session = Session::of(w);
+    std::string error;
+    REQUIRE(session.text().load("key,text\ndlg_357419,A {seal:black}black \n"
+                                "dlg_357454,{box}seal{/seal} protects the door.\n",
+                                Charset::system(), &error, nullptr, nullptr, true));
+    DialogueUi ui;
+    ui.install(w);
+    w.io[0xB2] |= 0x10;
+    hooks::emit(hooks::Event::Dialogue, m, {1});
+    auto type_run = [&](uint32_t address) {
+        const auto start = uint16_t(session.text().dialogue(address));
+        for (uint16_t pos = start; !session.text().dialogue_end(pos); ++pos) {
+            const auto byte = session.text().byte(pos);
+            // interpret_field_dialogue consumes a run's initial 0x0C without drawing a token.
+            if (pos == start && byte == 0x0C)
+                continue;
+            m.wr16(0, 0x100, pos);
+            m.wr16(0, 0x102, kTextSegment);
+            session.dialogue_frame(m, 0x100);
+            token(m, session.dialogue_character(uint8_t(byte - 0x20)));
+        }
+    };
+    type_run(0x357419);
+    type_run(0x357454);
+    REQUIRE(ui.lines().size() == 1);
+    CHECK(ui.lines()[0] == expand_seals(U"A {seal:black}black seal{/seal} protects the door."));
+    auto px = ui.picture(w, Wsc::ColorMode::Raw);
+    CHECK(std::find(px.begin(), px.end(), 0x9696A8) != px.end());
+    for (const int reset : {0, 0x0E, 0x0C}) {
+        token(m, kInlineSeal);
+        if (reset == 0) {
+            hooks::emit(hooks::Event::Dialogue, m, {0});
+            hooks::emit(hooks::Event::Dialogue, m, {1});
+        } else
+            hooks::emit(hooks::Event::Dialogue, m, {2, reset});
+        for (auto c : std::u32string(U"The seal's been broken!"))
+            token(m, c);
+        hooks::emit(hooks::Event::Dialogue, m, {2, 13});
+        token(m, U'H');
+        CHECK(ui.lines().back() == U"H");
+        px = ui.picture(w, Wsc::ColorMode::Raw);
+        CHECK(std::find(px.begin(), px.end(), 0x9696A8) == px.end());
+    }
+    hooks::emit(hooks::Event::Dialogue, m, {1});
+    token(m, kInlineSeal + 3);
+    token(m, U'H');
+    hooks::emit(hooks::Event::Dialogue, m, {2, 13});
+    token(m, U'H');
+    CHECK(ui.lines().back() == std::u32string(1, kSealInk + 3) + U"H");
+}

@@ -49,6 +49,26 @@ constexpr char32_t literal_glyph(char32_t c) {
 std::u32string marked_item_run(int id, std::u32string_view name);
 std::u32string expand_key_items(std::u32string_view text, const std::function<std::u32string(int)> &name);
 
+// Seal spans may continue into the next native dialogue run of the same message.
+inline constexpr char32_t kInlineSeal = 0xF0310, kSealEnd = kInlineSeal + 5,
+                          kSealInk = 0xF0320; // continuation ink, without another orb
+inline constexpr int kSealAdvance = 10;       // seven columns plus three pixels of space
+inline constexpr std::string_view kSealOrbArt = "..WWW.."
+                                                ".WHLWW."
+                                                "WHHLWWS"
+                                                "WLLWWWS"
+                                                "WWWWWSS"
+                                                ".WWWSS."
+                                                "..SSS..";
+// 0..4: black, blue, white, red, fourfold; 5: close; -1: not a valid seal token.
+int seal_token(std::u32string_view text, size_t *length = nullptr);
+std::u32string expand_seals(std::u32string_view text);
+constexpr bool is_seal_marker(char32_t c) {
+    return (c >= kInlineSeal && c <= kSealEnd) || (c >= kSealInk && c < kSealInk + 5);
+}
+// Returns the final open seal, or -1; errors include unknown names, unmatched closes and nesting.
+int validate_seals(std::u32string_view text, std::vector<std::string> &errors, int open = -1);
+
 class Machine;
 struct TextMessage;
 enum class TextKey : uint16_t;

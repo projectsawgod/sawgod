@@ -790,3 +790,51 @@ TEST_CASE("key token forms distinguish all item ID classes and preserve ordinary
             CHECK(Chrome::item_run(id, U"A").front() == Chrome::kItemToken + id);
     }
 }
+
+TEST_CASE("seal tokens parse, validate cross-run spans and reserve ten pixels") {
+    const std::u32string_view names[] = {U"black", U"blue", U"white", U"red", U"fourfold"};
+    for (int seal = 0; seal < 5; ++seal) {
+        const auto token = U"{seal:" + std::u32string(names[seal]) + U"}";
+        size_t length = 0;
+        CHECK(seal_token(token + U"x", &length) == seal);
+        CHECK(length == token.size());
+        const auto span = token + U"seal{/seal}";
+        CHECK(text_width(span) == 10 + text_width(U"seal"));
+        CHECK(Chrome::text_width(expand_seals(span)) == 10 + Chrome::text_width(U"seal"));
+        std::vector<std::string> errors;
+        const int open = validate_seals(token + U"color ", errors);
+        CHECK(open == seal);
+        CHECK(validate_seals(U"{box}seal{/seal} protects the door.", errors, open) == -1);
+        CHECK(errors.empty());
+    }
+    for (const auto invalid : {U"{seal:green}", U"{seal:Black}", U"{seal:black", U"{seal:}"}) {
+        CHECK(seal_token(invalid) == -1);
+        std::vector<std::string> errors;
+        validate_seals(invalid, errors);
+        CHECK_FALSE(errors.empty());
+    }
+    for (const auto invalid : {U"{/seal}", U"{seal:red}{seal:black}"}) {
+        std::vector<std::string> errors;
+        validate_seals(invalid, errors);
+        CHECK_FALSE(errors.empty());
+    }
+    std::vector<std::string> literal_errors;
+    CHECK(validate_seals(U"{key:item_20:{seal:red}", literal_errors) == -1);
+    CHECK(literal_errors.empty());
+    const auto span = expand_seals(U"{seal:red}red seal{/seal}");
+    const auto wrapped = wrap_text(U"before " + span + U" after", Chrome::text_width(U"before red"));
+    CHECK(wrapped.lines.size() > 1);
+    for (const auto &line : wrapped.lines)
+        CHECK((line.text.empty() || line.text.back() != kInlineSeal + 3));
+    CHECK(std::any_of(wrapped.lines.begin(), wrapped.lines.end(), [](const auto &line) {
+        return line.text.find(std::u32string(1, kInlineSeal + 3) + U"red") != line.text.npos;
+    }));
+    CHECK(std::none_of(wrapped.lines.begin(), wrapped.lines.end(),
+                       [&](const auto &line) { return line.text.find(span) != line.text.npos; }));
+    CHECK(std::any_of(wrapped.lines.begin(), wrapped.lines.end(), [](const auto &line) {
+        return line.text.starts_with(std::u32string(1, kSealInk + 3) + U"seal");
+    }));
+    const auto cleared = wrap_text(expand_seals(U"{seal:red}red{clear}plain"), 214);
+    REQUIRE(cleared.lines.size() == 2);
+    CHECK(cleared.lines[1].text == U"plain");
+}

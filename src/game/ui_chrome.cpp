@@ -142,6 +142,8 @@ uint32_t Chrome::title_hint_faded(uint32_t full) const {
 }
 
 uint32_t Chrome::color(Ink ink, Window style) const {
+    if (ink >= Ink::SealBlack && ink <= Ink::SealFourfold)
+        return seal_ink(ink, 0);
     if (ink == Ink::KeyItem)
         return second_ ? 0x505050 : 0xFFD664;
     // The title's picture lettering uses palette 14: white strokes and a dark edge.
@@ -844,6 +846,64 @@ const char *Chrome::gb_item_icon(int symbol) {
 int Chrome::item_symbol(int id, int native_symbol) {
     return id == 17 ? 1 : id == 18 ? 8 : id == 19 ? 9 : native_symbol;
 }
+namespace {
+// Round rational palette components to nearest, ties to even.
+int seal_round(int numerator, int denominator) {
+    const int q = numerator / denominator, r = numerator % denominator;
+    return q + (2 * r > denominator || (2 * r == denominator && (q & 1)));
+}
+} // namespace
+uint32_t Chrome::seal_ink(Ink ink, int row) const {
+    if (second_)
+        return 0xA0A0A0;
+    constexpr uint32_t inks[] = {0x9696A8, 0x78B8FF, 0xFFEEC8, 0xE83830};
+    if (ink != Ink::SealFourfold)
+        return inks[int(ink) - int(Ink::SealBlack)];
+    // Cap row 0 through baseline row 6; descenders retain the baseline gold.
+    row = std::clamp(row, 0, 6);
+    uint32_t result = 0;
+    constexpr int top[] = {255, 246, 196}, bottom[] = {232, 160, 40};
+    for (int c = 0; c < 3; ++c)
+        result = (result << 8) | seal_round(top[c] * (6 - row) + bottom[c] * row, 6);
+    return result;
+}
+void Chrome::seal_orb(int seal, int x, int y) {
+    uint32_t body = seal_ink(Ink(int(Ink::SealBlack) + seal), 0), shade = 0, light = 0;
+    if (second_) {
+        body = 0xA0A0A0;
+        shade = 0x505050;
+        light = 0xF0F0F0;
+    } else if (seal == 4) {
+        body = 0xFCC438;
+        shade = 0xD0881C;
+        light = 0xFFEC96;
+    } else {
+        if (seal == 2) {
+            uint32_t pearl = 0;
+            for (int shift : {16, 8, 0})
+                pearl |= uint32_t(seal_round(int(body >> shift & 255) * 9, 10)) << shift;
+            body = pearl;
+        }
+        for (int shift : {16, 8, 0}) {
+            const int value = int(body >> shift & 255);
+            shade |= uint32_t(seal_round(value * 62, 100)) << shift;
+            light |= uint32_t(seal_round(value + 255, 2)) << shift;
+        }
+    }
+    for (int pass = second_ ? 1 : 0; pass < 2; ++pass)
+        for (int r = 0; r < 7; ++r)
+            for (int c = 0; c < 7; ++c) {
+                const char v = kSealOrbArt[r * 7 + c];
+                if (v != '.')
+                    pixel(x + c + (pass ? 0 : 1), y + r + (pass ? 0 : 1),
+                          !pass      ? 0x101010
+                          : v == 'W' ? body
+                          : v == 'S' ? shade
+                          : v == 'L' ? light
+                          : second_  ? 0xF0F0F0
+                                     : 0xFFFFFF);
+            }
+}
 void Chrome::key_icon(int x, int y) {
     constexpr auto art = kKeyItemArt;
     // Fixed bitmap pixels follow ordinary item icons into Enhanced, retaining the WSC shadow.
@@ -947,6 +1007,12 @@ void Chrome::text(std::u32string_view s, int x, int y, Ink ink, int max_width, W
                   bool cast_shadow) {
     if (!ready_)
         return;
+    if (s.find(U"{seal:") != s.npos || s.find(U"{/seal}") != s.npos) {
+        if (const auto expanded = expand_seals(s); expanded != s) {
+            text(expanded, x, y, ink, max_width, style, cast_shadow);
+            return;
+        }
+    }
     // Button tokens ({B} Back: engine/button_icons.h) draw as the icon of what the player presses, the runs
     // between them as text.
     if (s.find(U'{') != std::u32string_view::npos) {
@@ -1006,7 +1072,8 @@ void Chrome::text(std::u32string_view s, int x, int y, Ink ink, int max_width, W
     }
     // Scope the name ink to its argument; punctuation and following text retain their own ink.
     const auto marker = [](char32_t c) {
-        return is_item_token(c) || (c >= kInlineKeyItem && c < kInlineKeyItem + 256) || c == kItemNameEnd;
+        return is_item_token(c) || (c >= kInlineKeyItem && c < kInlineKeyItem + 256) || c == kItemNameEnd ||
+               is_seal_marker(c);
     };
     if (std::any_of(s.begin(), s.end(), marker)) {
         size_t begin = 0;
@@ -1019,7 +1086,21 @@ void Chrome::text(std::u32string_view s, int x, int y, Ink ink, int max_width, W
             text(run, x + pen, y, run_ink, std::max(0, max_width - pen), style, cast_shadow);
             pen += run.empty() ? 0 : text_width(run) - 2;
             if (i < s.size()) {
-                if (s[i] == kItemNameEnd) {
+                if (is_seal_marker(s[i])) {
+                    if (s[i] == kSealEnd)
+                        run_ink = ink;
+                    else {
+                        const bool orb = s[i] < kSealEnd;
+                        const int seal = int(s[i] - (orb ? kInlineSeal : kSealInk));
+                        run_ink = Ink(int(Ink::SealBlack) + seal);
+                        if (orb) {
+                            if (pen + kSealAdvance <= max_width)
+                                // Share the text pen's one-pixel ink inset: three clear pixels to the next glyph.
+                                seal_orb(seal, x + pen + kM5x7Left, y);
+                            pen += kSealAdvance;
+                        }
+                    }
+                } else if (s[i] == kItemNameEnd) {
                     run_ink = ink;
                 } else {
                     const bool list = is_item_token(s[i]);
@@ -1105,7 +1186,12 @@ void Chrome::text(std::u32string_view s, int x, int y, Ink ink, int max_width, W
     for (int r = 0; r < 10; ++r)
         for (int c = 0; c < width; ++c)
             if (const uint8_t v = mask[size_t(r * width + c)] & 15) {
-                text_pixel(x + c, y + r, v == kStroke ? stroke : shadow, v != kStroke, with_shadow);
+                text_pixel(
+                    x + c, y + r,
+                    v == kStroke
+                        ? (ink >= Ink::SealBlack && ink <= Ink::SealFourfold ? seal_ink(ink, r) : stroke)
+                        : shadow,
+                    v != kStroke, with_shadow);
                 if (x + c >= clip_left_ && x + c < clip_right_ &&
                     (y + r < clip_top_ || y + r >= clip_bottom_))
                     cut |= uint16_t(1u << r);

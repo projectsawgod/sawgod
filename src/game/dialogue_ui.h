@@ -47,6 +47,7 @@ class DialogueUi {
          speaker_decided_ = false;
     uint64_t generation_ = 0;
     int capacity_ = 4;
+    int seal_ = -1;
     uint32_t box_reads_ = 0; // Session::dialogue_reads() when the box opened or cleared
     const emu::Wsc *wsc_ = nullptr;
 };

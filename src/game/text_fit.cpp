@@ -98,7 +98,7 @@ std::vector<std::string> codes(const std::string &s, bool breaks) {
     std::vector<std::string> out;
     for (auto it = std::sregex_iterator(s.begin(), s.end(), code); it != std::sregex_iterator(); ++it) {
         const std::string c = it->str();
-        if (key_item_token(utf8_to_u32(c)) >= 0)
+        if (key_item_token(utf8_to_u32(c)) >= 0 || seal_token(utf8_to_u32(c)) >= 0)
             continue;
         if (breaks || (c != "{n}" && c != "{lf}"))
             out.push_back(c);
@@ -614,6 +614,7 @@ struct Expansion {
             const auto it = text.find("item_" + std::to_string(id));
             return it == text.end() ? std::u32string() : utf8_to_u32(it->second);
         }));
+        value = name_utf8(expand_seals(utf8_to_u32(value)));
         // the menus' value tokens at their widest, layout tokens without width of their own
         replace("{hp}", "999");
         replace("{maxhp}", "999");
@@ -909,6 +910,34 @@ std::vector<FitIssue> check_fit(std::string_view base_csv, std::string_view lang
                 issue(r, "", "missing item_" + std::to_string(id) + " name for {key:item_N}");
             at += length ? length : 1;
         }
+        // These five native runs continue into script 36, whose leading {box} preserves the pen.
+        // Validate each reachable span, rather than treating CSV row order as script flow.
+        constexpr std::string_view seal_colors[] = {"dlg_357419", "dlg_357426", "dlg_357433", "dlg_357440",
+                                                    "dlg_35744D"};
+        const bool color_run =
+            std::find(std::begin(seal_colors), std::end(seal_colors), r.key) != std::end(seal_colors);
+        std::vector<std::string> seal_errors;
+        if (r.key == "dlg_357454" && r.text.find("{/seal") != std::string::npos) {
+            for (const auto key : seal_colors) {
+                std::vector<std::string> prefix_errors;
+                const auto prefix = expansion.text.find(std::string(key));
+                const int open = prefix == expansion.text.end()
+                                     ? -1
+                                     : validate_seals(utf8_to_u32(prefix->second), prefix_errors);
+                validate_seals(source, seal_errors, open);
+            }
+        } else {
+            const int open = validate_seals(source, seal_errors);
+            if (open >= 0) {
+                const auto next = expansion.text.find("dlg_357454");
+                std::vector<std::string> continuation_errors;
+                if (!color_run || next == expansion.text.end() ||
+                    validate_seals(utf8_to_u32(next->second), continuation_errors, open) >= 0)
+                    seal_errors.emplace_back("unclosed seal span");
+            }
+        }
+        for (const auto &problem : seal_errors)
+            issue(r, "", problem);
         const Row &jp = *b->second;
         const auto surfaces = fit_surfaces(r.key, jp.text);
         const FitBudget budget = fit_budget(r.key, jp.text);
@@ -925,11 +954,12 @@ std::vector<FitIssue> check_fit(std::string_view base_csv, std::string_view lang
             }
         };
         // Characters the font can't draw (codes in braces aside).
-        const auto literal = name_utf8(expand_key_items(source, [](int) { return std::u32string(); }));
+        const auto literal =
+            name_utf8(expand_seals(expand_key_items(source, [](int) { return std::u32string(); })));
         const std::u32string chars = utf8_to_u32(std::regex_replace(literal, std::regex(R"(\{[^}]*\})"), ""));
         std::u32string missing;
         for (char32_t c : chars)
-            if (c != kItemNameEnd && !(c >= kInlineKeyItem && c < kInlineKeyItem + 256))
+            if (c != kItemNameEnd && !(c >= kInlineKeyItem && c < kInlineKeyItem + 256) && !is_seal_marker(c))
                 if (!Chrome::can_draw(c) && std::find(missing.begin(), missing.end(), c) == missing.end())
                     missing += c;
         if (!missing.empty())

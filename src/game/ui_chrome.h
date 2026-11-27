@@ -55,7 +55,12 @@ class Chrome {
         // carries the meaning; the GB picture has no color and draws Text.
         Higher,
         Lower,
-        KeyItem
+        KeyItem,
+        SealBlack,
+        SealBlue,
+        SealWhite,
+        SealRed,
+        SealFourfold
     };
 
     // How much of the title's white TitleHint (and its edge) has, in percent; the rest is the title page:
@@ -204,6 +209,8 @@ class Chrome {
     void gb_pattern(const char *const *rows, int height, int x, int y, bool flip, Draw &draw);
     void item_icon(int id, int x, int y);
     void key_icon(int x, int y);
+    void seal_orb(int seal, int x, int y);
+    uint32_t seal_ink(Ink ink, int row) const;
     std::vector<uint32_t> sprite_ink(int tile, int x, int y) const; // a sprite tile's opaque pixels
     int opacity_ = 100; // scoped coverage fade for the GB HP label's black ink
     void pixel(int x, int y, uint32_t color, int alpha = 100);
