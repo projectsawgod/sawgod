@@ -437,7 +437,7 @@ bool TextTable::load(std::string_view csv, const Charset &charset, std::string *
             *error = msg;
         return false;
     };
-    const auto rows = parse_csv(csv);
+    auto rows = parse_csv(csv);
     if (rows.empty())
         return fail("text: empty");
     const auto &head = rows[0];
@@ -471,6 +471,43 @@ bool TextTable::load(std::string_view csv, const Charset &charset, std::string *
     std::unordered_map<std::string, std::u32string> host = keep && !proportional ? host_ : decltype(host_)();
     auto layouts = keep ? layouts_ : decltype(layouts_)();
     auto icon_chars = keep ? icon_chars_ : decltype(icon_chars_)();
+    const size_t columns = head.size();
+    auto key_item_sources = keep ? key_item_sources_ : decltype(key_item_sources_)();
+    if (keep && proportional)
+        for (const auto &[key, source] : key_item_sources) {
+            const bool replaced = std::any_of(rows.begin() + 1, rows.end(), [&](const auto &row) {
+                return int(row.size()) > key_col && row[key_col] == key;
+            });
+            if (!replaced) {
+                std::vector<std::string> row(columns);
+                row[key_col] = key;
+                row[text_col] = source;
+                rows.push_back(std::move(row));
+            }
+        }
+    std::map<int, std::u32string> item_names;
+    if (keep)
+        for (int id = 0; id < 256; ++id) {
+            if (const auto n = names.find(id); n != names.end()) {
+                if (n->second.second >= 0)
+                    item_names[id] = runs[size_t(n->second.second)];
+                else
+                    for (size_t at = size_t(n->second.first); at < data.size() && data[at] != 0xFF; ++at)
+                        item_names[id] += utf8_to_u32(charset.decode(data[at]));
+                while (!item_names[id].empty() && item_names[id].back() == U'　')
+                    item_names[id].pop_back();
+            }
+        }
+    for (size_t r = 1; r < rows.size(); ++r) {
+        const auto &row = rows[r];
+        if (int(row.size()) <= std::max(key_col, text_col))
+            continue;
+        size_t length = 0;
+        const auto key = utf8_to_u32("{key:" + row[key_col] + "}");
+        const int id = key_item_token(key, &length);
+        if (id >= 0)
+            item_names[id] = utf8_to_u32(row[text_col]);
+    }
     int count = 0;
     for (size_t r = 1; r < rows.size(); ++r) {
         auto row = rows[r];
@@ -487,6 +524,27 @@ bool TextTable::load(std::string_view csv, const Charset &charset, std::string *
             if (!proportional)
                 at += 2;
         }
+        if (cell.find("{key:") != std::string::npos) {
+            const auto source = utf8_to_u32(cell);
+            bool valid = true;
+            for (size_t at = 0; (at = source.find(U"{key:", at)) != std::u32string::npos;) {
+                size_t length = 0;
+                std::u32string_view display;
+                const int id = key_item_token(std::u32string_view(source).substr(at), &length, &display);
+                if (id < 0 || (display.empty() && !item_names.contains(id))) {
+                    warn(row[key_col] +
+                         ": invalid or missing {key:item_N} / {key:item_N:Text} name (skipped)");
+                    valid = false;
+                    break;
+                }
+                at += length;
+            }
+            if (!valid)
+                continue;
+            key_item_sources[row[key_col]] = cell;
+            cell = name_utf8(expand_key_items(source, [&](int id) { return item_names.at(id); }));
+        } else
+            key_item_sources.erase(row[key_col]);
         if (host_text_info(row[key_col])) { // a host string: kept as characters
             host[row[key_col]] = utf8_to_u32(row[text_col]);
             ++count;
@@ -681,6 +739,7 @@ bool TextTable::load(std::string_view csv, const Charset &charset, std::string *
     names_ = std::move(names);
     records_ = std::move(records);
     host_ = std::move(host);
+    key_item_sources_ = std::move(key_item_sources);
     dialogue_chars_ = std::move(dialogue_chars);
     layouts_ = std::move(layouts);
     icon_chars_ = std::move(icon_chars);
@@ -706,6 +765,7 @@ void TextTable::clear() {
     original_names_.clear();
     original_records_.clear();
     host_.clear();
+    key_item_sources_.clear();
     layouts_.clear();
     icon_chars_.clear();
     proportional_ = false;

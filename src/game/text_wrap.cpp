@@ -2,6 +2,7 @@
 #include "game/player_names.h"
 #include "game/text.h"
 #include "game/text_render.h"
+#include "game/text_tokens.h"
 #include "game/ui_chrome.h"
 #include <algorithm>
 namespace sawgod::game {
@@ -224,6 +225,19 @@ WrapResult wrap_text(std::u32string_view source, int width, bool battle, bool ja
         return std::u32string_view(U".!?").find(words.back().text.back()) != std::u32string_view::npos;
     };
     for (size_t i = 0; i < source.size();) {
+        if (source[i] >= kInlineKeyItem && source[i] < kInlineKeyItem + 256) {
+            const size_t end = source.find(kItemNameEnd, i);
+            const size_t next = end == std::u32string_view::npos ? source.size() : end + 1;
+            if (words.empty() || space) {
+                words.push_back({{}, i, i, space});
+                space = false;
+            }
+            words.back().text += source.substr(i, next - i);
+            words.back().end = next;
+            i = next;
+            boundary = false;
+            continue;
+        }
         if (source[i] == U'{') {
             const size_t end = source.find(U'}', i);
             if (end != std::u32string_view::npos) {

@@ -1,5 +1,6 @@
 #pragma once
 #include "enhanced_picture.h"
+#include "game/text_tokens.h"
 #include "pilot_support.h"
 #include <algorithm>
 #include <cstdlib>
@@ -478,8 +479,11 @@ inline std::vector<std::string> audit(const std::vector<game::Chrome::Draw> &rec
             // GB style draws the GB icon of the item's WSC symbol (Chrome::gb_item_icon), paper left
             // open
             std::vector<uint32_t> shape;
-            const char *art = game::Chrome::gb_item_icon(native.rd8(0x9000, uint16_t(0x6EE0 + run.item)));
-            for (int y = 0; art && y < 8; ++y)
+            const bool key_item = game::is_marked_key_item(run.item);
+            const char *art = key_item ? game::kKeyItemArt.data()
+                                       : game::Chrome::gb_item_icon(game::Chrome::item_symbol(
+                                             run.item, native.rd8(0x9000, uint16_t(0x6EE0 + run.item))));
+            for (int y = 0; art && y < (key_item ? 7 : 8); ++y)
                 for (int x = 0; x < 8; ++x)
                     if (art[y * 8 + x] != '.')
                         shape.push_back(uint32_t((icon->y + y) * 224 + icon->x + x));
@@ -490,7 +494,9 @@ inline std::vector<std::string> audit(const std::vector<game::Chrome::Draw> &rec
         if (gb)
             for (auto at : icon->ink) {
                 const auto p = pixels[at];
-                if (p != 0 && p != 0x555555 && p != 0xAAAAAA && p != 0xFFFFFF) {
+                if (game::is_marked_key_item(run.item)
+                        ? p != 0xA0A0A0 && p != 0xF0F0F0
+                        : p != 0 && p != 0x555555 && p != 0xAAAAAA && p != 0xFFFFFF) {
                     errors.push_back("GB item icon contains a color outside its four grays");
                     break;
                 }
@@ -541,12 +547,24 @@ inline std::vector<std::string> audit(const std::vector<game::Chrome::Draw> &rec
              pixels[size_t((line + 2) * 224 + 100)] != 0))
             errors.push_back("GB chrome does not have black-gray-black border");
     }
-    if (gb)
-        for (uint32_t p : pixels)
-            if (p != 0 && p != 0x555555 && p != 0xAAAAAA && p != 0xFFFFFF) {
-                errors.push_back("GB picture contains a color outside its four grays");
+    if (gb) {
+        std::vector<bool> key_ink(pixels.size(), false);
+        for (const auto &d : draws) {
+            if (d.kind == Kind::ItemIcon && game::is_marked_key_item(d.item))
+                for (auto at : d.ink)
+                    key_ink[at] = pixels[at] == 0xA0A0A0 || pixels[at] == 0xF0F0F0;
+            if (d.kind == Kind::Text)
+                for (auto at : d.strokes)
+                    key_ink[at] = pixels[at] == 0x505050;
+        }
+        for (size_t at = 0; at < pixels.size(); ++at) {
+            const auto p = pixels[at];
+            if (p != 0 && p != 0x555555 && p != 0xAAAAAA && p != 0xFFFFFF && !key_ink[at]) {
+                errors.push_back("GB picture contains a color outside its four grays or key-item inks");
                 break;
             }
+        }
+    }
     auto pointer_draws = draws;
     if (m.dialog.active() && m.dialog.view(m.w).dialog == game::ItemDialogUi::Dialog::Crystals) {
         // Focus belongs to the icon-only pop-up, including empty slots: a count on the inventory behind

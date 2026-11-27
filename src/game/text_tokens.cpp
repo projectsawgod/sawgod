@@ -10,6 +10,61 @@
 #include "game/text_render.h"
 
 namespace sawgod::game {
+int key_item_token(std::u32string_view text, size_t *length, std::u32string_view *display) {
+    if (length)
+        *length = 0;
+    if (display)
+        *display = {};
+    constexpr std::u32string_view prefix = U"{key:item_";
+    if (!text.starts_with(prefix))
+        return -1;
+    size_t i = prefix.size();
+    int id = 0;
+    const size_t first = i;
+    for (; i < text.size() && text[i] >= U'0' && text[i] <= U'9'; ++i) {
+        id = id * 10 + int(text[i] - U'0');
+        if (id > 255)
+            return -1;
+    }
+    if (i == first || i >= text.size() || (i - first > 1 && text[first] == U'0'))
+        return -1;
+    std::u32string_view label;
+    if (text[i] == U':') {
+        const size_t begin = ++i;
+        i = text.find(U'}', begin);
+        if (i == std::u32string_view::npos || i == begin)
+            return -1;
+        label = text.substr(begin, i - begin);
+    } else if (text[i] != U'}')
+        return -1;
+    if (length)
+        *length = i + 1;
+    if (display)
+        *display = label;
+    return id;
+}
+std::u32string marked_item_run(int id, std::u32string_view name) {
+    if (!is_marked_key_item(id))
+        return std::u32string(name);
+    return std::u32string(1, kInlineKeyItem + id) + std::u32string(name) + kItemNameEnd;
+}
+std::u32string expand_key_items(std::u32string_view text, const std::function<std::u32string(int)> &name) {
+    std::u32string out;
+    for (size_t i = 0; i < text.size();) {
+        size_t length = 0;
+        std::u32string_view display;
+        if (const int id = key_item_token(text.substr(i), &length, &display); id >= 0) {
+            std::u32string label = display.empty() ? name(id) : std::u32string(display);
+            if (!display.empty())
+                for (auto &c : label)
+                    c = c == U'{' ? kLiteralBrace : c == U'[' ? kLiteralBracket : c;
+            out += marked_item_run(id, label);
+            i += length;
+        } else
+            out += text[i++];
+    }
+    return out;
+}
 
 namespace {
 
