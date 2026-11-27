@@ -115,6 +115,40 @@ TEST_CASE("touch: all sizes follow height with physical floors and safe disjoint
     struct Case {
         float w, h, density, left, bottom;
     };
+    // Frozen centers from the pre-fix layout, in TouchControl order.
+    const float centers[][7][2] = {
+        {{48, 86.666672f},
+         {154.666672f, 86.666672f},
+         {1024, 86.666672f},
+         {128, 276.666687f},
+         {128, 533.333374f},
+         {1043.19995f, 466.666687f},
+         {928.533264f, 580}},
+        {{72, 130}, {232, 130}, {1788, 130}, {192, 415}, {192, 800}, {1816.80005f, 700}, {1644.80005f, 870}},
+        {{203.600006f, 130},
+         {363.600006f, 130},
+         {2220, 130},
+         {320, 415},
+         {320, 800},
+         {2296.80005f, 700},
+         {2124.80005f, 870}},
+        {{203.600006f, 130},
+         {363.600006f, 130},
+         {2220, 130},
+         {320, 415},
+         {320, 800},
+         {2296.80005f, 700},
+         {2124.80005f, 870}},
+        {{108.399994f, 130},
+         {268.399994f, 130},
+         {2220, 130},
+         {192, 415},
+         {192, 800},
+         {2296.80005f, 700},
+         {2124.80005f, 870}},
+        {{112, 130}, {272, 130}, {1788, 130}, {232, 415}, {232, 800}, {1816.80005f, 700}, {1644.80005f, 870}},
+    };
+    size_t case_index = 0;
     for (const auto c : {Case{1112, 720, 1, 0, 0}, Case{1920, 1080, 2.25f, 0, 0},
                          Case{2400, 1080, 2.625f, 128, 0}, Case{2400, 1080, 2.625f, 128, 63},
                          Case{2400, 1080, 2.625f, 0, 0}, Case{1920, 1080, 2.25f, 40, 40}}) {
@@ -125,6 +159,8 @@ TEST_CASE("touch: all sizes follow height with physical floors and safe disjoint
         check_disjoint(l);
         for (size_t i = 0; i < l.areas.size(); ++i) {
             const auto a = l.areas[i];
+            CHECK(a.x == doctest::Approx(centers[case_index][i][0]));
+            CHECK(a.y == doctest::Approx(centers[case_index][i][1]));
             const bool top = i <= size_t(TouchControl::Start);
             const bool pad = i == size_t(TouchControl::X) || i == size_t(TouchControl::Y);
             const float expected = std::max((top ? 120 : pad ? 320 : 172) * s, (top ? 48 : 57) * c.density);
@@ -143,9 +179,66 @@ TEST_CASE("touch: all sizes follow height with physical floors and safe disjoint
         CHECK(l.areas[size_t(TouchControl::B)].y == doctest::Approx(870 * s));
         if (c.left > 0 || c.w / c.h < 2)
             CHECK(l.areas[size_t(TouchControl::X)].x + 192 * s > picture.x);
+        ++case_index;
     }
     CHECK(TouchLayout::make(960, 540, 840, {0, 0, 960, 540}).areas[size_t(TouchControl::X)].w == 160);
-    CHECK(TouchLayout::make(1920, 1080, 1680, {0, 0, 1920, 1080}, 3).areas[size_t(TouchControl::X)].w == 360);
+    // This oversized floor already overlapped before the fix; it must yield to safe geometry.
+    const auto oversized = TouchLayout::make(1920, 1080, 1680, {0, 0, 1920, 1080}, 3);
+    check_disjoint(oversized);
+    CHECK(oversized.areas[size_t(TouchControl::X)].w < 360);
+}
+
+TEST_CASE("touch: top and bottom insets fit the pad stack before shrinking") {
+    struct Case {
+        float w, h, density, left, top, bottom;
+        bool shrink, below_floor = false;
+    };
+    for (const auto c :
+         {Case{1920, 1080, 2.625f, 0, 72, 63, true}, Case{2400, 1080, 2.625f, 128, 72, 63, true},
+          Case{1920, 1080, 2.625f, 0, 110, 63, true}, Case{1280, 720, 2, 0, 48, 42, true},
+          Case{1920, 1080, 2.625f, 0, 200, 340, true, true}, Case{1920, 1080, 2.625f, 0, 40, 64, false},
+          Case{1920, 1080, 2.625f, 0, 300, 380, true, true}}) {
+        INFO(c.w, "x", c.h, " top=", c.top, " bottom=", c.bottom);
+        const SDL_FRect safe{c.left, c.top, c.w - c.left, c.h - c.top - c.bottom};
+        const auto picture = app::GameRect(int(c.w), int(c.h));
+        const auto layout = TouchLayout::make(c.w, c.h, picture.w, safe, 57 * c.density / 120);
+        const auto &y = layout.areas[size_t(TouchControl::Y)];
+        const auto &x = layout.areas[size_t(TouchControl::X)];
+        const float r = y.h * .6f;
+        check_disjoint(layout);
+        CHECK(x.y - y.y >= 2 * r - .001f);
+        CHECK(x.h == y.h);
+        CHECK(x.w == y.w);
+        CHECK(y.w == y.h);
+        CHECK(y.h > 0);
+        for (const auto pad : {x, y}) {
+            CHECK(pad.x - r >= safe.x - .001f);
+            CHECK(pad.x + r <= safe.x + safe.w + .001f);
+            CHECK(pad.y - r >= safe.y - .001f);
+            CHECK(pad.y + r <= safe.y + safe.h + .001f);
+        }
+        if (c.below_floor) {
+            CHECK(y.h < 57 * c.density); // Even the physical floor cannot fit here.
+            const auto &a = layout.areas[size_t(TouchControl::A)];
+            const auto &b = layout.areas[size_t(TouchControl::B)];
+            // The right-side fallback also stays inside the safe area.
+            for (const auto button : {a, b}) {
+                const float br = button.h * .6f;
+                CHECK(button.y - br >= safe.y - .001f);
+                CHECK(button.y + br <= safe.y + safe.h + .001f);
+                CHECK(button.x - br >= safe.x - .001f);
+                CHECK(button.x + br <= safe.x + safe.w + .001f);
+            }
+        } else {
+            CHECK(y.h >= 57 * c.density);
+        }
+        if (c.shrink)
+            CHECK(y.h < 320 * c.h / 1080);
+        else
+            CHECK(y.h == doctest::Approx(320 * c.h / 1080));
+        CHECK(y.y == doctest::Approx(safe.y + safe.h - 3 * r));
+        CHECK(x.y == doctest::Approx(safe.y + safe.h - r));
+    }
 }
 
 TEST_CASE("touch: saved Auto On Off honors controller hotplug and excludes its own joystick") {
